@@ -3146,6 +3146,32 @@ class ArenaScene extends Phaser.Scene {
             individual.offsetX = (Math.random() - .5) * FOLLOW_RADIUS * 2;
             individual.offsetY = (Math.random() - .5) * FOLLOW_RADIUS * 2;
           }
+          // 적 개체 반발: 아군은 적 슬라임과 겹치지 않음
+          const enemies = group.isPlayer ? this.aiGroups : (this.player.state !== 'battle' ? [this.player] : []);
+          const REPEL_R = 36, REPEL_F = baseSpeed * 2.5;
+          for (const eg of enemies) {
+            if (Math.hypot(eg.x - group.x, eg.y - group.y) > 300) continue; // 먼 집단 스킵
+            for (const foe of eg.individuals) {
+              const ex = individual.x - foe.x, ey = individual.y - foe.y;
+              const ed = Math.hypot(ex, ey) || 1;
+              if (ed < REPEL_R) {
+                const f = (1 - ed / REPEL_R) * REPEL_F;
+                individual.x += ex / ed * f;
+                individual.y += ey / ed * f;
+              }
+            }
+          }
+          // 보스 반발: 보스 스프라이트와 겹치지 않음
+          if (this.bossEntity) {
+            const bx = individual.x - this.bossEntity.x, by = individual.y - this.bossEntity.y;
+            const bd = Math.hypot(bx, by) || 1;
+            const BOSS_REPEL = 90;
+            if (bd < BOSS_REPEL) {
+              const f = (1 - bd / BOSS_REPEL) * baseSpeed * 3;
+              individual.x += bx / bd * f;
+              individual.y += by / bd * f;
+            }
+          }
         }
       }
     }
@@ -3612,10 +3638,9 @@ class ArenaScene extends Phaser.Scene {
   if (this.elapsed >= this.bossPhaseUntil) this.resolveBoss(false, 'retreat');
   }
 
-// 턴제 전투: 2.5초마다 보스가 최대 10마리를 동시 타격 + 안전 개체 반격
+// 턴제 전투: 2.5초마다 보스가 범위 내 모든 집단의 최대 10마리씩 동시 타격
 bossCombatTick(dt) {
-  const boss = this.activeBoss, g = this.player, b = this.bossEntity;
-  if (!g.individuals.length) return;
+  const boss = this.activeBoss, b = this.bossEntity;
   const TURN_MS = 2500;
   b.turnTimer += dt;
 
@@ -3627,25 +3652,35 @@ bossCombatTick(dt) {
   if (b.turnTimer < TURN_MS) return;
   b.turnTimer -= TURN_MS;
 
-  const safeFn = (i) => boss.safe(i, g);
+  // 범위 내 모든 집단 처리 (플레이어 + AI)
+  const inRange = [this.player, ...this.aiGroups].filter(g =>
+    g.individuals.length > 0 &&
+    Math.hypot(b.x - g.x, b.y - g.y) <= BOSS_RANGE
+  );
 
-  // 보스 공격: 미충족 개체 최대 10마리 동시 타격 (20 HP)
-  const unsafe = g.individuals.filter(i => !safeFn(i));
-  const hitN = Math.min(10, unsafe.length);
-  for (let k = 0; k < hitN; k++) {
-    unsafe[k].hp -= 20;
-    if (unsafe[k].hp <= 0) unsafe[k].dead = true;
+  let totalHit = 0, totalCounter = 0;
+  for (const g of inRange) {
+    const safeFn = (i) => boss.safe(i, g);
+    // 보스 공격: 미충족 개체 최대 10마리 (20 HP)
+    const unsafe = g.individuals.filter(i => !safeFn(i));
+    const hitN = Math.min(10, unsafe.length);
+    for (let k = 0; k < hitN; k++) {
+      unsafe[k].hp -= 20;
+      if (unsafe[k].hp <= 0) unsafe[k].dead = true;
+    }
+    g.individuals = g.individuals.filter(i => !i.dead);
+    totalHit += hitN;
+    // 반격: 안전 개체 수 × 3
+    totalCounter += g.individuals.filter(safeFn).length * 3;
   }
-  g.individuals = g.individuals.filter(i => !i.dead);
-  if (hitN > 0) {
-    this.burst(g.x, g.y, 0xff3333, 12, 100);
+
+  if (totalHit > 0) {
+    this.burst(this.player.x, this.player.y, 0xff3333, 12, 100);
     this.cameras.main.shake(150, 0.007);
-    if (this.showToast) this.showToast(`${boss.ico} 공격! ${hitN}마리 피해`, 'warn');
+    if (this.showToast) this.showToast(`${boss.ico} 공격! ${totalHit}마리 피해`, 'warn');
   }
 
-  // 반격: 안전 개체 수 × 3 피해
-  const safeCount = g.individuals.filter(safeFn).length;
-  b.hp -= safeCount * 3;
+  b.hp -= totalCounter;
   if (b.hp <= 0) this.resolveBoss(true);
 }
 
