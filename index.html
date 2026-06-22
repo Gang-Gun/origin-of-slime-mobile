@@ -3163,28 +3163,43 @@ class ArenaScene extends Phaser.Scene {
             individual.offsetX = (Math.random() - .5) * FOLLOW_RADIUS * 2;
             individual.offsetY = (Math.random() - .5) * FOLLOW_RADIUS * 2;
           }
-          // 하드 분리: 적 슬라임과 절대 겹치지 않음 (즉시 경계로 밀어냄)
+          // AABB 분리: 실제 스프라이트 픽셀 크기 기준으로 겹침 해소
+          // 슬라임 텍스처: 64×40px (S=4, 16×10셀), 반폭=32, 반높이=20
+          const SLIME_HW = 32, SLIME_HH = 20;
+          const scaleI = clamp(0.55 + individual.stats.hp / 100 * 0.40, 0.60, 1.55);
+          const hwI = SLIME_HW * scaleI, hhI = SLIME_HH * scaleI;
+
           const enemies = group.isPlayer ? this.aiGroups : (this.player.state !== 'battle' ? [this.player] : []);
-          const HARD_ENEMY = 40;
           for (const eg of enemies) {
-            if (Math.hypot(eg.x - group.x, eg.y - group.y) > 400) continue;
+            if (Math.hypot(eg.x - group.x, eg.y - group.y) > 500) continue;
             for (const foe of eg.individuals) {
               const ex = individual.x - foe.x, ey = individual.y - foe.y;
-              const ed = Math.hypot(ex, ey) || 1;
-              if (ed < HARD_ENEMY) {
-                individual.x = foe.x + (ex / ed) * HARD_ENEMY;
-                individual.y = foe.y + (ey / ed) * HARD_ENEMY;
+              const scaleF = clamp(0.55 + foe.stats.hp / 100 * 0.40, 0.60, 1.55);
+              const hwF = SLIME_HW * scaleF, hhF = SLIME_HH * scaleF;
+              const overlapX = (hwI + hwF) - Math.abs(ex);
+              const overlapY = (hhI + hhF) - Math.abs(ey);
+              if (overlapX > 0 && overlapY > 0) {
+                // 겹침이 더 작은 축으로 밀어내기
+                if (overlapX <= overlapY) {
+                  individual.x += (ex >= 0 ? 1 : -1) * overlapX;
+                } else {
+                  individual.y += (ey >= 0 ? 1 : -1) * overlapY;
+                }
               }
             }
           }
-          // 보스 하드 분리: 보스 크기(스케일 5×, 텍스처 90px → 225 월드유닛) 기준
+          // 보스 AABB 분리: 텍스처 90×75 × scale5 → 450×375, 반폭=225, 반높이=187
           if (this.bossEntity) {
-            const bx = individual.x - this.bossEntity.x, by = individual.y - this.bossEntity.y;
-            const bd = Math.hypot(bx, by) || 1;
-            const HARD_BOSS = 225;
-            if (bd < HARD_BOSS) {
-              individual.x = this.bossEntity.x + (bx / bd) * HARD_BOSS;
-              individual.y = this.bossEntity.y + (by / bd) * HARD_BOSS;
+            const bx = individual.x - this.bossEntity.x;
+            const by = individual.y - this.bossEntity.y;
+            const overlapX = (hwI + 225) - Math.abs(bx);
+            const overlapY = (hhI + 187) - Math.abs(by);
+            if (overlapX > 0 && overlapY > 0) {
+              if (overlapX <= overlapY) {
+                individual.x += (bx >= 0 ? 1 : -1) * overlapX;
+              } else {
+                individual.y += (by >= 0 ? 1 : -1) * overlapY;
+              }
             }
           }
         }
