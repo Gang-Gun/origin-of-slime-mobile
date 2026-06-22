@@ -3146,30 +3146,28 @@ class ArenaScene extends Phaser.Scene {
             individual.offsetX = (Math.random() - .5) * FOLLOW_RADIUS * 2;
             individual.offsetY = (Math.random() - .5) * FOLLOW_RADIUS * 2;
           }
-          // 적 개체 반발: 아군은 적 슬라임과 겹치지 않음
+          // 하드 분리: 적 슬라임과 절대 겹치지 않음 (즉시 경계로 밀어냄)
           const enemies = group.isPlayer ? this.aiGroups : (this.player.state !== 'battle' ? [this.player] : []);
-          const REPEL_R = 36, REPEL_F = baseSpeed * 2.5;
+          const HARD_ENEMY = 40;
           for (const eg of enemies) {
-            if (Math.hypot(eg.x - group.x, eg.y - group.y) > 300) continue; // 먼 집단 스킵
+            if (Math.hypot(eg.x - group.x, eg.y - group.y) > 400) continue;
             for (const foe of eg.individuals) {
               const ex = individual.x - foe.x, ey = individual.y - foe.y;
               const ed = Math.hypot(ex, ey) || 1;
-              if (ed < REPEL_R) {
-                const f = (1 - ed / REPEL_R) * REPEL_F;
-                individual.x += ex / ed * f;
-                individual.y += ey / ed * f;
+              if (ed < HARD_ENEMY) {
+                individual.x = foe.x + (ex / ed) * HARD_ENEMY;
+                individual.y = foe.y + (ey / ed) * HARD_ENEMY;
               }
             }
           }
-          // 보스 반발: 보스 스프라이트와 겹치지 않음
+          // 보스 하드 분리: 보스 크기(스케일 5×, 텍스처 90px → 225 월드유닛) 기준
           if (this.bossEntity) {
             const bx = individual.x - this.bossEntity.x, by = individual.y - this.bossEntity.y;
             const bd = Math.hypot(bx, by) || 1;
-            const BOSS_REPEL = 90;
-            if (bd < BOSS_REPEL) {
-              const f = (1 - bd / BOSS_REPEL) * baseSpeed * 3;
-              individual.x += bx / bd * f;
-              individual.y += by / bd * f;
+            const HARD_BOSS = 225;
+            if (bd < HARD_BOSS) {
+              individual.x = this.bossEntity.x + (bx / bd) * HARD_BOSS;
+              individual.y = this.bossEntity.y + (by / bd) * HARD_BOSS;
             }
           }
         }
