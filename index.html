@@ -3393,10 +3393,11 @@ class ArenaScene extends Phaser.Scene {
     // 공격범위 안일 때만 도태/반격
     const dist = Math.hypot(b.x - this.player.x, b.y - this.player.y);
     if (dist <= BOSS_RANGE) this.bossCombatTick(dt);
+    if (this.bossPhase !== 'chase') return; // 전투 중 처치되어 이미 종료됨
   // 게임오버: 개체수 임계 미만
   if (this.player.individuals.length < BOSS_MIN_POP) { this.resolveBoss(false, 'wipe'); return this.endGame(); }
-  // 중간보스 퇴각: 제한시간 초과(최종보스는 운석까지 추격이라 사실상 미발동)
-  if (this.bossSlot !== 'final' && this.elapsed >= this.bossPhaseUntil) this.resolveBoss(false, 'retreat');
+  // 제한시간 초과: 중간보스 퇴각 / 최종보스는 운석 시각(bossPhaseUntil=METEOR_TIME) 도달 시 양보 → 다음 프레임 운석 발동
+  if (this.elapsed >= this.bossPhaseUntil) this.resolveBoss(false, 'retreat');
   }
 
 // 접촉 중: 안전조건 미충족 개체 도태 + 보유 개체 비례 반격
@@ -3424,6 +3425,7 @@ resolveBoss(win, reason) {
   if (this.bossEntity) { this.bossEntity.sprite.destroy(); this.bossEntity = null; }
   document.getElementById('boss-hp').classList.remove('show');
   document.getElementById('boss-banner').classList.remove('show');
+  document.getElementById('boss-arrow').classList.remove('show');
   this.bossPhase = 'idle';
   this.recordAlleleSnapshot();
   if (win) {
