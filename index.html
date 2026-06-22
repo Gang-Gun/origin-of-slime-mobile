@@ -1373,9 +1373,9 @@ const BOSS_VISUAL = {
 
 // 10분 기준 보스 등장 시각(ms)과 슬롯
 const BOSS_SCHEDULE = [
-  { at:150000, slot:'mid',   hp:80  },  // 2:30
-  { at:330000, slot:'mid',   hp:80  },  // 5:30
-  { at:480000, slot:'final', hp:160 },  // 8:00
+  { at:150000, slot:'mid',   hp:600  },  // 2:30
+  { at:330000, slot:'mid',   hp:600  },  // 5:30
+  { at:480000, slot:'final', hp:1500 },  // 8:00
 ];
 
 // ── 날씨 시스템 ──────────────────────────────────
@@ -2377,6 +2377,7 @@ class ArenaScene extends Phaser.Scene {
 
     this.setupJoystick();
     this.setupKeyboard();
+    this.setupPinchZoom();
     // 방향 전환 시 Phaser 카메라 뷰포트 자동 갱신
     this.scale.on('resize', this._onSceneResize, this);
     // pointerdown 사용: 멀티터치 중(조이스틱 유지) click 합성이 막혀도 즉시 동작
@@ -2738,13 +2739,44 @@ class ArenaScene extends Phaser.Scene {
 
   drawMutationOverlay(g, S, sig, cat, pal) {
     const px=(x,y,w,h,c,a=1)=>{ g.fillStyle(c,a); g.fillRect(x*S,y*S,w*S,h*S); };
-    if (sig.includes('hard_shell')) { px(3,0,7,1,0x8a8a96); px(2,1,2,1,0x8a8a96); px(8,1,3,1,0x8a8a96); px(4,0,2,1,0xc2c2ce); }
-    if (sig.includes('bright_pattern')) { px(3,3,1,1,0xffd23f); px(8,5,1,1,0xffd23f); px(5,7,1,1,0xffd23f); px(10,4,1,1,0xffd23f); }
-    if (sig.includes('strong_jaw')) { px(5,7,1,1,0xffffff); px(8,7,1,1,0xffffff); }
-    if (sig.includes('poison_gland')) { px(1,9,1,1,0x6fdf4a); px(7,9,1,1,0x6fdf4a); px(11,9,1,1,0x6fdf4a); px(3,2,1,1,0xa855f7); }
-    if (sig.includes('regeneration')) { px(4,1,1,1,0xffffff,0.9); px(3,2,1,1,0xffffff,0.7); px(5,2,1,1,0xffffff,0.7); }
-    if (sig.includes('fast_legs')) { px(2,9,1,1,pal.dark); px(5,9,1,1,pal.dark); px(9,9,1,1,pal.dark); }
-    if (sig.includes('pheromone')) { px(5,0,1,1,0xffcf3f); px(7,0,1,1,0xffcf3f); px(9,0,1,1,0xffcf3f); px(5,1,5,1,0xe0a91a); }
+    const D = pal.dark, L = pal.light;
+    if (sig.includes('hard_shell')) {
+      px(2,0,9,1,0x6e7080); px(1,0,1,1,0x9090a0); px(11,0,1,1,0x9090a0);
+      px(3,1,3,1,0xa0a0b2); px(7,1,4,1,0xa0a0b2); px(4,0,3,1,0xd0d0e0);
+      px(2,2,2,1,0x6e7080,0.8); px(9,2,2,1,0x6e7080,0.8);
+    }
+    if (sig.includes('bright_pattern')) {
+      px(3,3,2,2,0xffd23f); px(9,3,2,2,0xffd23f); px(5,6,3,2,0xffb000);
+      px(2,6,1,1,0xffd23f,0.7); px(11,6,1,1,0xffd23f,0.7);
+      px(4,2,1,1,0xffffff,0.8); px(10,2,1,1,0xffffff,0.8);
+    }
+    if (sig.includes('strong_jaw')) {
+      px(3,7,2,1,0xffffff); px(7,7,1,1,0xffffff); px(10,7,2,1,0xffffff);
+      px(4,8,1,2,0xffffff); px(8,8,1,2,0xffffff); px(11,8,1,1,0xffffff);
+      px(2,7,1,2,D,0.8); px(12,7,1,2,D,0.8);
+    }
+    if (sig.includes('poison_gland')) {
+      px(1,8,2,2,0x4fdf2a); px(10,8,2,2,0x4fdf2a); px(6,8,2,2,0x6fdf4a);
+      px(2,7,1,1,0x9aff60,0.7); px(11,7,1,1,0x9aff60,0.7);
+      px(3,1,2,2,0xa855f7); px(8,2,2,1,0xa855f7,0.7); px(4,0,1,1,0xd070ff,0.8);
+    }
+    if (sig.includes('regeneration')) {
+      px(0,3,1,1,0xb0ffb0,0.9); px(0,5,1,1,0xb0ffb0,0.7); px(0,7,1,1,0xb0ffb0,0.5);
+      px(13,3,1,1,0xb0ffb0,0.9); px(13,5,1,1,0xb0ffb0,0.7); px(13,7,1,1,0xb0ffb0,0.5);
+      px(3,0,3,1,0x70ff70,0.8); px(8,0,3,1,0x70ff70,0.8);
+      px(4,1,1,2,0xffffff,0.9); px(5,1,2,1,0xffffff,0.9);
+      px(9,1,1,2,0xffffff,0.9); px(9,2,1,1,0xffffff,0.9);
+    }
+    if (sig.includes('fast_legs')) {
+      px(2,9,1,1,D); px(5,9,1,1,D); px(8,9,1,1,D); px(11,9,1,1,D);
+      px(1,8,1,1,D,0.5); px(4,8,1,1,D,0.5); px(7,8,1,1,D,0.5);
+      px(0,5,1,1,L,0.7); px(0,7,1,1,L,0.5); px(13,5,1,1,L,0.7); px(13,7,1,1,L,0.5);
+    }
+    if (sig.includes('pheromone')) {
+      px(5,0,1,1,0xffef8a); px(7,0,2,1,0xffef8a); px(10,0,1,1,0xffef8a);
+      px(5,1,6,1,0xffd23f); px(6,2,1,1,0xffb000,0.8); px(9,2,1,1,0xffb000,0.8);
+      px(4,0,1,1,0xffffff,0.9); px(11,0,1,1,0xffffff,0.7);
+    }
     if (cat==='good') { px(4,0,1,1,0xe6ffe0,0.9); px(9,1,1,1,0xe6ffe0,0.8); }
     else if (cat==='bad') { px(6,2,1,1,0x2a2018,0.7); px(7,3,1,1,0x2a2018,0.6); px(3,5,1,1,0x2a2018,0.5); }
     else if (cat==='dual') { px(10,3,1,1,0xc49ee0,0.8); }
@@ -2753,32 +2785,45 @@ class ArenaScene extends Phaser.Scene {
   createBossTexture(bossId) {
   const key = `boss_${bossId}`;
   if (this.textures.exists(key)) return key;
-  const v = BOSS_VISUAL[bossId]; const S = 5;
+  const v = BOSS_VISUAL[bossId];
+  const S = 5, W = 16, Hh = 13, PAD = 1;
+  const TW = (W + PAD*2) * S, TH = (Hh + PAD*2) * S;
   const g = this.make.graphics({ add: false });
-  const W = 16, Hh = 13;
-  const px=(x,y,w,h,c,a=1)=>{ g.fillStyle(c,a); g.fillRect(x*S,y*S,w*S,h*S); };
   const P = v.pal;
   const wide = v.shape==='bulky' || v.shape==='amorphous';
   const top = wide ? 2 : 4;
-  px(top+1,1,W-2*(top+1)+2,2,P.m); px(top-1,3,W-2*(top-1),2,P.m); px(1,5,W-2,5,P.m); px(2,10,W-4,2,P.m);
-  px(1,11,W-2,1,P.d); px(W-3,8,2,3,P.d); px(2,3,3,2,P.l);
-  if (v.prism) { const cols=[0xe0604a,0xff9b3a,0x6fcf4a,0x4fa0e6,0x9460b8]; for (let i=0;i<cols.length;i++) px(1+i*3,5,3,5,cols[i]); }
-  const parts = v.parts;
-  if (parts.includes('lavaCracks')) { px(3,5,3,1,P.a); px(9,7,3,1,P.a); px(5,9,4,1,0xffd23f); }
-  if (parts.includes('poisonDrips')) { px(3,12,1,1,P.a); px(8,12,1,1,P.a); px(12,11,1,1,P.a); }
-  if (parts.includes('spores')) { px(2,0,2,1,P.a); px(7,0,2,1,P.a); px(11,1,1,1,P.a); }
-  if (parts.includes('shellPlates')) { px(2,0,W-4,1,P.d); px(3,1,3,1,P.l); px(9,1,3,1,P.l); }
-  if (parts.includes('spikes')) { px(2,0,1,1,P.d); px(6,0,1,1,P.d); px(10,0,1,1,P.d); px(13,1,1,1,P.d); }
-  if (parts.includes('iceCrown')) { px(3,0,1,1,P.l); px(7,0,1,1,0xffffff); px(11,0,1,1,P.l); px(5,1,1,1,P.l); px(9,1,1,1,P.l); }
-  if (parts.includes('heavyBrows')) { px(3,4,3,1,P.d); px(9,4,3,1,P.d); }
-  if (parts.includes('legs')) { px(2,12,1,1,P.d); px(6,12,1,1,P.d); px(10,12,1,1,P.d); px(13,12,1,1,P.d); }
-  if (parts.includes('streaks')) { px(0,6,1,1,P.l,0.7); px(0,8,1,1,P.l,0.5); px(15,6,1,1,P.l,0.7); }
-  if (parts.includes('tentacles')) { px(1,12,1,1,P.m); px(4,12,1,1,P.m); px(11,12,1,1,P.m); px(14,12,1,1,P.m); px(2,11,1,1,P.l); }
-  if (parts.includes('wings')) { px(0,4,2,3,P.d); px(14,4,2,3,P.d); }
-  if (parts.includes('lure')) { px(7,0,2,1,P.a); px(7,1,1,1,P.l); }
-  const eyeY=6, slots=[4,7,10,5,9];
-  for (let i=0;i<v.eyes;i++){ const ex=slots[i%slots.length], ey=eyeY+(i>=3?2:0); px(ex,ey,1,1,0xffffff); px(ex,ey,1,1,v.eyeCol,0.85); }
-  g.generateTexture(key, W*S, Hh*S);
+  const od = P.d;
+  const outlineCol = (Math.floor(((od>>16)&0xFF)*0.6)<<16)|(Math.floor(((od>>8)&0xFF)*0.6)<<8)|Math.floor((od&0xFF)*0.6);
+
+  const drawBody = (ox, oy, over) => {
+    const px = (x,y,w,h,c,a=1) => { g.fillStyle(over??c, over?1:a); g.fillRect((x+ox)*S,(y+oy)*S,w*S,h*S); };
+    const parts = v.parts;
+    px(top+1,1,W-2*(top+1)+2,2,P.m); px(top-1,3,W-2*(top-1),2,P.m); px(1,5,W-2,5,P.m); px(2,10,W-4,2,P.m);
+    px(1,11,W-2,1,P.d); px(W-3,8,2,3,P.d); px(2,3,3,2,P.l);
+    if (v.prism) { const cols=[0xe0604a,0xff9b3a,0x6fcf4a,0x4fa0e6,0x9460b8]; for (let i=0;i<cols.length;i++) px(1+i*3,5,3,5,cols[i]); }
+    if (parts.includes('lavaCracks'))  { px(3,5,3,1,P.a); px(9,7,3,1,P.a); px(5,9,4,1,0xffd23f); }
+    if (parts.includes('poisonDrips')) { px(3,12,1,1,P.a); px(8,12,1,1,P.a); px(12,11,1,1,P.a); }
+    if (parts.includes('spores'))      { px(2,0,2,1,P.a); px(7,0,2,1,P.a); px(11,1,1,1,P.a); }
+    if (parts.includes('shellPlates')) { px(2,0,W-4,1,P.d); px(3,1,3,1,P.l); px(9,1,3,1,P.l); }
+    if (parts.includes('spikes'))      { px(2,0,1,1,P.d); px(6,0,1,1,P.d); px(10,0,1,1,P.d); px(13,1,1,1,P.d); }
+    if (parts.includes('iceCrown'))    { px(3,0,1,1,P.l); px(7,0,1,1,0xffffff); px(11,0,1,1,P.l); px(5,1,1,1,P.l); px(9,1,1,1,P.l); }
+    if (parts.includes('heavyBrows'))  { px(3,4,3,1,P.d); px(9,4,3,1,P.d); }
+    if (parts.includes('legs'))        { px(2,12,1,1,P.d); px(6,12,1,1,P.d); px(10,12,1,1,P.d); px(13,12,1,1,P.d); }
+    if (parts.includes('streaks'))     { px(0,6,1,1,P.l,0.7); px(0,8,1,1,P.l,0.5); px(15,6,1,1,P.l,0.7); }
+    if (parts.includes('tentacles'))   { px(1,12,1,1,P.m); px(4,12,1,1,P.m); px(11,12,1,1,P.m); px(14,12,1,1,P.m); px(2,11,1,1,P.l); }
+    if (parts.includes('wings'))       { px(0,4,2,3,P.d); px(14,4,2,3,P.d); }
+    if (parts.includes('lure'))        { px(7,0,2,1,P.a); px(7,1,1,1,P.l); }
+    const slots=[4,7,10,5,9];
+    for (let i=0;i<v.eyes;i++){ const ex=slots[i%slots.length], ey=6+(i>=3?2:0); px(ex,ey,1,1,0xffffff); px(ex,ey,1,1,v.eyeCol,0.85); }
+  };
+
+  // 윤곽선: 8방향 1셀 오프셋으로 outline color 먼저 그리기
+  for (const [dx,dy] of [[-1,0],[1,0],[0,-1],[0,1],[-1,-1],[1,-1],[-1,1],[1,1]])
+    drawBody(PAD+dx, PAD+dy, outlineCol);
+  // 몸체
+  drawBody(PAD, PAD, null);
+
+  g.generateTexture(key, TW, TH);
   g.destroy();
   return key;
 }
@@ -2922,13 +2967,64 @@ class ArenaScene extends Phaser.Scene {
   }
 
   setupKeyboard() {
-    // Keyboard input for desktop testing: WASD controls the same group center as the virtual joystick.
     this.keys = this.input.keyboard.addKeys({
       up: Phaser.Input.Keyboard.KeyCodes.W,
       left: Phaser.Input.Keyboard.KeyCodes.A,
       down: Phaser.Input.Keyboard.KeyCodes.S,
       right: Phaser.Input.Keyboard.KeyCodes.D
     });
+    // 스페이스바 → 번식
+    this.input.keyboard.on('keydown-SPACE', () => {
+      if (!_paused && !this.gameOver) this.handleBreed();
+    });
+  }
+
+  setupPinchZoom() {
+    const ZOOM_MAX = 1.5;
+    const cam = () => this.cameras.main;
+    // 맵이 화면 밖으로 나가지 않는 최소 줌: 가로·세로 중 큰 쪽 기준
+    const zoomMin = () => Math.max(
+      this.scale.width  / WORLD_W,
+      this.scale.height / WORLD_H
+    );
+    const clampZoom = z => Phaser.Math.Clamp(z, zoomMin(), ZOOM_MAX);
+
+    // ── 모바일: 두 손가락 핀치 ──────────────────────────
+    const pinch = { active: false, lastDist: 0 };
+    const pinchDist = touches =>
+      Math.hypot(touches[0].clientX - touches[1].clientX,
+                 touches[0].clientY - touches[1].clientY);
+
+    this.game.canvas.addEventListener('touchstart', e => {
+      if (e.touches.length >= 2) {
+        pinch.active = true;
+        pinch.lastDist = pinchDist(e.touches);
+        // 조이스틱 취소 (핀치 중 드리프트 방지)
+        if (this.joystick.active) {
+          Object.assign(this.joystick, { active: false, pointerId: null, knobX: 0, knobY: 0, dirX: 0, dirY: 0 });
+          this.hideJoystickDom();
+        }
+      }
+    }, { passive: true });
+
+    this.game.canvas.addEventListener('touchmove', e => {
+      if (!pinch.active || e.touches.length < 2) return;
+      const dist = pinchDist(e.touches);
+      const ratio = dist / pinch.lastDist;
+      cam().setZoom(clampZoom(cam().zoom * ratio));
+      pinch.lastDist = dist;
+    }, { passive: true });
+
+    this.game.canvas.addEventListener('touchend', e => {
+      if (e.touches.length < 2) pinch.active = false;
+    }, { passive: true });
+
+    // ── 데스크탑: 마우스 휠 ────────────────────────────
+    this.game.canvas.addEventListener('wheel', e => {
+      e.preventDefault();
+      const factor = e.deltaY < 0 ? 1.1 : 0.9;
+      cam().setZoom(clampZoom(cam().zoom * factor));
+    }, { passive: false });
   }
 
   update(_time, dt) {
@@ -3482,9 +3578,9 @@ class ArenaScene extends Phaser.Scene {
     const ang = Math.random()*Math.PI*2;
     const sx = this.player.x + Math.cos(ang)*900;
     const sy = this.player.y + Math.sin(ang)*900;
-    const sprite = this.add.image(sx, sy, this.createBossTexture(boss.id)).setOrigin(0.5).setDepth(20).setScale(2.5);
-    const hpMax = this._dueBossHp || 80;
-    this.bossEntity = { x:sx, y:sy, hp:hpMax, hpMax, sprite, speed: 0.85 };
+    const sprite = this.add.image(sx, sy, this.createBossTexture(boss.id)).setOrigin(0.5).setDepth(20).setScale(5.0);
+    const hpMax = this._dueBossHp || 600;
+    this.bossEntity = { x:sx, y:sy, hp:hpMax, hpMax, sprite, speed: 0.85, turnTimer: 0 };
     this.bossPhase = 'chase';
     this.bossPhaseUntil = this.elapsed + (this.bossSlot === 'final' ? (METEOR_TIME - this.elapsed) : BOSS_RETREAT_TIME);
     document.getElementById('boss-hp').classList.add('show');
@@ -3516,23 +3612,40 @@ class ArenaScene extends Phaser.Scene {
   if (this.elapsed >= this.bossPhaseUntil) this.resolveBoss(false, 'retreat');
   }
 
-// 접촉 중: 안전조건 미충족 개체 도태 + 보유 개체 비례 반격
+// 턴제 전투: 2.5초마다 보스가 최대 10마리를 동시 타격 + 안전 개체 반격
 bossCombatTick(dt) {
   const boss = this.activeBoss, g = this.player, b = this.bossEntity;
   if (!g.individuals.length) return;
+  const TURN_MS = 2500;
+  b.turnTimer += dt;
+
+  // 카운트다운 표시
+  const remain = Math.max(1, Math.ceil((TURN_MS - b.turnTimer) / 1000));
+  document.getElementById('boss-hp-label').textContent =
+    `${boss.ico} ${boss.name}  ${Math.ceil(b.hp)}/${b.hpMax}  ⚔️${remain}s`;
+
+  if (b.turnTimer < TURN_MS) return;
+  b.turnTimer -= TURN_MS;
+
   const safeFn = (i) => boss.safe(i, g);
-  // 도태: 미충족 개체 일부에 피해 (한 번에 전멸 방지: 틱당 소수)
+
+  // 보스 공격: 미충족 개체 최대 10마리 동시 타격 (20 HP)
   const unsafe = g.individuals.filter(i => !safeFn(i));
-  const cullN = Math.min(unsafe.length, Math.ceil(3 * (dt/1000) * 6));
-  for (let k = 0; k < cullN; k++) {
-    const v = unsafe[k]; if (!v) break;
-    v.hp -= 6; if (v.hp <= 0) v.dead = true;
+  const hitN = Math.min(10, unsafe.length);
+  for (let k = 0; k < hitN; k++) {
+    unsafe[k].hp -= 20;
+    if (unsafe[k].hp <= 0) unsafe[k].dead = true;
   }
   g.individuals = g.individuals.filter(i => !i.dead);
-  if (cullN > 0) this.burst(g.x, g.y, 0xff5555, 6, 80);
-  // 반격: 안전(보유) 개체 수 비례로 보스 HP 감소
+  if (hitN > 0) {
+    this.burst(g.x, g.y, 0xff3333, 12, 100);
+    this.cameras.main.shake(150, 0.007);
+    if (this.showToast) this.showToast(`${boss.ico} 공격! ${hitN}마리 피해`, 'warn');
+  }
+
+  // 반격: 안전 개체 수 × 3 피해
   const safeCount = g.individuals.filter(safeFn).length;
-  b.hp -= safeCount * 0.9 * (dt/1000) * 6;
+  b.hp -= safeCount * 3;
   if (b.hp <= 0) this.resolveBoss(true);
 }
 
