@@ -1289,6 +1289,32 @@ const TERRAIN = {
 };
 const TERRAIN_LIST = Object.values(TERRAIN);
 
+// ── 보스 위협 시스템 ─────────────────────────────────
+const BOSS_WARN_TIME = 20000;       // 경고 카운트다운 20초
+const BOSS_RETREAT_TIME = 90000;    // 중간보스 퇴각 제한 90초
+const BOSS_RANGE = 240;             // 보스 공격범위(거리)
+const BOSS_MIN_POP = 3;             // 이 미만으로 떨어지면 게임오버
+const HIDDEN_BOSS_CHANCE = 0.02;    // 최종 슬롯 히든 등장 확률 2%
+const DIVERSITY_REQ = 0.6;          // 히든 보스 요구 다양성
+
+const BOSS_ROSTER = [
+  // 단일 유전자 6 (지형 대피 1:1)
+  { id:'lava',   name:'용암 거인',   ico:'🔥', reqText:'붉은몸(RR)', refuge:'volcano', refugeText:'🌋 화산',  safe:i=>getGenotypeLabel(i,'color')==='RR' },
+  { id:'sand',   name:'모래 폭군',   ico:'🏜️', reqText:'푸른몸(BB)', refuge:'desert',  refugeText:'🏜️ 사막',  safe:i=>getGenotypeLabel(i,'color')==='BB' },
+  { id:'glacier',name:'빙하 군주',   ico:'❄️', reqText:'갑옷(A)',    refuge:'snow',    refugeText:'❄️ 눈밭',  safe:i=>i.hasDominant('armor') },
+  { id:'spore',  name:'독포자 마수', ico:'☠️', reqText:'독성(P)',    refuge:'swamp',   refugeText:'🐸 독성늪', safe:i=>i.hasDominant('poison') },
+  { id:'gale',   name:'질풍 추적자', ico:'💨', reqText:'속도(S)',    refuge:'river',   refugeText:'💧 강가',  safe:i=>i.hasDominant('speed') },
+  { id:'charmer',name:'매혹 포식자', ico:'💗', reqText:'매력(C)',    refuge:'forest',  refugeText:'🌳 숲',    safe:i=>i.hasDominant('charm') },
+  // 복합 압력 3
+  { id:'steel',  name:'강철 질주병', ico:'🛡️', reqText:'갑옷+속도(A·S)', refuge:'snow',  refugeText:'❄️ 눈밭', safe:i=>i.hasDominant('armor')&&i.hasDominant('speed') },
+  { id:'plague', name:'화염 역병룡', ico:'🐲', reqText:'붉은몸+독성(R·P)', refuge:'volcano', refugeText:'🌋 화산', safe:i=>getGenotypeLabel(i,'color')==='RR'&&i.hasDominant('poison') },
+  { id:'siren',  name:'심연 세이렌', ico:'🌊', reqText:'푸른몸+매력(B·C)', refuge:'desert', refugeText:'🏜️ 사막', safe:i=>getGenotypeLabel(i,'color')==='BB'&&i.hasDominant('charm') },
+  // 히든 (다양성 요구)
+  { id:'primordial', name:'태초의 포식자', ico:'🌈', hidden:true, reqText:'유전적 다양성', refuge:null, refugeText:'균형 유지(한 형질 몰빵 금지)',
+    safe:(i,g)=> g.calcDiversity() >= DIVERSITY_REQ },
+];
+function bossById(id){ return BOSS_ROSTER.find(b=>b.id===id); }
+
 // ── 날씨 시스템 ──────────────────────────────────
 const WEATHERS = {
   sunny:  { id:'sunny',  name:'맑음',   ico:'☀️', foodMult:1.0,  spdMult:1.0,  tint:null },
