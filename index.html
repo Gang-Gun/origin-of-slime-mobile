@@ -2371,9 +2371,9 @@ class ArenaScene extends Phaser.Scene {
 
     // 낮밤 오버레이 (월드 위 반투명 레이어)
     this.nightOverlay = this.add.rectangle(WORLD_W/2, WORLD_H/2, WORLD_W, WORLD_H, 0x1a2a4a, 0)
-      .setDepth(8).setScrollFactor(1);
+      .setDepth(22).setScrollFactor(1);
     this.weatherTint = this.add.rectangle(WORLD_W/2, WORLD_H/2, WORLD_W, WORLD_H, 0x000000, 0)
-      .setDepth(7).setScrollFactor(1);
+      .setDepth(21).setScrollFactor(1);
 
     this.setupJoystick();
     this.setupKeyboard();
