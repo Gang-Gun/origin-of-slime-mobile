@@ -1471,6 +1471,20 @@ const ACHIEVEMENTS = [
     check:(g,el,d)=>d.volcanoWin },
   { id:'explorer',    cat:'지형', name:'🗺️ 탐험가',      desc:'5종 이상 지형 방문',           bonus:200,
     check:(g,el,d)=>(d.visitedTerrains||new Set()).size>=5 },
+
+  // ── 보스 ──────────────────────────────────────────────
+  { id:'boss_first',   cat:'보스', name:'🏆 첫 처치',      desc:'보스 첫 번째 처치',            bonus:300,
+    check:(g,el,d)=>(d.bossKills||0)>=1 },
+  { id:'boss_double',  cat:'보스', name:'⚔️ 보스 학살자',  desc:'보스 2마리 처치',              bonus:500,
+    check:(g,el,d)=>(d.bossKills||0)>=2 },
+  { id:'boss_triple',  cat:'보스', name:'👑 정복자',        desc:'보스 3마리 모두 처치',         bonus:900,
+    check:(g,el,d)=>(d.bossKills||0)>=3 },
+  { id:'boss_hidden',  cat:'보스', name:'🌈 태초의 승자',   desc:'숨겨진 보스 태초의 포식자 처치', bonus:1500,
+    check:(g,el,d)=>!!d.bossHiddenKilled },
+  { id:'boss_no_loss', cat:'보스', name:'🛡️ 무손실 처치',  desc:'보스 전투 중 개체 손실 없이 처치', bonus:600,
+    check:(g,el,d)=>!!d.bossNoLossKill },
+  { id:'boss_quick',   cat:'보스', name:'⏱️ 속전속결',     desc:'보스 등장 후 60초 이내 처치',  bonus:700,
+    check:(g,el,d)=>!!d.bossQuickKill },
 ];
 
 // 지형별 컨셉에 맞는 이벤트 맵
@@ -2355,6 +2369,10 @@ class ArenaScene extends Phaser.Scene {
       hadNeardeath: false,   // 3마리 이하로 떨어진 적 있는지
       volcanoWin: false,     // 화산지대에서 전쟁 승리
       visitedTerrains: new Set(), // 방문한 지형 ID
+      bossKills: 0,          // 처치한 보스 수
+      bossHiddenKilled: false, // 태초의 포식자 처치
+      bossNoLossKill: false,  // 개체 손실 없이 보스 처치
+      bossQuickKill: false,   // 60초 이내 보스 처치
     };
 
     // 날씨/낮밤 시스템
@@ -3595,6 +3613,8 @@ class ArenaScene extends Phaser.Scene {
     const sprite = this.add.image(sx, sy, this.createBossTexture(boss.id)).setOrigin(0.5).setDepth(20).setScale(5.0);
     const hpMax = this._dueBossHp || 600;
     this.bossEntity = { x:sx, y:sy, hp:hpMax, hpMax, sprite, speed: 0.45, turnTimer: 0 };
+    this._bossSpawnCount = this.player.individuals.length;
+    this._bossSpawnTime  = this.elapsed;
     this.bossPhase = 'chase';
     this.bossPhaseUntil = this.elapsed + (this.bossSlot === 'final' ? (METEOR_TIME - this.elapsed) : BOSS_RETREAT_TIME);
     document.getElementById('boss-hp').classList.add('show');
@@ -3688,6 +3708,13 @@ resolveBoss(win, reason) {
     if (this.showToast) this.showToast(`🏆 ${boss.name} 처치 +${score}`, 'ach');
     if (navigator.vibrate) navigator.vibrate([80,40,120]);
     this.cameras.main.flash(220, 255, 240, 180);
+    // 보스 도전과제 추적
+    const d = this.achieveData;
+    d.bossKills = (d.bossKills || 0) + 1;
+    if (boss.hidden) d.bossHiddenKilled = true;
+    if (this.player.individuals.length >= (this._bossSpawnCount || 0)) d.bossNoLossKill = true;
+    if ((this.elapsed - (this._bossSpawnTime || 0)) <= 60000) d.bossQuickKill = true;
+    this.checkAchievements();
   } else if (reason === 'retreat') {
     this.showMessage(`${boss.ico} ${boss.name}가 물러갑니다… (보상 없음)`, true);
   }
