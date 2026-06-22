@@ -3456,7 +3456,7 @@ class ArenaScene extends Phaser.Scene {
     const ang = Math.random()*Math.PI*2;
     const sx = this.player.x + Math.cos(ang)*900;
     const sy = this.player.y + Math.sin(ang)*900;
-    const sprite = this.add.text(sx, sy, boss.ico, { fontSize:'56px' }).setOrigin(0.5).setDepth(20);
+    const sprite = this.add.image(sx, sy, this.createBossTexture(boss.id)).setOrigin(0.5).setDepth(20).setScale(2.5);
     const hpMax = this._dueBossHp || 80;
     this.bossEntity = { x:sx, y:sy, hp:hpMax, hpMax, sprite, speed: 0.85 };
     this.bossPhase = 'chase';
