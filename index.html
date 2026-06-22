@@ -3657,7 +3657,6 @@ bossCombatTick(dt) {
     b._chargePlayed = true;
     b.sprite.setTint(0xff4444);
     this.tweens.add({ targets: b.sprite, scaleX: 5.6, scaleY: 5.6, duration: 120, yoyo: true, ease: 'Power2' });
-    this.cameras.main.shake(60, 0.003);
   }
 
   // 카운트다운 표시
