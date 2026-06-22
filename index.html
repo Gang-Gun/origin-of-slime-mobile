@@ -3113,7 +3113,6 @@ class ArenaScene extends Phaser.Scene {
   }
 
   movePlayer(dt) {
-    if (this.player.state !== 'normal') return;
     const terrain = this.terrainAt(this.player.x, this.player.y);
     const geneSpd = this.calcGeneTerrainSpeedBonus(this.player, terrain);
     const weatherSpd = this.weather ? this.weather.spdMult : 1;
@@ -3652,13 +3651,24 @@ bossCombatTick(dt) {
   const TURN_MS = 2500;
   b.turnTimer += dt;
 
+  // 공격 직전 600ms: 보스 붉은 충전 연출
+  const charging = b.turnTimer >= TURN_MS - 600;
+  if (charging && !b._chargePlayed) {
+    b._chargePlayed = true;
+    b.sprite.setTint(0xff4444);
+    this.tweens.add({ targets: b.sprite, scaleX: 5.6, scaleY: 5.6, duration: 120, yoyo: true, ease: 'Power2' });
+    this.cameras.main.shake(60, 0.003);
+  }
+
   // 카운트다운 표시
   const remain = Math.max(1, Math.ceil((TURN_MS - b.turnTimer) / 1000));
   document.getElementById('boss-hp-label').textContent =
-    `${boss.ico} ${boss.name}  ${Math.ceil(b.hp)}/${b.hpMax}  ⚔️${remain}s`;
+    `${boss.ico} ${boss.name}  ${Math.ceil(b.hp)}/${b.hpMax}  ${charging ? '🔴' : '⚔️'}${remain}s`;
 
   if (b.turnTimer < TURN_MS) return;
   b.turnTimer -= TURN_MS;
+  b._chargePlayed = false;
+  b.sprite.clearTint();
 
   // 범위 내 모든 집단 처리 (플레이어 + AI)
   const inRange = [this.player, ...this.aiGroups].filter(g =>
@@ -3683,8 +3693,13 @@ bossCombatTick(dt) {
   }
 
   if (totalHit > 0) {
-    this.burst(this.player.x, this.player.y, 0xff3333, 12, 100);
-    this.cameras.main.shake(150, 0.007);
+    // 강한 타격감: 큰 파티클 + 적색 플래시 + 강한 진동
+    this.burst(this.player.x, this.player.y, 0xff1111, 24, 140);
+    this.burst(this.player.x, this.player.y, 0xff8800, 10, 80);
+    this.cameras.main.shake(280, 0.018);
+    this.cameras.main.flash(100, 255, 40, 40, false);
+    if (navigator.vibrate) navigator.vibrate(180);
+    this.tweens.add({ targets: b.sprite, scaleX: 6.0, scaleY: 4.6, duration: 80, yoyo: true, ease: 'Power3' });
     if (this.showToast) this.showToast(`${boss.ico} 공격! ${totalHit}마리 피해`, 'warn');
   }
 
