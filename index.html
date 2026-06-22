@@ -2722,7 +2722,10 @@ class ArenaScene extends Phaser.Scene {
   addIndividualSprite(individual, group) {
     if (this.individualSprites.has(individual.id)) return;
     const key = this.createCreatureTexture(individual);
-    const baseScale = clamp(0.55 + individual.stats.hp / 100 * 0.40, 0.60, 1.55);
+    let baseScale = clamp(0.55 + individual.stats.hp / 100 * 0.40, 0.60, 1.55);
+    const muts = individual.mutations || [];
+    if (muts.includes('large_body')) baseScale *= 1.35;
+    if (muts.includes('small_body')) baseScale *= 0.7;
     const sprite = this.add.image(individual.x, individual.y, key).setScale(baseScale);
     this.groupLayer.add(sprite);
     // 개체별 고유 위상 → 통통 튀는 타이밍이 제각각이라 자연스러움
