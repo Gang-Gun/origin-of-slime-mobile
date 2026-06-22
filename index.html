@@ -2656,46 +2656,59 @@ class ArenaScene extends Phaser.Scene {
   }
 
   // 픽셀아트 슬라임: 넓적한 돔형, 흰 눈 + 동공, 혀, 하이라이트
-  createCreatureTexture(bodyColor) {
-    const key = `creature_${bodyColor}`;
+  createCreatureTexture(individual) {
+    const bodyColor = getBodyColor(individual);
+    const sig = signatureMutations(individual.mutations).filter(id => id!=='large_body' && id!=='small_body');
+    const cat = dominantMutationType(individual.mutations);
+    const key = creatureTextureKey(individual);
     if (this.textures.exists(key)) return key;
     const g = this.make.graphics({ add: false });
-    const S = 4; // screen pixels per grid cell
-
-    // 팔레트: 몸 색 기반 파생
-    const c = bodyColor;
-    const ri = (c >> 16) & 0xFF, gi = (c >> 8) & 0xFF, bi = c & 0xFF;
-    const dark  = (Math.floor(ri*.45)<<16)|(Math.floor(gi*.45)<<8)|Math.floor(bi*.45);
-    const light = (Math.min(255,Math.floor(ri*1.55))<<16)|(Math.min(255,Math.floor(gi*1.55))<<8)|Math.min(255,Math.floor(bi*1.55));
-
-    // 16 col × 10 row 픽셀 그리드 (null = 투명)
+    const S = 4;
+    let c = bodyColor;
+    if (cat === 'bad') {
+      const ri=(c>>16)&0xFF, gi=(c>>8)&0xFF, bi=c&0xFF, gray=0x88;
+      const bl=(a,b)=>Math.round(a*0.9+b*0.1);
+      c=(bl(ri,gray)<<16)|(bl(gi,gray)<<8)|bl(bi,gray);
+    }
+    const ri=(c>>16)&0xFF, gi=(c>>8)&0xFF, bi=c&0xFF;
+    const dark =(Math.floor(ri*.45)<<16)|(Math.floor(gi*.45)<<8)|Math.floor(bi*.45);
+    const light=(Math.min(255,Math.floor(ri*1.55))<<16)|(Math.min(255,Math.floor(gi*1.55))<<8)|Math.min(255,Math.floor(bi*1.55));
     const _ = null, D = dark, L = light, H = 0xffffff;
     const E = 0xffffff, PL = 0x111111, M = 0x111111, T = 0xff88aa;
-
     const grid = [
-      [_,_,_,D,D,D,D,D,D,D,D,D,_,_,_,_],  // 0 top arch
-      [_,_,D,L,L,L,L,L,L,L,L,L,D,_,_,_],  // 1
-      [_,D,L,H,H,L,L,L,L,L,L,L,L,D,_,_],  // 2 highlight
-      [D,L,L,H,L,L,L,L,L,L,L,L,L,L,D,_],  // 3
-      [D,L,L,L,E,E,L,L,L,E,E,L,L,L,D,_],  // 4 eyes white
-      [D,L,L,L,E,PL,L,L,L,E,PL,L,L,L,D,_], // 5 pupils
-      [D,L,L,L,E,E,L,L,L,E,E,L,L,L,D,_],  // 6 eyes base
-      [D,L,L,L,L,M,M,L,M,M,L,L,L,L,D,_],  // 7 mouth corners
-      [_,D,L,L,L,L,T,T,T,L,L,L,L,D,_,_],  // 8 tongue
-      [_,_,D,D,D,D,D,D,D,D,D,D,D,_,_,_],  // 9 flat bottom
+      [_,_,_,D,D,D,D,D,D,D,D,D,_,_,_,_],
+      [_,_,D,L,L,L,L,L,L,L,L,L,D,_,_,_],
+      [_,D,L,H,H,L,L,L,L,L,L,L,L,D,_,_],
+      [D,L,L,H,L,L,L,L,L,L,L,L,L,L,D,_],
+      [D,L,L,L,E,E,L,L,L,E,E,L,L,L,D,_],
+      [D,L,L,L,E,PL,L,L,L,E,PL,L,L,L,D,_],
+      [D,L,L,L,E,E,L,L,L,E,E,L,L,L,D,_],
+      [D,L,L,L,L,M,M,L,M,M,L,L,L,L,D,_],
+      [_,D,L,L,L,L,T,T,T,L,L,L,L,D,_,_],
+      [_,_,D,D,D,D,D,D,D,D,D,D,D,_,_,_],
     ];
-
-    for (let row = 0; row < grid.length; row++) {
-      for (let col = 0; col < grid[row].length; col++) {
-        const cl = grid[row][col];
-        if (cl === null) continue;
-        g.fillStyle(cl, 1);
-        g.fillRect(col * S, row * S, S, S);
-      }
+    for (let row=0; row<grid.length; row++) for (let col=0; col<grid[row].length; col++) {
+      const cl=grid[row][col]; if (cl===null) continue;
+      g.fillStyle(cl,1); g.fillRect(col*S, row*S, S, S);
     }
-    g.generateTexture(key, 16 * S, 10 * S); // 64×40
+    this.drawMutationOverlay(g, S, sig, cat, { dark, light, body: c });
+    g.generateTexture(key, 16*S, 10*S);
     g.destroy();
     return key;
+  }
+
+  drawMutationOverlay(g, S, sig, cat, pal) {
+    const px=(x,y,w,h,c,a=1)=>{ g.fillStyle(c,a); g.fillRect(x*S,y*S,w*S,h*S); };
+    if (sig.includes('hard_shell')) { px(3,0,7,1,0x8a8a96); px(2,1,2,1,0x8a8a96); px(8,1,3,1,0x8a8a96); px(4,0,2,1,0xc2c2ce); }
+    if (sig.includes('bright_pattern')) { px(3,3,1,1,0xffd23f); px(8,5,1,1,0xffd23f); px(5,7,1,1,0xffd23f); px(10,4,1,1,0xffd23f); }
+    if (sig.includes('strong_jaw')) { px(5,7,1,1,0xffffff); px(8,7,1,1,0xffffff); }
+    if (sig.includes('poison_gland')) { px(1,9,1,1,0x6fdf4a); px(7,9,1,1,0x6fdf4a); px(11,9,1,1,0x6fdf4a); px(3,2,1,1,0xa855f7); }
+    if (sig.includes('regeneration')) { px(4,1,1,1,0xffffff,0.9); px(3,2,1,1,0xffffff,0.7); px(5,2,1,1,0xffffff,0.7); }
+    if (sig.includes('fast_legs')) { px(2,9,1,1,pal.dark); px(5,9,1,1,pal.dark); px(9,9,1,1,pal.dark); }
+    if (sig.includes('pheromone')) { px(5,0,1,1,0xffcf3f); px(7,0,1,1,0xffcf3f); px(9,0,1,1,0xffcf3f); px(5,1,5,1,0xe0a91a); }
+    if (cat==='good') { px(4,0,1,1,0xe6ffe0,0.9); px(9,1,1,1,0xe6ffe0,0.8); }
+    else if (cat==='bad') { px(6,2,1,1,0x2a2018,0.7); px(7,3,1,1,0x2a2018,0.6); px(3,5,1,1,0x2a2018,0.5); }
+    else if (cat==='dual') { px(10,3,1,1,0xc49ee0,0.8); }
   }
 
   rebuildIndividualSprites() {
@@ -2708,7 +2721,7 @@ class ArenaScene extends Phaser.Scene {
 
   addIndividualSprite(individual, group) {
     if (this.individualSprites.has(individual.id)) return;
-    const key = this.createCreatureTexture(getBodyColor(individual));
+    const key = this.createCreatureTexture(individual);
     const baseScale = clamp(0.55 + individual.stats.hp / 100 * 0.40, 0.60, 1.55);
     const sprite = this.add.image(individual.x, individual.y, key).setScale(baseScale);
     this.groupLayer.add(sprite);
