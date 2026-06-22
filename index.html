@@ -631,6 +631,21 @@ canvas { display: block; image-rendering: pixelated; }
   background: var(--leaf); color: #fff;
 }
 
+/* ── 도전과제 도감 탭 ─── */
+#dex-achieve-panel { flex:1; min-height:0; display:flex; flex-direction:column; overflow:hidden; }
+#dex-achieve-header { padding:10px 14px 0; font-size:13px; color:var(--ink-soft); flex-shrink:0; }
+#ach-filters { display:flex; gap:5px; padding:8px 14px; flex-shrink:0; overflow-x:auto; scrollbar-width:none; }
+#dex-achieve-list { flex:1; min-height:0; overflow-y:auto; padding:4px 12px 18px; display:flex; flex-direction:column; gap:8px; }
+.ach-card { border-radius:13px; padding:10px 13px; border:1.5px solid; display:flex; flex-direction:column; gap:3px; transition:opacity .15s; }
+.ach-card.unlocked { border-color:rgba(61,138,58,.45); background:rgba(110,196,106,.13); }
+.ach-card.locked { border-color:rgba(180,180,180,.5); background:rgba(200,200,200,.10); opacity:0.68; }
+.ach-title { font-family:'Jua',sans-serif; font-size:14px; color:var(--ink); }
+.ach-title.locked-title { color:var(--ink-soft); letter-spacing:.5px; }
+.ach-desc { font-size:11.5px; color:var(--ink-soft); }
+.ach-footer { display:flex; align-items:center; justify-content:space-between; margin-top:2px; }
+.ach-bonus { font-size:12px; color:var(--honey-dk); font-weight:800; }
+.ach-badge { font-size:10px; font-weight:900; padding:2px 8px; border-radius:999px; background:var(--leaf-dk); color:#fff; }
+
 /* ── 튜토리얼 ─────────────────────────────── */
 #tutorial-overlay {
   position: fixed; inset: 0; z-index: 60; pointer-events: none;
@@ -1007,6 +1022,7 @@ body { image-rendering: pixelated; }
       <div id="dex-tabs">
         <button class="dex-tab active" data-tab="mutation" onclick="switchDexTab('mutation',this)">🔬 돌연변이</button>
         <button class="dex-tab" data-tab="event" onclick="switchDexTab('event',this)">🌍 이벤트</button>
+        <button class="dex-tab" data-tab="achieve" onclick="switchDexTab('achieve',this)">🏆 도전과제</button>
       </div>
       <button id="dex-close" onclick="closeDex()">✕</button>
     </div>
@@ -1033,6 +1049,15 @@ body { image-rendering: pixelated; }
         <button class="dex-filter" onclick="setEventFilter('poach',this)">🎯 밀렵</button>
       </div>
       <div id="event-dex-list"></div>
+    </div>
+    <div id="dex-achieve-panel" style="display:none">
+      <div id="dex-achieve-header"></div>
+      <div id="ach-filters">
+        <button class="dex-filter active" onclick="setAchFilter('all',this)">전체</button>
+        <button class="dex-filter" onclick="setAchFilter('done',this)">✅ 달성</button>
+        <button class="dex-filter" onclick="setAchFilter('locked',this)">🔒 미달성</button>
+      </div>
+      <div id="dex-achieve-list"></div>
     </div>
   </div>
 </div>
@@ -1368,83 +1393,83 @@ const WEATHER_INTERVAL = 25000; // 25초마다 날씨 변화
 // ── 도전과제 ──────────────────────────────────
 const ACHIEVEMENTS = [
   // ── 생존 ──────────────────────────────────────────────
-  { id:'rookie',      name:'🌱 첫 발걸음',    desc:'1분 생존',                     bonus:80,
+  { id:'rookie',      cat:'생존', name:'🌱 첫 발걸음',    desc:'1분 생존',                     bonus:80,
     check:(g,el)=>el>=60000 },
-  { id:'survivor',    name:'🏅 생존자',       desc:'2분 생존',                     bonus:150,
+  { id:'survivor',    cat:'생존', name:'🏅 생존자',       desc:'2분 생존',                     bonus:150,
     check:(g,el)=>el>=120000 },
-  { id:'veteran',     name:'🎖️ 베테랑',      desc:'4분 생존',                     bonus:300,
+  { id:'veteran',     cat:'생존', name:'🎖️ 베테랑',      desc:'4분 생존',                     bonus:300,
     check:(g,el)=>el>=240000 },
-  { id:'last_stand',  name:'🕯️ 마지막 불꽃', desc:'운석 30초 전(4분30초)까지 생존', bonus:500,
+  { id:'last_stand',  cat:'생존', name:'🕯️ 마지막 불꽃', desc:'운석 30초 전(4분30초)까지 생존', bonus:500,
     check:(g,el)=>el>=270000 },
 
   // ── 집단 크기 ──────────────────────────────────────────
-  { id:'colony',      name:'🐾 군집',        desc:'개체 30마리 보유',              bonus:150,
+  { id:'colony',      cat:'집단', name:'🐾 군집',        desc:'개체 30마리 보유',              bonus:150,
     check:(g)=>g.count>=30 },
-  { id:'empire',      name:'🏰 대제국',      desc:'개체 60마리 보유',              bonus:350,
+  { id:'empire',      cat:'집단', name:'🏰 대제국',      desc:'개체 60마리 보유',              bonus:350,
     check:(g)=>g.count>=60 },
-  { id:'near_death',  name:'☠️ 벼랑 끝',    desc:'개체 3마리 이하까지 몰림',      bonus:100,
+  { id:'near_death',  cat:'집단', name:'☠️ 벼랑 끝',    desc:'개체 3마리 이하까지 몰림',      bonus:100,
     check:(g,el,d)=>d.hadNeardeath },
-  { id:'comeback',    name:'💪 기적의 역전', desc:'3마리 이하에서 35마리+ 회복',   bonus:700,
+  { id:'comeback',    cat:'집단', name:'💪 기적의 역전', desc:'3마리 이하에서 35마리+ 회복',   bonus:700,
     check:(g,el,d)=>d.hadNeardeath&&g.count>=35 },
 
   // ── 세대 ───────────────────────────────────────────────
-  { id:'gen5',        name:'🌿 5세대',       desc:'5세대 번식',                   bonus:150,
+  { id:'gen5',        cat:'세대', name:'🌿 5세대',       desc:'5세대 번식',                   bonus:150,
     check:(g)=>g.generation>=5 },
-  { id:'gen15',       name:'🌳 15세대',      desc:'15세대 번식',                  bonus:300,
+  { id:'gen15',       cat:'세대', name:'🌳 15세대',      desc:'15세대 번식',                  bonus:300,
     check:(g)=>g.generation>=15 },
 
   // ── 전투 ──────────────────────────────────────────────
-  { id:'first_blood', name:'⚔️ 첫 승리',    desc:'전쟁 첫 승리',                 bonus:100,
+  { id:'first_blood', cat:'전투', name:'⚔️ 첫 승리',    desc:'전쟁 첫 승리',                 bonus:100,
     check:(g)=>g.wins>=1 },
-  { id:'warlord',     name:'🗡️ 전쟁의 신',  desc:'전쟁 3회 이상 승리',           bonus:350,
+  { id:'warlord',     cat:'전투', name:'🗡️ 전쟁의 신',  desc:'전쟁 3회 이상 승리',           bonus:350,
     check:(g)=>g.wins>=3 },
-  { id:'pacifist',    name:'🕊️ 평화주의자', desc:'패배 없이 3분 생존',           bonus:350,
+  { id:'pacifist',    cat:'전투', name:'🕊️ 평화주의자', desc:'패배 없이 3분 생존',           bonus:350,
     check:(g,el)=>g.losses===0&&el>=180000 },
-  { id:'escapist',    name:'🏃 도주의 달인', desc:'전투 도망 3회',                bonus:150,
+  { id:'escapist',    cat:'전투', name:'🏃 도주의 달인', desc:'전투 도망 3회',                bonus:150,
     check:(g)=>g.escapes>=3 },
 
   // ── 포섭 ──────────────────────────────────────────────
-  { id:'charmer',     name:'💫 매력 가득',   desc:'포섭 5마리',                   bonus:250,
+  { id:'charmer',     cat:'포섭', name:'💫 매력 가득',   desc:'포섭 5마리',                   bonus:250,
     check:(g)=>g.recruited>=5 },
-  { id:'diplomat',    name:'🤝 외교관',      desc:'포섭 10마리',                  bonus:450,
+  { id:'diplomat',    cat:'포섭', name:'🤝 외교관',      desc:'포섭 10마리',                  bonus:450,
     check:(g)=>g.recruited>=10 },
 
   // ── 식량 ──────────────────────────────────────────────
-  { id:'rich',        name:'🌾 식량 부자',   desc:'식량 300 이상',                bonus:200,
+  { id:'rich',        cat:'식량', name:'🌾 식량 부자',   desc:'식량 300 이상',                bonus:200,
     check:(g)=>g.food>=300 },
-  { id:'feast',       name:'🎉 풍년',        desc:'식량 700 이상',                bonus:350,
+  { id:'feast',       cat:'식량', name:'🎉 풍년',        desc:'식량 700 이상',                bonus:350,
     check:(g)=>g.food>=700 },
-  { id:'no_starve',   name:'🍀 굶주림 없이', desc:'굶주림 사망 없이 3분 생존',    bonus:300,
+  { id:'no_starve',   cat:'식량', name:'🍀 굶주림 없이', desc:'굶주림 사망 없이 3분 생존',    bonus:300,
     check:(g,el)=>g.starved===0&&el>=180000 },
 
   // ── 유전자 — 대립유전자 빈도 ──────────────────────────
-  { id:'red_wave',    name:'🔴 붉은 물결',   desc:'R 대립유전자 빈도 70%+',       bonus:200,
+  { id:'red_wave',    cat:'유전자', name:'🔴 붉은 물결',   desc:'R 대립유전자 빈도 70%+',       bonus:200,
     check:(g)=>(g.geneFrequency()['color']||0)>=70 },
-  { id:'blue_wave',   name:'🔵 푸른 물결',   desc:'B 대립유전자 빈도 70%+',       bonus:200,
+  { id:'blue_wave',   cat:'유전자', name:'🔵 푸른 물결',   desc:'B 대립유전자 빈도 70%+',       bonus:200,
     check:(g)=>(g.geneFrequency()['color']||0)<=30 },
-  { id:'speed_evo',   name:'⚡ 속도 진화',   desc:'S 대립유전자 빈도 75%+',       bonus:200,
+  { id:'speed_evo',   cat:'유전자', name:'⚡ 속도 진화',   desc:'S 대립유전자 빈도 75%+',       bonus:200,
     check:(g)=>(g.geneFrequency()['speed']||0)>=75 },
-  { id:'poison_evo',  name:'☠️ 독성 진화',   desc:'P 대립유전자 빈도 75%+',       bonus:200,
+  { id:'poison_evo',  cat:'유전자', name:'☠️ 독성 진화',   desc:'P 대립유전자 빈도 75%+',       bonus:200,
     check:(g)=>(g.geneFrequency()['poison']||0)>=75 },
-  { id:'charm_evo',   name:'💗 매력 진화',   desc:'C 대립유전자 빈도 75%+',       bonus:200,
+  { id:'charm_evo',   cat:'유전자', name:'💗 매력 진화',   desc:'C 대립유전자 빈도 75%+',       bonus:200,
     check:(g)=>(g.geneFrequency()['charm']||0)>=75 },
-  { id:'dominant_all',name:'👑 우성 지배',   desc:'모든 유전자 우성 대립유전자 60%+', bonus:500,
+  { id:'dominant_all',cat:'유전자', name:'👑 우성 지배',   desc:'모든 유전자 우성 대립유전자 60%+', bonus:500,
     check:(g)=>Object.values(g.geneFrequency()).every(p=>p>=60) },
 
   // ── 유전자 — 다양성·돌연변이 ──────────────────────────
-  { id:'diverse',     name:'🧬 다양성 수호', desc:'2분 후에도 다양성 75%+ 유지',  bonus:250,
+  { id:'diverse',     cat:'유전자', name:'🧬 다양성 수호', desc:'2분 후에도 다양성 75%+ 유지',  bonus:250,
     check:(g,el)=>el>=120000&&g.calcDiversity()>=0.75 },
-  { id:'mutant6',     name:'🔬 돌연변이 6종', desc:'6종 돌연변이 동시 보유',      bonus:250,
+  { id:'mutant6',     cat:'유전자', name:'🔬 돌연변이 6종', desc:'6종 돌연변이 동시 보유',      bonus:250,
     check:(g)=>Object.keys(g.mutationFrequency()).length>=6 },
-  { id:'mutant10',    name:'🧫 돌연변이 10종', desc:'10종 돌연변이 동시 보유',    bonus:450,
+  { id:'mutant10',    cat:'유전자', name:'🧫 돌연변이 10종', desc:'10종 돌연변이 동시 보유',    bonus:450,
     check:(g)=>Object.keys(g.mutationFrequency()).length>=10 },
-  { id:'pure_blood',  name:'🫧 순수 혈통',   desc:'2분 후에도 돌연변이 없는 개체 50%+', bonus:250,
+  { id:'pure_blood',  cat:'유전자', name:'🫧 순수 혈통',   desc:'2분 후에도 돌연변이 없는 개체 50%+', bonus:250,
     check:(g,el)=>el>=120000&&g.count>0&&g.individuals.filter(i=>i.mutations.length===0).length/g.count>=0.5 },
 
   // ── 지형 ──────────────────────────────────────────────
-  { id:'volcano_win', name:'🌋 화산 정복',   desc:'화산지대에서 전쟁 승리',       bonus:300,
+  { id:'volcano_win', cat:'지형', name:'🌋 화산 정복',   desc:'화산지대에서 전쟁 승리',       bonus:300,
     check:(g,el,d)=>d.volcanoWin },
-  { id:'explorer',    name:'🗺️ 탐험가',      desc:'5종 이상 지형 방문',           bonus:200,
+  { id:'explorer',    cat:'지형', name:'🗺️ 탐험가',      desc:'5종 이상 지형 방문',           bonus:200,
     check:(g,el,d)=>(d.visitedTerrains||new Set()).size>=5 },
 ];
 
@@ -3182,6 +3207,7 @@ class ArenaScene extends Phaser.Scene {
       try {
         if (ach.check(g, this.elapsed, this.achieveData)) {
           this.achievements.add(ach.id);
+          markAchUnlocked(ach.id);
           this.showToast(`🏆 ${ach.name} +${ach.bonus}`, 'ach');
           Audio.sfxAchieve();
           this.cameras.main.flash(200, 255, 240, 180);
@@ -4359,6 +4385,21 @@ function setEventFilter(filter, btn) {
   renderEventDex();
 }
 
+// ── 도전과제 영구 해금 저장소 ─────────────────────────────
+function loadUnlockedAch() {
+  try {
+    const raw = localStorage.getItem('gpa_ach_unlocked');
+    return new Set(raw ? JSON.parse(raw) : []);
+  } catch { return new Set(); }
+}
+function markAchUnlocked(id) {
+  const set = loadUnlockedAch();
+  set.add(id);
+  localStorage.setItem('gpa_ach_unlocked', JSON.stringify([...set]));
+}
+
+let _achFilter = 'all';
+
 // ── 돌연변이 도감 ──────────────────────────────
 let _dexFilter = 'all';
 
@@ -4429,17 +4470,66 @@ function closeDex() {
   if (scene && !_paused) scene.scene.resume();
 }
 function closeEventDex() { closeDex(); }
+function renderAchieveDex() {
+  const unlocked = loadUnlockedAch();
+  const header = document.getElementById('dex-achieve-header');
+  const list   = document.getElementById('dex-achieve-list');
+  if (!header || !list) return;
+
+  header.textContent = `해금 ${unlocked.size} / ${ACHIEVEMENTS.length}`;
+
+  const filtered = ACHIEVEMENTS.filter(a => {
+    if (_achFilter === 'done')   return unlocked.has(a.id);
+    if (_achFilter === 'locked') return !unlocked.has(a.id);
+    return true;
+  });
+
+  list.innerHTML = filtered.map(a => {
+    const isUnlocked = unlocked.has(a.id);
+    if (isUnlocked) {
+      return `<div class="ach-card unlocked">
+        <div class="ach-title">${a.name}</div>
+        <div class="ach-desc">${a.desc}</div>
+        <div class="ach-footer">
+          <span class="ach-bonus">+${a.bonus}점</span>
+          <span class="ach-badge">✅ 달성</span>
+        </div>
+      </div>`;
+    } else {
+      return `<div class="ach-card locked">
+        <div class="ach-title locked-title">🔒 [${a.cat}]</div>
+        <div class="ach-desc">???</div>
+        <div class="ach-footer">
+          <span class="ach-bonus">+${a.bonus}점</span>
+        </div>
+      </div>`;
+    }
+  }).join('') || '<div style="text-align:center;color:var(--ink-soft);padding:24px">해당 도전과제 없음</div>';
+}
+
+function setAchFilter(filter, btn) {
+  _achFilter = filter;
+  document.querySelectorAll('#ach-filters .dex-filter').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderAchieveDex();
+}
+
 function switchDexTab(tab, btn) {
   document.querySelectorAll('.dex-tab').forEach(b => b.classList.remove('active'));
   if (btn) btn.classList.add('active');
   const mutPanel = document.getElementById('dex-mutation-panel');
   const evPanel  = document.getElementById('dex-event-panel');
-  if (tab === 'event') {
-    mutPanel.style.display = 'none';
+  const achPanel = document.getElementById('dex-achieve-panel');
+  mutPanel.style.display = 'none';
+  evPanel.style.display  = 'none';
+  if (achPanel) achPanel.style.display = 'none';
+  if (tab === 'achieve') {
+    if (achPanel) achPanel.style.cssText = 'flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden';
+    renderAchieveDex();
+  } else if (tab === 'event') {
     evPanel.style.cssText = 'flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden';
     renderEventDex();
   } else {
-    evPanel.style.display = 'none';
     mutPanel.style.cssText = 'flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden';
     renderDex();
   }
