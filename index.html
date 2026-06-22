@@ -3393,6 +3393,10 @@ class ArenaScene extends Phaser.Scene {
     // 공격범위 안일 때만 도태/반격
     const dist = Math.hypot(b.x - this.player.x, b.y - this.player.y);
     if (dist <= BOSS_RANGE) this.bossCombatTick(dt);
+  // 게임오버: 개체수 임계 미만
+  if (this.player.individuals.length < BOSS_MIN_POP) { this.resolveBoss(false, 'wipe'); return this.endGame(); }
+  // 중간보스 퇴각: 제한시간 초과(최종보스는 운석까지 추격이라 사실상 미발동)
+  if (this.bossSlot !== 'final' && this.elapsed >= this.bossPhaseUntil) this.resolveBoss(false, 'retreat');
   }
 
 // 접촉 중: 안전조건 미충족 개체 도태 + 보유 개체 비례 반격
@@ -3415,11 +3419,26 @@ bossCombatTick(dt) {
   if (b.hp <= 0) this.resolveBoss(true);
 }
 
-resolveBoss(win) {
-  this.bossPhase = 'idle';
+resolveBoss(win, reason) {
+  const boss = this.activeBoss, slot = this.bossSlot;
   if (this.bossEntity) { this.bossEntity.sprite.destroy(); this.bossEntity = null; }
   document.getElementById('boss-hp').classList.remove('show');
+  document.getElementById('boss-banner').classList.remove('show');
+  this.bossPhase = 'idle';
+  this.recordAlleleSnapshot();
+  if (win) {
+    let score = slot === 'final' ? 600 : 200;
+    if (boss.hidden) score = 1500;
+    this.bossBonus = (this.bossBonus || 0) + score;
+    this.showMessage(`🏆 ${boss.name} 처치! +${score}점`, true);
+    if (this.showToast) this.showToast(`🏆 ${boss.name} 처치 +${score}`, 'ach');
+    if (navigator.vibrate) navigator.vibrate([80,40,120]);
+    this.cameras.main.flash(220, 255, 240, 180);
+  } else if (reason === 'retreat') {
+    this.showMessage(`${boss.ico} ${boss.name}가 물러갑니다… (보상 없음)`, true);
+  }
   this.activeBoss = null;
+  this.bossSlot = null;
 }
 
   startBossWarning(boss, slot) {
@@ -3771,7 +3790,7 @@ resolveBoss(win) {
       const ach = ACHIEVEMENTS.find(a => a.id === id);
       return sum + (ach ? ach.bonus : 0);
     }, 0);
-    const score = Math.max(0, resultPopulation * 10 + Math.floor(group.food) * 5 + group.wins * 50 + group.recruited * 30 + Math.floor(this.elapsed / 10000) * 5 - group.starved * 10 + diversityBonus + achieveBonus + meteorDeathBonus);
+    const score = Math.max(0, resultPopulation * 10 + Math.floor(group.food) * 5 + group.wins * 50 + group.recruited * 30 + Math.floor(this.elapsed / 10000) * 5 - group.starved * 10 + diversityBonus + achieveBonus + meteorDeathBonus + (this.bossBonus || 0));
     // 순위표 등록용 데이터 임시 보관
     this._endScoreData = {
       score,
@@ -3922,6 +3941,7 @@ resolveBoss(win) {
       <div class="result-card"><h2>점수 구성</h2>
         <div class="row"><span>기본 점수</span><strong>${(score - diversityBonus - achieveBonus - meteorDeathBonus).toLocaleString()}</strong></div>
         ${byMeteor ? `<div class="row"><span>운석 사망 보너스</span><strong class="good">+${meteorDeathBonus.toLocaleString()}</strong></div>` : ''}
+        ${this.bossBonus ? `<div class="row"><span>보스 처치 보너스</span><strong class="good">+${this.bossBonus.toLocaleString()}</strong></div>` : ''}
         <div class="row"><span>다양성 보너스</span><strong class="good">+${diversityBonus}</strong></div>
         <div class="row"><span>도전과제 보너스</span><strong class="good">+${achieveBonus}</strong></div>
       </div>
