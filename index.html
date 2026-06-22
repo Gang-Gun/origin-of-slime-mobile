@@ -2830,6 +2830,7 @@ class ArenaScene extends Phaser.Scene {
       const due = this.bossSchedule.find(s => !s.fired && this.elapsed >= s.at);
       if (due) { due.fired = true; this.startBossWarning(bossById(due.bossId), due.slot); this._dueBossHp = due.hp; }
     }
+    if (this.bossPhase === 'warning') this.bossWarningTick();
     // 운석 멸종 이벤트
     if (this.elapsed >= METEOR_WARN_TIME && !this.meteorWarned) {
       this.meteorWarned = true;
@@ -3313,6 +3314,53 @@ class ArenaScene extends Phaser.Scene {
       armor: f.armor || 0, charm: f.charm || 0,
       pop: this.player.count,
     });
+  }
+
+  // 월드에서 지정 지형의 가장 가까운 좌표(근사) — 기존 terrainAt 샘플링. 없으면 null
+  nearestTerrainOf(terrainId) {
+    let best = null, bestD = Infinity;
+    const step = 320;
+    for (let wy = step/2; wy < WORLD_H; wy += step) {
+      for (let wx = step/2; wx < WORLD_W; wx += step) {
+        const t = this.terrainAt(wx, wy);
+        if (!t || t.id !== terrainId) continue;
+        const d = (wx - this.player.x)**2 + (wy - this.player.y)**2;
+        if (d < bestD) { bestD = d; best = { x: wx, y: wy }; }
+      }
+    }
+    return best;
+  }
+
+  // 가장 가까운 대피 지형 방향으로 화면 가장자리 화살표 갱신
+  updateBossArrow(boss) {
+    const arrow = document.getElementById('boss-arrow');
+    if (!boss.refuge) { arrow.classList.remove('show'); return; }
+    const target = this.nearestTerrainOf(boss.refuge);
+    if (!target) { arrow.classList.remove('show'); return; }
+    const ang = Math.atan2(target.y - this.player.y, target.x - this.player.x);
+    const cx = window.innerWidth/2, cy = window.innerHeight/2, r = Math.min(cx, cy) * 0.7;
+    arrow.textContent = boss.refugeText.slice(0, 2);
+    arrow.style.left = (cx + Math.cos(ang)*r - 16) + 'px';
+    arrow.style.top  = (cy + Math.sin(ang)*r - 16) + 'px';
+    arrow.classList.add('show');
+  }
+
+  // 경고 단계 매 프레임: 카운트다운 + 대비도 + 화살표, 종료 시 보스 소환
+  bossWarningTick() {
+    const boss = this.activeBoss;
+    const remain = Math.max(0, Math.ceil((this.bossPhaseUntil - this.elapsed)/1000));
+    const g = this.player, n = g.individuals.length || 1;
+    const ready = Math.round(g.individuals.filter(i => boss.safe(i, g)).length / n * 100);
+    const banner = document.getElementById('boss-banner');
+    banner.innerHTML = `${boss.ico} <b>${boss.name}</b> ${remain}초 후 출현!<br>요구: <b>${boss.reqText}</b> · 대피: <b>${boss.refugeText}</b><br>대비도 <b>${ready}%</b>`;
+    this.updateBossArrow(boss);
+    if (this.elapsed >= this.bossPhaseUntil) this.spawnBoss();
+  }
+
+  // (임시 스텁 — Task 6에서 실제 보스 개체 생성으로 교체)
+  spawnBoss() {
+    this.bossPhase = 'chase';
+    document.getElementById('boss-arrow').classList.remove('show');
   }
 
   startBossWarning(boss, slot) {
