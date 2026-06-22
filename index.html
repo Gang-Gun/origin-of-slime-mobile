@@ -3390,7 +3390,37 @@ class ArenaScene extends Phaser.Scene {
     const pct = Math.max(0, b.hp / b.hpMax * 100);
     document.getElementById('boss-hp-fill').style.width = pct + '%';
     document.getElementById('boss-hp-label').textContent = `${this.activeBoss.ico} ${this.activeBoss.name}  ${Math.ceil(b.hp)}/${b.hpMax}`;
+    // 공격범위 안일 때만 도태/반격
+    const dist = Math.hypot(b.x - this.player.x, b.y - this.player.y);
+    if (dist <= BOSS_RANGE) this.bossCombatTick(dt);
   }
+
+// 접촉 중: 안전조건 미충족 개체 도태 + 보유 개체 비례 반격
+bossCombatTick(dt) {
+  const boss = this.activeBoss, g = this.player, b = this.bossEntity;
+  if (!g.individuals.length) return;
+  const safeFn = (i) => boss.safe(i, g);
+  // 도태: 미충족 개체 일부에 피해 (한 번에 전멸 방지: 틱당 소수)
+  const unsafe = g.individuals.filter(i => !safeFn(i));
+  const cullN = Math.min(unsafe.length, Math.ceil(3 * (dt/1000) * 6));
+  for (let k = 0; k < cullN; k++) {
+    const v = unsafe[k]; if (!v) break;
+    v.hp -= 6; if (v.hp <= 0) v.dead = true;
+  }
+  g.individuals = g.individuals.filter(i => !i.dead);
+  if (cullN > 0) this.burst(g.x, g.y, 0xff5555, 6, 80);
+  // 반격: 안전(보유) 개체 수 비례로 보스 HP 감소
+  const safeCount = g.individuals.filter(safeFn).length;
+  b.hp -= safeCount * 0.9 * (dt/1000) * 6;
+  if (b.hp <= 0) this.resolveBoss(true);
+}
+
+resolveBoss(win) {
+  this.bossPhase = 'idle';
+  if (this.bossEntity) { this.bossEntity.sprite.destroy(); this.bossEntity = null; }
+  document.getElementById('boss-hp').classList.remove('show');
+  this.activeBoss = null;
+}
 
   startBossWarning(boss, slot) {
     this.bossPhase = 'warning';
