@@ -1332,6 +1332,20 @@ const BOSS_ROSTER = [
 ];
 function bossById(id){ return BOSS_ROSTER.find(b=>b.id===id); }
 
+// 보스 비주얼 설정 — createBossTexture가 파츠 조립에 사용
+const BOSS_VISUAL = {
+  lava:       { shape:'bulky',       pal:{d:0x3a2420,m:0x6a3a2a,l:0x8a4a36,a:0xff7a1a}, parts:['lavaCracks','heavyBrows'], eyes:2, eyeCol:0xff3a1a },
+  sand:       { shape:'armored',     pal:{d:0x7a5a32,m:0xc2964a,l:0xe6c483,a:0x5a3a1a}, parts:['shellPlates','spikes'],     eyes:2, eyeCol:0x2a1a0a },
+  glacier:    { shape:'crystalline', pal:{d:0x3a6aa0,m:0x8fc0e8,l:0xdcf0ff,a:0xffffff}, parts:['iceCrown'],                  eyes:2, eyeCol:0x1a6aff },
+  spore:      { shape:'bulky',       pal:{d:0x4a2a6a,m:0x7a4aa0,l:0xb48ad0,a:0x6fcf4a}, parts:['poisonDrips','spores'],      eyes:4, eyeCol:0xc0ff6a },
+  gale:       { shape:'sleek',       pal:{d:0x2f6f7a,m:0x4fb0c0,l:0x9fe0e8,a:0xdffcff}, parts:['legs','streaks'],            eyes:2, eyeCol:0x10303a },
+  charmer:    { shape:'tentacled',   pal:{d:0xa83a7a,m:0xe060a0,l:0xffb0d8,a:0xffd23f}, parts:['tentacles'],                 eyes:2, eyeCol:0x4a1030 },
+  steel:      { shape:'armored',     pal:{d:0x4a5a6a,m:0x8a9aaa,l:0xc2d2e2,a:0x5a6a7a}, parts:['shellPlates','legs'],        eyes:1, eyeCol:0x1a2a3a },
+  plague:     { shape:'draconic',    pal:{d:0x5a1a1a,m:0xa83a2a,l:0xe0604a,a:0x6fcf4a}, parts:['wings','lavaCracks','poisonDrips'], eyes:2, eyeCol:0xffd23f },
+  siren:      { shape:'tentacled',   pal:{d:0x1a3a5a,m:0x2f6f9a,l:0x6fb0d8,a:0xaef0ff}, parts:['tentacles','lure'],          eyes:2, eyeCol:0xaef0ff },
+  primordial: { shape:'amorphous',   pal:{d:0x2a2030,m:0x7a4aa0,l:0xffffff,a:0xffffff}, parts:['prism','multiEyes'],         eyes:5, eyeCol:0xffffff, prism:true },
+};
+
 // 10분 기준 보스 등장 시각(ms)과 슬롯
 const BOSS_SCHEDULE = [
   { at:150000, slot:'mid',   hp:80  },  // 2:30

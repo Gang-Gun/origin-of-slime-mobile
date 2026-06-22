@@ -8,7 +8,7 @@ const Phaser = { Scene: class {}, Game: class { constructor(){} }, AUTO:0, Scale
 let api;
 try {
   api = new Function('Phaser','document','window','navigator','localStorage','firebase','requestAnimationFrame',
-    code + '\n;return { MUTATION_SIG_IDS, signatureMutations, dominantMutationType, creatureTextureKey, getBodyColor };'
+    code + '\n;return { MUTATION_SIG_IDS, signatureMutations, dominantMutationType, creatureTextureKey, getBodyColor, BOSS_VISUAL, BOSS_ROSTER };'
   )(Phaser, stub, stub, stub, stub, stub, function(){return 0;});
 } catch(e){ console.error('부팅 실패:', e.name, e.message); process.exit(1); }
 const fail = (msg)=>{ console.error('✗ '+msg); process.exitCode=1; };
@@ -22,5 +22,12 @@ const ind = { genes: { color: ['R','R'] }, mutations: ['hard_shell','large_body'
 const key = api.creatureTextureKey(ind);
 if (!/^creature_\d+_hard_shell_/.test(key)) fail('키 형식 이상: '+key);
 if (key.includes('large_body')) fail('스케일 전용이 키에 포함됨: '+key);
+for (const b of api.BOSS_ROSTER) {
+  const v = api.BOSS_VISUAL[b.id];
+  if (!v) { fail('보스 비주얼 누락: '+b.id); continue; }
+  if (!v.pal || ['d','m','l','a'].some(k => typeof v.pal[k] !== 'number')) fail('팔레트 불완전: '+b.id);
+  if (!v.shape || !Array.isArray(v.parts)) fail('shape/parts 누락: '+b.id);
+}
+if (Object.keys(api.BOSS_VISUAL).length !== 10) fail('BOSS_VISUAL 개수 != 10');
 if (process.exitCode) console.error('smoke-visual FAILED');
 else console.log('smoke-visual ok — type판정/시그니처/키 정상');
