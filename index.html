@@ -2725,6 +2725,39 @@ class ArenaScene extends Phaser.Scene {
     else if (cat==='dual') { px(10,3,1,1,0xc49ee0,0.8); }
   }
 
+  createBossTexture(bossId) {
+  const key = `boss_${bossId}`;
+  if (this.textures.exists(key)) return key;
+  const v = BOSS_VISUAL[bossId]; const S = 5;
+  const g = this.make.graphics({ add: false });
+  const W = 16, Hh = 13;
+  const px=(x,y,w,h,c,a=1)=>{ g.fillStyle(c,a); g.fillRect(x*S,y*S,w*S,h*S); };
+  const P = v.pal;
+  const wide = v.shape==='bulky' || v.shape==='amorphous';
+  const top = wide ? 2 : 4;
+  px(top+1,1,W-2*(top+1)+2,2,P.m); px(top-1,3,W-2*(top-1),2,P.m); px(1,5,W-2,5,P.m); px(2,10,W-4,2,P.m);
+  px(1,11,W-2,1,P.d); px(W-3,8,2,3,P.d); px(2,3,3,2,P.l);
+  if (v.prism) { const cols=[0xe0604a,0xff9b3a,0x6fcf4a,0x4fa0e6,0x9460b8]; for (let i=0;i<cols.length;i++) px(1+i*3,5,3,5,cols[i]); }
+  const parts = v.parts;
+  if (parts.includes('lavaCracks')) { px(3,5,3,1,P.a); px(9,7,3,1,P.a); px(5,9,4,1,0xffd23f); }
+  if (parts.includes('poisonDrips')) { px(3,12,1,1,P.a); px(8,12,1,1,P.a); px(12,11,1,1,P.a); }
+  if (parts.includes('spores')) { px(2,0,2,1,P.a); px(7,0,2,1,P.a); px(11,1,1,1,P.a); }
+  if (parts.includes('shellPlates')) { px(2,0,W-4,1,P.d); px(3,1,3,1,P.l); px(9,1,3,1,P.l); }
+  if (parts.includes('spikes')) { px(2,0,1,1,P.d); px(6,0,1,1,P.d); px(10,0,1,1,P.d); px(13,1,1,1,P.d); }
+  if (parts.includes('iceCrown')) { px(3,0,1,1,P.l); px(7,0,1,1,0xffffff); px(11,0,1,1,P.l); px(5,1,1,1,P.l); px(9,1,1,1,P.l); }
+  if (parts.includes('heavyBrows')) { px(3,4,3,1,P.d); px(9,4,3,1,P.d); }
+  if (parts.includes('legs')) { px(2,12,1,1,P.d); px(6,12,1,1,P.d); px(10,12,1,1,P.d); px(13,12,1,1,P.d); }
+  if (parts.includes('streaks')) { px(0,6,1,1,P.l,0.7); px(0,8,1,1,P.l,0.5); px(15,6,1,1,P.l,0.7); }
+  if (parts.includes('tentacles')) { px(1,12,1,1,P.m); px(4,12,1,1,P.m); px(11,12,1,1,P.m); px(14,12,1,1,P.m); px(2,11,1,1,P.l); }
+  if (parts.includes('wings')) { px(0,4,2,3,P.d); px(14,4,2,3,P.d); }
+  if (parts.includes('lure')) { px(7,0,2,1,P.a); px(7,1,1,1,P.l); }
+  const eyeY=6, slots=[4,7,10,5,9];
+  for (let i=0;i<v.eyes;i++){ const ex=slots[i%slots.length], ey=eyeY+(i>=3?2:0); px(ex,ey,1,1,0xffffff); px(ex,ey,1,1,v.eyeCol,0.85); }
+  g.generateTexture(key, W*S, Hh*S);
+  g.destroy();
+  return key;
+}
+
   rebuildIndividualSprites() {
     this.groupLayer.removeAll(true);
     this.individualSprites.clear();
