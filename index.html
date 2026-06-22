@@ -1332,7 +1332,7 @@ const TERRAIN = {
 const TERRAIN_LIST = Object.values(TERRAIN);
 
 // ── 보스 위협 시스템 ─────────────────────────────────
-const BOSS_WARN_TIME = 20000;       // 경고 카운트다운 20초
+const BOSS_WARN_TIME = 100000;      // 경고 카운트다운 100초
 const BOSS_RETREAT_TIME = 90000;    // 중간보스 퇴각 제한 90초
 const BOSS_RANGE = 240;             // 보스 공격범위(거리)
 const BOSS_MIN_POP = 3;             // 이 미만으로 떨어지면 게임오버
@@ -3571,17 +3571,8 @@ class ArenaScene extends Phaser.Scene {
   }
 
   // 가장 가까운 대피 지형 방향으로 화면 가장자리 화살표 갱신
-  updateBossArrow(boss) {
-    const arrow = document.getElementById('boss-arrow');
-    if (!boss.refuge) { arrow.classList.remove('show'); return; }
-    const target = this.nearestTerrainOf(boss.refuge);
-    if (!target) { arrow.classList.remove('show'); return; }
-    const ang = Math.atan2(target.y - this.player.y, target.x - this.player.x);
-    const cx = window.innerWidth/2, cy = window.innerHeight/2, r = Math.min(cx, cy) * 0.7;
-    arrow.textContent = boss.refugeText.slice(0, 2);
-    arrow.style.left = (cx + Math.cos(ang)*r - 16) + 'px';
-    arrow.style.top  = (cy + Math.sin(ang)*r - 16) + 'px';
-    arrow.classList.add('show');
+  updateBossArrow(_boss) {
+    document.getElementById('boss-arrow').classList.remove('show');
   }
 
   // 경고 단계 매 프레임: 카운트다운 + 대비도 + 화살표, 종료 시 보스 소환
@@ -3591,8 +3582,7 @@ class ArenaScene extends Phaser.Scene {
     const g = this.player, n = g.individuals.length || 1;
     const ready = Math.round(g.individuals.filter(i => boss.safe(i, g)).length / n * 100);
     const banner = document.getElementById('boss-banner');
-    banner.innerHTML = `${boss.ico} <b>${boss.name}</b> ${remain}초 후 출현!<br>요구: <b>${boss.reqText}</b> · 대피: <b>${boss.refugeText}</b><br>대비도 <b>${ready}%</b>`;
-    this.updateBossArrow(boss);
+    banner.innerHTML = `${boss.ico} <b>${boss.name}</b> ${remain}초 후 출현!<br>요구: <b>${boss.reqText}</b><br>대비도 <b>${ready}%</b>`;
     if (this.elapsed >= this.bossPhaseUntil) this.spawnBoss();
   }
 
@@ -3713,7 +3703,7 @@ resolveBoss(win, reason) {
     this.bossSlot = slot;
     this.bossPhaseUntil = this.elapsed + BOSS_WARN_TIME;
     const banner = document.getElementById('boss-banner');
-    banner.innerHTML = `${boss.ico} <b>${boss.name}</b> 접근!<br>요구: <b>${boss.reqText}</b> · 대피: <b>${boss.refugeText}</b>`;
+    banner.innerHTML = `${boss.ico} <b>${boss.name}</b> 접근!<br>요구: <b>${boss.reqText}</b>`;
     banner.classList.add('show');
     this.showMessage(`${boss.ico} ${boss.name} 접근! ${boss.reqText} 없는 개체는 도태됩니다`, true);
     if (navigator.vibrate) navigator.vibrate([60,40,60]);
