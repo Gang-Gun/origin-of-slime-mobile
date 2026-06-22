@@ -1315,6 +1315,13 @@ const BOSS_ROSTER = [
 ];
 function bossById(id){ return BOSS_ROSTER.find(b=>b.id===id); }
 
+// 10분 기준 보스 등장 시각(ms)과 슬롯
+const BOSS_SCHEDULE = [
+  { at:150000, slot:'mid',   hp:80  },  // 2:30
+  { at:330000, slot:'mid',   hp:80  },  // 5:30
+  { at:480000, slot:'final', hp:160 },  // 8:00
+];
+
 // ── 날씨 시스템 ──────────────────────────────────
 const WEATHERS = {
   sunny:  { id:'sunny',  name:'맑음',   ico:'☀️', foodMult:1.0,  spdMult:1.0,  tint:null },
@@ -2249,6 +2256,13 @@ class ArenaScene extends Phaser.Scene {
     this.gainedMutationsThisGame = new Set();
     // 지형별 이벤트 발생 횟수 추적
     this.terrainEventCount = {};
+    // 보스 위협 상태
+    this.bossSchedule = this.rollBossSchedule();
+    this.bossPhase = 'idle';   // idle | warning | chase
+    this.activeBoss = null;    // 현재 보스 정의
+    this.bossEntity = null;    // { x, y, hp, hpMax, sprite, speed }
+    this.bossSlot = null;      // 'mid' | 'final'
+    this.bossPhaseUntil = 0;   // 현재 단계 종료 시각(elapsed 기준)
     // 대립유전자 빈도 시계열 + 이벤트 로그 (결과 그래프용)
     this.alleleHistory = [];
     this.eventLog = [];
@@ -3276,6 +3290,20 @@ class ArenaScene extends Phaser.Scene {
       color: f.color || 0, speed: f.speed || 0, poison: f.poison || 0,
       armor: f.armor || 0, charm: f.charm || 0,
       pop: this.player.count,
+    });
+  }
+
+  // 이번 판 보스 3종을 중복 없이 추첨. 최종 슬롯은 확률적으로 히든 대체.
+  rollBossSchedule() {
+    const regular = BOSS_ROSTER.filter(b => !b.hidden);
+    const pool = [...regular];
+    for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(Math.random()*(i+1)); [pool[i],pool[j]]=[pool[j],pool[i]]; }
+    return BOSS_SCHEDULE.map((s, idx) => {
+      let boss = pool[idx];
+      if (s.slot === 'final' && Math.random() < HIDDEN_BOSS_CHANCE) {
+        boss = BOSS_ROSTER.find(b => b.hidden);
+      }
+      return { at: s.at, slot: s.slot, hp: s.hp, bossId: boss.id, fired: false };
     });
   }
 
