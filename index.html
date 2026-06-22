@@ -1594,6 +1594,33 @@ const MUTATIONS = [
   { id: 'timid', name: '겁 많은 성향', type: 'bad', effects: { attack: -2, charm: -3, speed: 5 } },
   { id: 'bad_metabolism', name: '불완전 대사', type: 'bad', effects: { hp: -10, speed: -5, gather: -2, fertility: -0.2, foodNeed: 0.5 } }
 ];
+// 외형에 직접 반영되는 시그니처 돌연변이(스케일 전용 2종 포함)
+const MUTATION_SIG_IDS = new Set([
+  'large_body','small_body','hard_shell','bright_pattern','strong_jaw',
+  'poison_gland','regeneration','fast_legs','pheromone',
+]);
+function signatureMutations(mutations) {
+  return (mutations || []).filter(id => MUTATION_SIG_IDS.has(id)).sort();
+}
+function dominantMutationType(mutations) {
+  const count = { good:0, bad:0, dual:0 };
+  for (const id of (mutations || [])) {
+    const m = MUTATIONS.find(x => x.id === id);
+    if (m) count[m.type]++;
+  }
+  if (count.good === 0 && count.bad === 0 && count.dual === 0) return 'none';
+  const order = ['bad','dual','good'];
+  let best = 'good', bestN = -1;
+  for (const t of order) { if (count[t] > bestN) { bestN = count[t]; best = t; } }
+  return best;
+}
+function creatureTextureKey(individual) {
+  const body = getBodyColor(individual);
+  const sig = signatureMutations(individual.mutations)
+    .filter(id => id !== 'large_body' && id !== 'small_body');
+  const cat = dominantMutationType(individual.mutations);
+  return `creature_${body}_${sig.length ? sig.join('.') : 'none'}_${cat}`;
+}
 const BASE_STATS = { hp: 100, attack: 10, defense: 3, speed: 80, gather: 5, fertility: 1, charm: 5, foodNeed: 1, mutationRate: 0.08 };
 const MIN_STATS = { hp: 20, attack: 1, defense: 0, speed: 20, gather: 0, fertility: 0.1, charm: 0, foodNeed: 0.2, mutationRate: 0 };
 const MAX_STATS = { hp: 300, attack: 50, defense: 30, speed: 200, gather: 30, fertility: 3, charm: 50, foodNeed: 5, mutationRate: 0.3 };
