@@ -2837,7 +2837,7 @@ class ArenaScene extends Phaser.Scene {
       this.meteorWarned = true;
       this.startMeteorWarning();
     }
-    if (this.elapsed >= METEOR_TIME && !this.meteorActive) {
+    if (this.elapsed >= METEOR_TIME && !this.meteorActive && this.bossPhase === 'idle') {
       return this.triggerMeteor();
     }
     if (!this.player.individuals.length) return this.endGame();
