@@ -1,0 +1,4556 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no, maximum-scale=1">
+<title>슬라임의 기원 | Origin of Slime</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jua&family=Nunito:wght@600;800;900&display=swap" rel="stylesheet">
+<style>
+/* ════════════════════════════════════════════
+   파스텔 자연 생태 테마 — Origin of Slime
+   ════════════════════════════════════════════ */
+:root {
+  /* 파스텔 자연 팔레트 */
+  --cream:     #fdf6e3;
+  --leaf:      #6ec46a;
+  --leaf-dk:   #3d8a3a;
+  --leaf-lt:   #a8e4a0;
+  --sky:       #7ec8e3;
+  --sky-dk:    #4a9ec0;
+  --peach:     #ffb4a2;
+  --coral:     #f96558;
+  --coral-dk:  #c9402f;
+  --honey:     #ffc94d;
+  --honey-dk:  #e8a500;
+  --lilac:     #c49ee0;
+  --lilac-dk:  #9b6fc4;
+  --ink:       #3d3350;
+  --ink-soft:  #6e6384;
+  --ink-faint: rgba(61,51,80,.1);
+  --glass:     rgba(255,252,245,0.82);
+  --glass-bdr: rgba(255,255,255,0.9);
+  --shadow:    rgba(100,75,55,0.20);
+  --shadow-sm: rgba(100,75,55,0.14);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  width: 100%; height: 100%; overflow: hidden; touch-action: none;
+  background: #c5eebc; color: var(--ink);
+  font-family: 'Nunito', system-ui, sans-serif; font-weight: 700;
+  -webkit-tap-highlight-color: transparent;
+}
+button { font: inherit; cursor: pointer; }
+/* 전체화면 진입 시 기본 검정 backdrop 깜빡임 제거 → 게임 배경색으로 */
+html:fullscreen { background: #c5eebc; }
+:fullscreen::backdrop, ::backdrop { background: #c5eebc; }
+#game-container { width: 100vw; height: 100vh; }
+canvas { display: block; image-rendering: pixelated; }
+
+/* ─── 공통 글래스 패널 ─── */
+.panel {
+  background: var(--glass);
+  border: 2px solid var(--glass-bdr);
+  border-radius: 18px;
+  box-shadow: 0 6px 16px var(--shadow), 0 2px 0 var(--glass-bdr), inset 0 1px 0 rgba(255,255,255,.95);
+  backdrop-filter: blur(10px);
+}
+
+/* ─── 순위표 패널 ─── */
+#leaderboard-panel {
+  position: fixed; top: 16px; left: 16px; z-index: 45;
+  width: 220px;
+  background: rgba(255,255,255,0.82); backdrop-filter: blur(8px);
+  border: 1.5px solid rgba(255,255,255,0.9);
+  border-radius: 16px; padding: 12px 14px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.10);
+  font-family: 'Jua', sans-serif;
+  display: none; /* initLeaderboard()가 표시 제어 */
+  flex-direction: column; gap: 4px;
+}
+#leaderboard-panel .lb-title {
+  font-size: 13px; font-weight: 800; color: var(--ink);
+  display: flex; align-items: center; justify-content: space-between;
+  cursor: pointer; user-select: none;
+  margin-bottom: 0;
+}
+#leaderboard-panel .lb-title .lb-title-text { display: flex; align-items: center; gap: 5px; }
+#lb-toggle-btn {
+  background: none; border: none; cursor: pointer;
+  font-size: 12px; color: var(--ink-soft); padding: 0 2px;
+  line-height: 1; transition: transform 0.2s;
+}
+#leaderboard-panel.collapsed #lb-toggle-btn { transform: rotate(180deg); }
+#leaderboard-panel .lb-list-wrap {
+  max-height: 300px; overflow-y: auto;
+  scrollbar-width: thin; scrollbar-color: rgba(0,0,0,0.2) transparent;
+  margin-top: 8px;
+  transition: max-height 0.25s ease, opacity 0.2s ease, margin-top 0.2s ease;
+}
+#leaderboard-panel.collapsed .lb-list-wrap {
+  max-height: 0; overflow: hidden; opacity: 0; margin-top: 0;
+}
+#leaderboard-panel .lb-empty {
+  font-size: 11px; color: var(--ink-soft); text-align: center; padding: 8px 0;
+}
+#leaderboard-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 5px; }
+#leaderboard-list li {
+  font-size: 11px; color: var(--ink);
+  padding: 5px 8px; border-radius: 9px;
+  background: rgba(0,0,0,0.04);
+}
+#leaderboard-list li .lb-top { display: flex; justify-content: space-between; align-items: center; }
+#leaderboard-list li .lb-rank { font-size: 13px; font-weight: 900; min-width: 20px; }
+#leaderboard-list li .lb-name { flex: 1; font-weight: 800; margin: 0 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#leaderboard-list li .lb-score { font-weight: 900; color: var(--coral); }
+#leaderboard-list li .lb-sub { font-size: 10px; color: var(--ink-soft); margin-top: 2px; font-family: 'Nunito', sans-serif; }
+#leaderboard-list li:nth-child(1) { background: rgba(255,215,0,0.18); }
+#leaderboard-list li:nth-child(2) { background: rgba(192,192,192,0.18); }
+#leaderboard-list li:nth-child(3) { background: rgba(205,127,50,0.18); }
+
+/* 모바일 작은 화면 대응 */
+@media (max-width: 400px) {
+  #leaderboard-panel { width: 170px; top: 10px; left: 10px; padding: 9px 10px; }
+}
+
+/* ─── 점수 등록 모달 ─── */
+#score-submit-modal {
+  display: none; position: fixed; inset: 0; z-index: 80;
+  background: rgba(0,0,0,0.55); align-items: center; justify-content: center;
+}
+#score-submit-modal.open { display: flex; }
+#score-submit-card {
+  background: #ffffff; border-radius: 20px; padding: 28px 24px;
+  max-width: 320px; width: 90%; text-align: center;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.25);
+  animation: popIn .22s ease;
+  font-family: 'Jua', sans-serif;
+}
+#score-submit-card h2 { margin: 0 0 6px; font-size: 20px; }
+#score-submit-card .score-preview {
+  font-size: 28px; font-weight: 900; color: var(--coral);
+  margin: 8px 0 16px;
+}
+#score-submit-card .sub-preview {
+  font-size: 12px; color: var(--ink-soft); margin-bottom: 16px;
+  font-family: 'Nunito', sans-serif;
+}
+#lb-name-input {
+  width: 100%; box-sizing: border-box;
+  padding: 10px 14px; border-radius: 12px;
+  border: 2px solid var(--sky-dk); font-size: 16px;
+  font-family: 'Jua', sans-serif; outline: none;
+  margin-bottom: 14px; text-align: center;
+}
+#lb-name-input:focus { border-color: var(--coral); }
+#score-submit-card .btn-row { display: flex; gap: 10px; justify-content: center; }
+#lb-submit-btn {
+  padding: 10px 22px; border-radius: 12px; border: none; cursor: pointer;
+  background: var(--coral); color: #fff; font-size: 15px;
+  font-family: 'Jua', sans-serif; font-weight: 800;
+  box-shadow: 0 4px 0 #b83c2e;
+}
+#lb-submit-btn:active { transform: translateY(3px); box-shadow: 0 1px 0 #b83c2e; }
+#lb-skip-btn {
+  padding: 10px 16px; border-radius: 12px; border: 2px solid var(--ink-faint);
+  background: transparent; color: var(--ink-soft); font-size: 14px;
+  font-family: 'Jua', sans-serif; cursor: pointer;
+}
+#lb-feedback { font-size: 13px; color: #22c55e; min-height: 18px; margin-top: 6px; }
+
+/* ─── 타이틀 (배경 일러스트) ─── */
+#title-screen {
+  position: fixed; inset: 0; z-index: 40;
+  display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
+  gap: 16px; padding: 28px 28px max(7vh, 40px); text-align: center;
+  /* 기본(세로) 배경 — 가로 모드에서 미디어쿼리로 교체 */
+  background: #5aa9e6 url('assets/title-bg-port.webp') center center / cover no-repeat;
+}
+/* 버튼·제목 가독성용 하단 어둡게 */
+#title-screen::after {
+  content: ''; position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  background: linear-gradient(180deg, rgba(0,0,0,0) 45%, rgba(0,0,0,0.12) 62%, rgba(0,0,0,0.5) 100%);
+}
+/* 가로 모드: 가로 일러스트로 교체 */
+@media (orientation: landscape) {
+  #title-screen { background-image: url('assets/title-bg-land.webp'); }
+}
+#title-screen h1 {
+  position: relative; z-index: 1;
+  font-family: 'Jua', sans-serif; font-size: clamp(30px, 8vw, 54px); line-height: 1.08;
+  color: #fff;
+  text-shadow: 0 2px 0 var(--coral), 0 4px 0 rgba(20,15,10,.45), 0 0 36px rgba(0,0,0,.4);
+  letter-spacing: 1px;
+}
+#title-screen h1 .en { display:block; font-size:.42em; color:#ffe27a; text-shadow:0 2px 0 rgba(20,15,10,.55); margin-top:6px; letter-spacing:3px; }
+#title-menu {
+  position: relative; z-index: 1;
+  display: flex; flex-direction: column; align-items: center; gap: 12px;
+  width: min(320px, 80vw);
+}
+#title-menu .big-btn { width: 100%; }
+/* 가로모드: 메뉴 가로 배치 + 살짝 작게 */
+@media (orientation: landscape) and (max-height: 560px) {
+  #title-screen { gap: 10px; padding-bottom: 18px; }
+  #title-screen h1 { font-size: clamp(22px, 5vw, 34px); }
+  #title-menu { flex-direction: row; width: auto; gap: 10px; flex-wrap: wrap; justify-content: center; }
+  #title-menu .big-btn { width: auto; font-size: 16px; padding: 10px 24px; }
+}
+.big-btn {
+  font-family: 'Jua', sans-serif; font-size: 22px; color: #fff;
+  border: 3px solid rgba(255,255,255,.9); border-radius: 999px; padding: 15px 44px;
+  background: linear-gradient(170deg, #8ae484, #3d8a3a);
+  box-shadow: 0 8px 0 #2a6228, 0 12px 24px rgba(61,138,58,.3);
+  transition: transform .1s, box-shadow .1s; letter-spacing: 1.5px;
+}
+.big-btn:hover { transform: translateY(-3px); box-shadow: 0 11px 0 #2a6228, 0 15px 28px rgba(61,138,58,.3); }
+.big-btn:active { transform: translateY(6px); box-shadow: 0 2px 0 #2a6228; }
+.big-btn.coral { background: linear-gradient(170deg, #ff9483, var(--coral)); box-shadow: 0 8px 0 var(--coral-dk), 0 12px 24px rgba(201,64,47,.3); }
+.big-btn.coral:hover { box-shadow: 0 11px 0 var(--coral-dk), 0 15px 28px rgba(201,64,47,.3); }
+.big-btn.coral:active { box-shadow: 0 2px 0 var(--coral-dk); }
+.big-btn.sky { background: linear-gradient(170deg, #a5d8ff, var(--sky-dk)); box-shadow: 0 8px 0 #2a7a9a, 0 12px 24px rgba(74,158,192,.3); }
+.big-btn.sky:hover { transform: translateY(-3px); box-shadow: 0 11px 0 #2a7a9a, 0 15px 28px rgba(74,158,192,.3); }
+.big-btn.sky:active { transform: translateY(6px); box-shadow: 0 2px 0 #2a7a9a; }
+.big-btn.lilac { background: linear-gradient(170deg, #d4b8f0, var(--lilac-dk)); box-shadow: 0 8px 0 #7a4fa0, 0 12px 24px rgba(155,111,196,.3); }
+.big-btn.lilac:hover { transform: translateY(-3px); box-shadow: 0 11px 0 #7a4fa0, 0 15px 28px rgba(155,111,196,.3); }
+.big-btn.lilac:active { transform: translateY(6px); box-shadow: 0 2px 0 #7a4fa0; }
+
+/* ─── HUD 루트 ─── */
+#hud { position: fixed; inset: 0; display: none; z-index: 10; pointer-events: none; }
+
+/* ─── 상단 바 ─── */
+#top-bar {
+  position: absolute; top: 0; left: 0; right: 0;
+  display: flex; align-items: center; gap: 5px;
+  padding: 9px 9px 0; pointer-events: auto;
+}
+.chip {
+  display: flex; align-items: center; gap: 5px; padding: 6px 11px;
+  font-size: 13px; font-weight: 900; color: var(--ink);
+  background: var(--glass); border: 2px solid var(--glass-bdr);
+  border-radius: 999px; white-space: nowrap;
+  box-shadow: 0 4px 10px var(--shadow-sm), inset 0 1px 0 rgba(255,255,255,.95);
+  backdrop-filter: blur(10px);
+}
+.chip .ico {
+  font-size: 14px; line-height: 1;
+  background: var(--ink-faint); border-radius: 999px;
+  width: 22px; height: 22px; display: flex; align-items: center; justify-content: center;
+}
+.chip strong { color: var(--leaf-dk); font-size: 14px; }
+.chip.timer strong { color: var(--coral); }
+.chip.timer { background: linear-gradient(135deg, rgba(249,101,88,.12), rgba(255,252,245,.85)); }
+#top-spacer { flex: 1; min-width: 4px; }
+#pause-btn {
+  pointer-events: auto; width: 40px; height: 40px; font-size: 17px; flex-shrink: 0;
+  border: 2px solid var(--glass-bdr); border-radius: 999px;
+  background: var(--glass); backdrop-filter: blur(10px);
+  box-shadow: 0 4px 10px var(--shadow-sm), inset 0 1px 0 rgba(255,255,255,.95);
+  transition: transform .08s, box-shadow .08s;
+}
+#pause-btn:active { transform: translateY(2px); box-shadow: 0 2px 4px var(--shadow-sm); }
+
+/* ─── 우측 사이드바 ─── */
+#side-bar {
+  position: absolute; top: 57px; right: 9px;
+  display: flex; flex-direction: column; align-items: flex-end; gap: 5px;
+  pointer-events: auto;
+}
+#env-badge {
+  display: flex; align-items: center; gap: 5px;
+  padding: 5px 11px; font-size: 12px; font-weight: 900;
+  background: var(--glass); border: 2px solid var(--glass-bdr);
+  border-radius: 999px; backdrop-filter: blur(10px);
+  box-shadow: 0 3px 8px var(--shadow-sm), inset 0 1px 0 rgba(255,255,255,.95);
+}
+#env-badge .weather { font-size: 15px; }
+#env-badge .clock   { color: var(--ink); font-size: 12px; }
+#stats-toggle, #dex-toggle {
+  font-family: 'Jua', sans-serif; font-size: 13px; color: var(--ink);
+  background: var(--glass); border: 2px solid var(--glass-bdr);
+  border-radius: 999px; padding: 6px 13px;
+  box-shadow: 0 3px 8px var(--shadow-sm), inset 0 1px 0 rgba(255,255,255,.95);
+  backdrop-filter: blur(10px); transition: transform .08s;
+}
+#stats-toggle:active, #dex-toggle:active { transform: translateY(2px); }
+#dex-toggle { background: linear-gradient(135deg, rgba(196,158,224,.25), var(--glass)); }
+
+/* ─── 현황 패널 ─── */
+#stats {
+  position: absolute; top: 128px; right: 9px; width: min(256px, calc(100vw - 18px));
+  max-height: calc(100vh - 200px); overflow-y: auto; overflow-x: hidden;
+  padding: 14px 12px; font-size: 12.5px; line-height: 1.7;
+  pointer-events: auto; display: none;
+  scrollbar-width: thin; scrollbar-color: var(--lilac) transparent;
+}
+#hud.stats-open #stats { display: block; animation: popIn .25s cubic-bezier(.34,1.56,.64,1); }
+@keyframes popIn { from{transform:scale(.88) translateY(-8px);opacity:0} to{transform:scale(1);opacity:1} }
+#stats h2 {
+  font-family: 'Jua', sans-serif; font-size: 13px; margin: 10px 0 5px; color: var(--coral);
+  display: flex; align-items: center; gap: 5px; padding-bottom: 4px;
+  border-bottom: 2px solid rgba(249,101,88,.15);
+}
+#stats h2:first-child { margin-top: 0; }
+.row { display:flex; justify-content:space-between; align-items:center; gap:8px; padding:3px 0; border-bottom:1px dashed rgba(110,99,132,.14); }
+.row:last-child { border-bottom:none; }
+.label { color:var(--ink-soft); font-size:11.5px; }
+.row strong { color:var(--ink); font-weight:900; font-size:12.5px; }
+.good { color:var(--leaf-dk); } .bad { color:var(--coral); } .warn { color:var(--honey-dk); } .dual { color:var(--lilac-dk); }
+
+/* ─── 하단 바 ─── */
+#bottom-bar {
+  position: absolute; left: 9px; right: 9px; bottom: 9px;
+  padding: 10px 12px; display: flex; gap: 9px; align-items: center;
+  background: var(--glass); border: 2px solid var(--glass-bdr);
+  border-radius: 22px; backdrop-filter: blur(12px);
+  box-shadow: 0 8px 20px var(--shadow), inset 0 1px 0 rgba(255,255,255,.95);
+  pointer-events: auto;
+}
+#bars { flex: 1; display: grid; gap: 5px; min-width: 0; }
+.bar-label { display:flex; justify-content:space-between; align-items:center; color:var(--ink-soft); font-size:11px; font-weight:800; }
+.bar-label b { color:var(--ink); font-size:12px; }
+.meter { height: 11px; background: rgba(110,99,132,.12); border-radius:999px; overflow:hidden; position:relative; }
+.meter::before { content:''; position:absolute; inset:0; border-radius:999px; box-shadow:inset 0 2px 4px rgba(100,75,55,.14); }
+.fill { height:100%; width:0%; transition:width .3s cubic-bezier(.4,0,.2,1); border-radius:999px; }
+#food-fill    { background: linear-gradient(90deg, var(--leaf-lt), var(--leaf-dk)); }
+#surplus-fill { background: linear-gradient(90deg, #b8e4f6, var(--sky-dk)); }
+.action-btn {
+  min-width: 68px; border: 2px solid rgba(255,255,255,.85); border-radius: 16px; color: #fff;
+  padding: 10px 11px; font-family: 'Jua', sans-serif; font-size: 14px;
+  box-shadow: 0 5px 12px rgba(0,0,0,.16); transition: transform .08s, box-shadow .08s;
+}
+.action-btn:active:not(:disabled) { transform: translateY(3px); box-shadow: 0 2px 4px rgba(0,0,0,.14); }
+#breed-btn { background: linear-gradient(170deg, #84de7e, var(--leaf-dk)); }
+#flee-btn  { background: linear-gradient(170deg, #ff9483, var(--coral)); }
+.action-btn:disabled { background: rgba(180,168,200,.4); color: rgba(61,51,80,.4); box-shadow: none; border-color: rgba(255,255,255,.5); }
+
+/* ─── 일시정지 모달 ─── */
+#pause-modal {
+  position: fixed; inset: 0; z-index: 55; display: none;
+  align-items: center; justify-content: center;
+  background: rgba(20,14,36,.65); backdrop-filter: blur(8px);
+}
+#pause-modal.open { display: flex; animation: fadeIn .2s ease; }
+@keyframes fadeIn { from{opacity:0} to{opacity:1} }
+#pause-card {
+  background: var(--glass); border: 2px solid var(--glass-bdr); border-radius: 28px;
+  padding: 26px 28px; width: min(310px, 88vw); text-align: center;
+  box-shadow: 0 24px 48px rgba(20,14,36,.45), inset 0 1px 0 rgba(255,255,255,.95);
+  backdrop-filter: blur(16px);
+  display: flex; flex-direction: column; gap: 12px;
+  animation: popIn .3s cubic-bezier(.34,1.56,.64,1);
+}
+#pause-card h2 { font-family:'Jua',sans-serif; font-size:22px; color:var(--coral); }
+.pause-btn {
+  width:100%; padding:13px; border:2px solid rgba(255,255,255,.85); border-radius:14px;
+  font-family:'Jua',sans-serif; font-size:16px; color:#fff; cursor:pointer;
+  box-shadow:0 5px 12px rgba(0,0,0,.15); transition:transform .08s, box-shadow .08s;
+}
+.pause-btn:active { transform:translateY(3px); box-shadow:0 2px 4px rgba(0,0,0,.12); }
+.pause-resume  { background:linear-gradient(170deg,#84de7e,var(--leaf-dk)); }
+.pause-settings{ background:linear-gradient(170deg,#a5d8ff,var(--sky-dk)); }
+.pause-home    { background:linear-gradient(170deg,#ff9483,var(--coral)); }
+
+/* ─── 설정 패널 ─── */
+#settings-panel { display:none; flex-direction:column; gap:11px; border-top:1px solid var(--ink-faint); padding-top:14px; }
+#settings-panel.open { display:flex; }
+.setting-row { display:flex; justify-content:space-between; align-items:center; font-size:14px; font-weight:800; color:var(--ink); }
+.toggle-btn {
+  width:50px; height:26px; border-radius:999px; border:2px solid rgba(255,255,255,.8);
+  background:rgba(180,168,200,.4); cursor:pointer; position:relative; transition:background .2s;
+  box-shadow:inset 0 2px 4px rgba(100,75,55,.14);
+}
+.toggle-btn.on { background:var(--leaf); box-shadow:inset 0 2px 4px rgba(40,100,38,.2); }
+.toggle-btn::after {
+  content:''; position:absolute; top:2px; left:2px;
+  width:17px; height:17px; border-radius:999px; background:#fff;
+  transition:left .2s cubic-bezier(.34,1.56,.64,1); box-shadow:0 2px 4px rgba(0,0,0,.18);
+}
+.toggle-btn.on::after { left:23px; }
+
+/* ─── 전투 비네트 (플레이어 전투 시 화면 가장자리 박동) ─── */
+#battle-vignette {
+  position: fixed; inset: 0; pointer-events: none; z-index: 25;
+  background: radial-gradient(ellipse at center, transparent 55%, rgba(220,40,40,0) 70%);
+  opacity: 0; transition: opacity 0.3s;
+}
+#battle-vignette.active {
+  opacity: 1;
+  background: radial-gradient(ellipse at center, transparent 55%, rgba(220,40,40,0.45) 100%);
+  animation: vignetteBlood 0.9s ease-in-out infinite alternate;
+}
+@keyframes vignetteBlood {
+  from { background: radial-gradient(ellipse at center, transparent 55%, rgba(220,40,40,0.30) 100%); }
+  to   { background: radial-gradient(ellipse at center, transparent 52%, rgba(220,40,40,0.55) 100%); }
+}
+
+/* ─── 전투 배너 ─── */
+#battle-banner {
+  position: absolute; top: 58px; left: 50%; transform: translateX(-50%); display: none;
+  padding: 7px 20px; font-family:'Jua',sans-serif; font-size:15px; color:#fff; white-space:nowrap;
+  background: linear-gradient(170deg, #ff9483, var(--coral));
+  border: 2px solid rgba(255,255,255,.85); border-radius: 999px;
+  box-shadow: 0 5px 14px rgba(201,64,47,.4); animation: wobble .7s ease-in-out infinite;
+}
+@keyframes wobble { 0%,100%{transform:translateX(-50%) rotate(-1.5deg)} 50%{transform:translateX(-50%) rotate(1.5deg)} }
+
+/* ─── 조이스틱 ─── */
+#joystick-dom {
+  position: fixed; left: 0; top: 0; z-index: 30; width: 110px; height: 110px; display: none;
+  pointer-events: none; transform: translate(-50%, -50%);
+  border: 3px solid rgba(255,255,255,.5); border-radius: 999px;
+  background: rgba(255,252,245,.14); backdrop-filter: blur(4px);
+}
+#joystick-knob {
+  position: absolute; left: 50%; top: 50%; width: 46px; height: 46px; transform: translate(-50%, -50%);
+  border-radius: 999px; background: rgba(255,255,255,.92);
+  box-shadow: 0 3px 10px rgba(0,0,0,.3), inset 0 2px 0 #fff;
+}
+
+/* ── 이벤트 메시지 ── */
+/* (event-message 아래 재정의됨) */
+
+/* 토스트 도전과제 알림 (우측 슬라이드) */
+/* 토스트 스택: 돌연변이=왼쪽아래 / 도전과제=오른쪽아래 (작게) */
+.toast-stack { position: absolute; display: flex; flex-direction: column; gap: 5px; z-index: 25; pointer-events: none; max-width: 46vw; }
+#toast-mut { left: 8px;  bottom: 88px; align-items: flex-start; }
+#toast-ach { right: 8px; bottom: 88px; align-items: flex-end; }
+/* ─── 토스트 ─── */
+.toast {
+  font-family:'Jua',sans-serif; font-size:11.5px; color:var(--ink);
+  background: linear-gradient(135deg, rgba(255,252,245,.95), rgba(255,213,80,.25));
+  border:2px solid rgba(255,255,255,.85); border-radius:12px; padding:5px 10px;
+  box-shadow:0 4px 10px rgba(100,75,55,.22), inset 0 1px 0 rgba(255,255,255,.95);
+  text-align:center; backdrop-filter:blur(8px); white-space:nowrap; line-height:1.3;
+  animation: toastIn .35s cubic-bezier(.34,1.56,.64,1), toastOut .4s ease 3.2s forwards;
+}
+.toast-mut { color: var(--px-green-d, #2a6328); }
+.toast-ach { color: var(--px-gold-d, #b5731c); }
+@keyframes toastIn  { from{transform:translateY(-24px) scale(.9);opacity:0} to{transform:translateY(0) scale(1);opacity:1} }
+@keyframes toastOut { to{transform:translateY(-16px) scale(.9);opacity:0} }
+
+/* ─── HUD 플로팅 텍스트 (식량 소비 등) ─── */
+.hud-float {
+  position: fixed;
+  font-size: 13px;
+  font-weight: 800;
+  pointer-events: none;
+  white-space: nowrap;
+  animation: hudFloatUp 1.4s ease-out forwards;
+  z-index: 9999;
+}
+@keyframes hudFloatUp {
+  0%   { opacity: 1; transform: translateY(0); }
+  70%  { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-22px); }
+}
+
+/* ─── 이벤트 메시지 ─── */
+#event-message {
+  position: absolute; top: 22%; left: 50%; transform: translate(-50%,-50%); width: min(340px,88vw);
+  display: none; padding: 15px 20px; text-align: center; line-height: 1.65; white-space: pre-line;
+  font-family:'Jua',sans-serif; font-size:15px; color:var(--ink);
+  background: var(--glass); border: 2px solid var(--glass-bdr);
+  border-radius: 22px; backdrop-filter: blur(14px);
+  box-shadow: 0 12px 32px rgba(20,14,36,.28), inset 0 1px 0 rgba(255,255,255,.95);
+}
+#event-message.show { animation: msgPop .35s cubic-bezier(.34,1.56,.64,1); }
+@keyframes msgPop { 0%{transform:translate(-50%,-50%) scale(.75);opacity:0} 100%{transform:translate(-50%,-50%) scale(1);opacity:1} }
+/* 튜토리얼 활성 시: 메시지를 하단으로 내려 슬라임 가림 방지 */
+#event-message.tutorial-mode { top: 80%; }
+
+/* ─── 결과 화면 ─── */
+#result {
+  position: fixed; inset: 0; z-index: 50; display: none; overflow-y: auto; padding: 24px 16px 40px;
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(255,220,100,.45) 0%, transparent 55%),
+    linear-gradient(155deg, #b3e5fc 0%, #c8f0c2 55%, #ffe5be 100%);
+}
+#result h1 {
+  font-family:'Jua',sans-serif; text-align:center; color:#fff; font-size:30px; margin-bottom:16px;
+  text-shadow:0 2px 0 var(--coral), 0 5px 0 rgba(100,75,55,.22);
+}
+#result-content { max-width:560px; margin:0 auto; display:grid; gap:10px; }
+.result-card {
+  padding: 14px 16px;
+  background: var(--glass); border: 2px solid var(--glass-bdr); border-radius: 20px;
+  backdrop-filter: blur(10px); box-shadow: 0 6px 16px var(--shadow-sm);
+}
+.result-card h2 { font-family:'Jua',sans-serif; font-size:17px; color:var(--coral); margin-bottom:9px; }
+.score {
+  text-align:center; font-family:'Jua',sans-serif; font-size:48px; color:#fff; margin:10px 0;
+  text-shadow:0 3px 0 var(--honey-dk), 0 6px 0 rgba(100,75,55,.2);
+  animation: scorePulse 1.8s ease-in-out infinite;
+}
+@keyframes scorePulse { 50%{transform:scale(1.05) translateY(-2px)} }
+#restart-btn { display:block; margin:20px auto 0; }
+
+/* ─── 이벤트 도감 (타이틀 + 인게임 공용) ─── */
+#event-dex-modal {
+  position:fixed; inset:0; z-index:70; display:none;
+  align-items:flex-end; justify-content:center;
+  background:rgba(20,14,36,.55); backdrop-filter:blur(8px);
+}
+#event-dex-modal.open { display:flex; animation:fadeIn .2s ease; }
+#event-dex-sheet {
+  background:var(--glass); border:2px solid var(--glass-bdr); border-radius:26px 26px 0 0;
+  width:100%; max-width:600px; max-height:88vh;
+  display:flex; flex-direction:column; overflow:hidden;
+  box-shadow:0 -16px 40px rgba(20,14,36,.25), inset 0 1px 0 rgba(255,255,255,.95);
+  backdrop-filter:blur(14px); animation:slideUp .32s cubic-bezier(.34,1.56,.64,1);
+}
+#event-dex-list { flex:1; min-height:0; overflow-y:auto; padding:6px 12px 24px; display:flex; flex-direction:column; gap:6px; }
+.evdex-terrain {
+  border-radius:16px; overflow:hidden;
+  border:1.5px solid rgba(255,255,255,.6);
+  box-shadow:0 2px 8px var(--shadow-sm);
+}
+.evdex-terrain-header {
+  padding:10px 14px; font-family:'Jua',sans-serif; font-size:15px; color:#fff;
+  display:flex; align-items:center; gap:8px; cursor:pointer;
+  user-select:none;
+}
+.evdex-terrain-body { background:rgba(255,252,245,.75); }
+.evdex-event {
+  padding:10px 14px; border-top:1px solid rgba(255,255,255,.5);
+  display:flex; flex-direction:column; gap:3px;
+}
+.evdex-event:first-child { border-top:none; }
+.evdex-name { font-weight:900; font-size:14px; color:var(--ink); }
+.evdex-desc { font-size:12px; color:var(--ink-soft); line-height:1.5; }
+.evdex-criterion {
+  display:inline-flex; align-items:center; gap:4px;
+  font-size:11.5px; font-weight:800; padding:3px 9px; border-radius:999px; margin-top:2px;
+}
+.evdex-criterion.death { background:rgba(249,101,88,.15); color:var(--coral); }
+.evdex-criterion.food  { background:rgba(110,196,106,.15); color:var(--leaf-dk); }
+.evdex-criterion.poach { background:rgba(100,80,60,.12);   color:var(--ink-soft); }
+
+/* ─── 대립유전자 변화 그래프 모달 ─── */
+#allele-graph-modal {
+  position:fixed; inset:0; z-index:72; display:none;
+  align-items:flex-end; justify-content:center;
+  background:rgba(20,14,36,.55); backdrop-filter:blur(8px);
+}
+#allele-graph-modal.open { display:flex; animation:fadeIn .2s ease; }
+#allele-graph-sheet {
+  background:var(--glass); border:2px solid var(--glass-bdr); border-radius:26px 26px 0 0;
+  width:100%; max-width:600px; max-height:88vh;
+  display:flex; flex-direction:column; overflow:hidden;
+  box-shadow:0 -16px 40px rgba(20,14,36,.25), inset 0 1px 0 rgba(255,255,255,.95);
+  backdrop-filter:blur(14px); animation:slideUp .32s cubic-bezier(.34,1.56,.64,1);
+}
+#allele-graph-head {
+  padding:15px 16px 9px; display:flex; align-items:center; gap:9px;
+  border-bottom:1px solid var(--ink-faint); flex-shrink:0;
+}
+#allele-graph-head h2 { font-family:'Jua',sans-serif; font-size:17px; color:var(--coral); flex:1; }
+#allele-graph-body { flex:1; min-height:0; overflow-y:auto; padding:12px 12px 20px; display:flex; flex-direction:column; gap:10px; }
+
+/* ─── 돌연변이 도감 ─── */
+#dex-modal {
+  position:fixed; inset:0; z-index:55; display:none;
+  align-items:flex-end; justify-content:center;
+  background:rgba(20,14,36,.55); backdrop-filter:blur(8px);
+}
+#dex-modal.open { display:flex; animation:fadeIn .2s ease; }
+#dex-sheet {
+  background:var(--glass); border:2px solid var(--glass-bdr); border-radius:26px 26px 0 0;
+  width:100%; max-width:600px; max-height:88vh;
+  display:flex; flex-direction:column; overflow:hidden;
+  box-shadow: 0 -16px 40px rgba(20,14,36,.25), inset 0 1px 0 rgba(255,255,255,.95);
+  backdrop-filter:blur(14px);
+  animation:slideUp .32s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes slideUp { from{transform:translateY(100%)} to{transform:translateY(0)} }
+#dex-header {
+  padding:15px 16px 9px; display:flex; align-items:center; gap:9px;
+  border-bottom:1px solid var(--ink-faint); flex-shrink:0;
+}
+#dex-header h2 { font-family:'Jua',sans-serif; font-size:19px; color:var(--coral); flex:1; }
+#dex-close, #allele-graph-close {
+  width:34px; height:34px; border-radius:999px; border:2px solid rgba(255,255,255,.8);
+  background:linear-gradient(170deg,#ff9483,var(--coral)); font-size:15px; cursor:pointer;
+  box-shadow:0 3px 8px rgba(201,64,47,.3); font-weight:900; color:#fff; transition:.08s;
+}
+#dex-close:active, #allele-graph-close:active { transform:translateY(2px); }
+#dex-filters, #event-dex-filters { display:flex; gap:5px; padding:8px 14px; flex-shrink:0; overflow-x:auto; scrollbar-width:none; }
+.dex-filter {
+  font-family:'Jua',sans-serif; font-size:12px; padding:5px 13px; border-radius:999px;
+  border:2px solid var(--ink-faint); background:rgba(255,252,245,.7); color:var(--ink-soft);
+  cursor:pointer; white-space:nowrap; transition:.12s; backdrop-filter:blur(6px);
+}
+.dex-filter.active { background:var(--leaf-dk); border-color:var(--leaf-dk); color:#fff; box-shadow:0 3px 8px rgba(61,138,58,.3); }
+#dex-list { flex:1; min-height:0; overflow-y:auto; padding:6px 12px 18px; display:flex; flex-direction:column; gap:7px; }
+#dex-mutation-panel, #dex-event-panel { flex:1; min-height:0; display:flex; flex-direction:column; overflow:hidden; }
+#dex-tabs { display:flex; gap:6px; flex:1; }
+.dex-tab { font-family:'Jua',sans-serif; font-size:14px; padding:7px 16px; border-radius:999px; border:2px solid var(--ink-faint); background:rgba(255,252,245,.7); color:var(--ink-soft); cursor:pointer; transition:.12s; white-space:nowrap; }
+.dex-tab.active { background:var(--leaf-dk); border-color:var(--leaf-dk); color:#fff; box-shadow:0 3px 8px rgba(61,138,58,.3); }
+#options-modal { position:fixed; inset:0; z-index:80; display:none; align-items:center; justify-content:center; background:rgba(20,14,36,.65); backdrop-filter:blur(8px); }
+#options-modal.open { display:flex; animation:fadeIn .2s ease; }
+#options-card { background:var(--glass); border:2px solid var(--glass-bdr); border-radius:28px; padding:26px 28px; width:min(310px,88vw); text-align:center; box-shadow:0 24px 48px rgba(20,14,36,.45), inset 0 1px 0 rgba(255,255,255,.95); backdrop-filter:blur(16px); display:flex; flex-direction:column; gap:12px; animation:popIn .3s cubic-bezier(.34,1.56,.64,1); }
+#options-card h2 { font-family:'Jua',sans-serif; font-size:22px; color:var(--lilac-dk); }
+.dex-card {
+  background:rgba(255,252,245,.75); border:1.5px solid rgba(255,255,255,.7); border-radius:15px;
+  padding:11px 13px; display:flex; gap:11px; align-items:flex-start;
+  box-shadow:0 2px 8px var(--shadow-sm); transition:transform .1s;
+}
+.dex-card.has-mut  { border-color:rgba(110,196,106,.5); background:rgba(168,228,160,.2); }
+.dex-card.type-bad { border-color:rgba(249,101,88,.35); background:rgba(255,180,170,.12); }
+.dex-card.type-dual{ border-color:rgba(196,158,224,.45); background:rgba(196,158,224,.12); }
+.dex-type-ico { font-size:24px; flex-shrink:0; line-height:1; margin-top:1px; }
+.dex-info { flex:1; min-width:0; }
+.dex-name { font-family:'Jua',sans-serif; font-size:15px; color:var(--ink); margin-bottom:2px; }
+.dex-effects { font-size:11.5px; color:var(--ink-soft); line-height:1.5; }
+.dex-effects .up   { color:var(--leaf-dk); font-weight:800; }
+.dex-effects .down { color:var(--coral);   font-weight:800; }
+.dex-freq { text-align:right; flex-shrink:0; display:flex; flex-direction:column; align-items:flex-end; gap:3px; }
+.dex-pct { font-family:'Jua',sans-serif; font-size:17px; color:var(--leaf-dk); }
+.dex-pct.zero { color:rgba(110,99,132,.4); font-size:13px; }
+.dex-bar { width:52px; height:7px; background:rgba(110,99,132,.15); border-radius:999px; overflow:hidden; }
+.dex-bar-fill { height: 100%; background: var(--leaf); border-radius: 999px; transition: width .3s; }
+.dex-bar-fill.bad  { background: var(--coral); }
+.dex-bar-fill.dual { background: var(--lilac); }
+.dex-badge {
+  font-size: 10px; font-weight: 900; padding: 2px 7px; border-radius: 999px;
+  background: var(--leaf); color: #fff;
+}
+
+/* ── 튜토리얼 ─────────────────────────────── */
+#tutorial-overlay {
+  position: fixed; inset: 0; z-index: 60; pointer-events: none;
+  display: none;
+}
+#tutorial-overlay.active { display: block; }
+
+/* 어두운 배경 (spotlight cutout은 JS로 clip-path 적용) */
+#tutorial-mask {
+  position: absolute; inset: 0;
+  background: rgba(20, 14, 36, 0.65);
+  transition: clip-path 0.4s ease, background 0.35s ease;
+  pointer-events: none; /* noMask 단계에서 터치 통과 */
+}
+
+/* ─── 튜토리얼 카드 ─── */
+#tutorial-card {
+  position:absolute; pointer-events:auto; width:min(316px,88vw);
+  background:var(--glass); border:2px solid var(--glass-bdr); border-radius:22px;
+  padding:18px 20px; backdrop-filter:blur(14px);
+  box-shadow:0 16px 40px rgba(20,14,36,.28), inset 0 1px 0 rgba(255,255,255,.95);
+  animation:popIn .3s cubic-bezier(.34,1.56,.64,1);
+}
+#tutorial-card .tut-step { font-size:10.5px; color:var(--ink-soft); margin-bottom:4px; font-weight:800; text-transform:uppercase; letter-spacing:1px; }
+#tutorial-card .tut-ico { font-size:38px; display:block; text-align:center; margin-bottom:8px; }
+#tutorial-card .tut-title { font-family:'Jua',sans-serif; font-size:18px; color:var(--coral); text-align:center; margin-bottom:6px; }
+#tutorial-card .tut-desc { font-size:13.5px; color:var(--ink); line-height:1.68; text-align:center; }
+#tutorial-card .tut-cond { font-size:11.5px; color:var(--ink-soft); text-align:center; margin-top:8px; font-style:italic; }
+#tutorial-card .tut-actions { display:flex; gap:8px; margin-top:14px; justify-content:center; }
+.tut-btn { font-family:'Jua',sans-serif; font-size:14px; color:#fff; border:2px solid rgba(255,255,255,.85); border-radius:999px; padding:8px 18px; cursor:pointer; box-shadow:0 4px 10px rgba(0,0,0,.14); transition:.08s; }
+.tut-btn:active { transform:translateY(2px); box-shadow:0 2px 4px rgba(0,0,0,.12); }
+.tut-btn-next { background:linear-gradient(170deg,#84de7e,var(--leaf-dk)); }
+.tut-btn-skip { background:rgba(110,99,132,.2); color:var(--ink-soft); border-color:transparent; box-shadow:none; }
+#tutorial-ring {
+  position:absolute; border:3px solid rgba(255,255,255,.9); border-radius:18px; pointer-events:none;
+  box-shadow:0 0 0 3px rgba(255,215,0,.55), 0 0 20px rgba(255,215,0,.35);
+  transition:all .35s cubic-bezier(.4,0,.2,1);
+  animation:ringPulse 1.3s ease-in-out infinite;
+}
+@keyframes ringPulse {
+  0%,100%{box-shadow:0 0 0 3px rgba(255,215,0,.55),0 0 20px rgba(255,215,0,.35)}
+  50%    {box-shadow:0 0 0 6px rgba(255,215,0,.25),0 0 36px rgba(255,215,0,.55)}
+}
+#tutorial-arrow { position:absolute; font-size:26px; pointer-events:none; animation:arrowBob .75s ease-in-out infinite; filter:drop-shadow(0 2px 4px rgba(0,0,0,.25)); }
+@keyframes arrowBob { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-9px)} }
+
+/* 이동·식량 단계: 설명을 읽은 뒤 슬림 띠로 접어 화면 가림 최소화 */
+#tutorial-card.tut-playing {
+  top:10px !important; left:50% !important; transform:translateX(-50%) !important;
+  width:auto !important; max-width:92vw; padding:8px 16px !important; opacity:.95;
+  transition:opacity .25s ease, padding .2s ease;
+}
+#tutorial-card.tut-playing .tut-step,
+#tutorial-card.tut-playing .tut-ico,
+#tutorial-card.tut-playing .tut-title,
+#tutorial-card.tut-playing .tut-desc,
+#tutorial-card.tut-playing .tut-actions { display:none !important; }
+#tutorial-card.tut-playing .tut-cond {
+  margin-top:0 !important; font-style:normal !important; font-size:13px !important;
+  color:var(--ink) !important; white-space:nowrap; font-weight:800;
+}
+
+/* ─── 방향 전환 시 HUD 부드러운 전환 ─── */
+#bottom-bar {
+  transition: top 0.35s ease, left 0.35s ease, right 0.35s ease,
+              bottom 0.35s ease, width 0.35s ease, border-radius 0.3s ease,
+              padding 0.3s ease;
+}
+#side-bar {
+  transition: top 0.3s ease, left 0.3s ease;
+}
+#stats {
+  transition: top 0.3s ease, left 0.3s ease, right 0.3s ease, width 0.3s ease;
+}
+#hud.orient-fade { opacity: 0; transition: opacity 0.15s ease; }
+#hud { transition: opacity 0.2s ease; }
+
+/* ─── 세로 모바일 ─── */
+@media (max-width: 520px) {
+  #top-bar { gap: 4px; padding: 7px 7px 0; }
+  .chip { padding: 5px 9px; font-size: 11px; gap: 3px; }
+  .chip .ico { width: 18px; height: 18px; font-size: 12px; }
+  .chip strong { font-size: 12px; }
+  #pause-btn { width: 36px; height: 36px; font-size: 15px; }
+  #side-bar { top: 50px; right: 7px; gap: 4px; }
+  #env-badge { padding: 4px 9px; font-size: 11px; }
+  #stats-toggle, #dex-toggle { font-size: 11px; padding: 5px 11px; }
+  #stats { top: 114px; right: 7px; font-size: 11.5px; padding: 10px; max-height: 46vh; }
+  #bottom-bar { padding: 8px 9px; gap: 7px; border-radius: 17px; left:7px; right:7px; bottom:7px; }
+  .action-btn { min-width: 58px; padding: 8px; font-size: 13px; }
+  #battle-banner { top: 50px; font-size: 12.5px; padding: 6px 14px; }
+  .meter { height: 10px; }
+}
+
+/* ─── 가로 모드 (landscape mobile) ─── */
+@media (orientation: landscape) and (max-height: 500px) {
+  /* 상단 바: 초슬림 */
+  #top-bar { padding: 5px 7px 0; gap: 4px; }
+  .chip { padding: 4px 8px; font-size: 11px; gap: 3px; }
+  .chip .ico { width: 18px; height: 18px; font-size: 11px; }
+  #pause-btn { width: 34px; height: 34px; font-size: 14px; }
+
+  /* 사이드바: 우측 하단 바를 피해 왼쪽에 가로 배치 */
+  #side-bar {
+    flex-direction: row; align-items: center;
+    top: 42px; left: 7px; right: auto; gap: 5px;
+  }
+  #env-badge { font-size: 10px; padding: 3px 8px; }
+  #stats-toggle, #dex-toggle { font-size: 10px; padding: 4px 9px; }
+
+  /* 현황 패널: 사이드바 아래 왼쪽 (우측 바와 겹치지 않도록) */
+  #stats {
+    top: 76px; left: 7px; right: auto;
+    width: min(210px, 42vw);
+    max-height: calc(100vh - 88px);
+    font-size: 11px; padding: 10px;
+  }
+
+  /* 하단 바 → 우측 세로 패널 */
+  #bottom-bar {
+    left: auto; right: 7px; bottom: 7px; top: 42px;
+    width: 82px; flex-direction: column; align-items: stretch;
+    gap: 7px; padding: 9px 8px; border-radius: 18px;
+  }
+  #bars { gap: 5px; }
+  .bar-label { font-size: 10px; }
+  .meter { height: 9px; }
+  .action-btn { min-width: 0; width: 100%; padding: 8px 6px; font-size: 12px; border-radius: 12px; }
+
+  /* 전투 배너 */
+  #battle-banner { top: 42px; font-size: 12px; padding: 5px 12px; }
+
+  /* 이벤트 메시지: 중앙 */
+  #event-message { top: 55%; font-size: 13px; padding: 12px 16px; width: min(280px, 52vw); }
+  #event-message.tutorial-mode { top: 74%; }
+
+  /* 도감·이벤트 시트: 가로모드에서 높이 제한 */
+  #dex-sheet, #event-dex-sheet { max-height: 94vh; }
+
+  /* 순위표: 가로모드에서 작게 */
+  #leaderboard-panel { width: 175px; font-size: 10px; top: 8px; left: 8px; padding: 8px 10px; }
+  #leaderboard-panel .lb-list-wrap { max-height: 130px; }
+}
+
+/* ════════════════════════════════════════════
+   픽셀 RPG 리디자인 — 나무·양피지 테마 오버라이드
+   ════════════════════════════════════════════ */
+@font-face {
+  font-family: 'Galmuri11';
+  src: url('https://cdn.jsdelivr.net/gh/quiple/galmuri@latest/dist/Galmuri11.woff2') format('woff2');
+  font-display: swap;
+}
+:root {
+  --px-out:   #2e1c0e;   /* 외곽선(짙은 나무) */
+  --px-parch: #f4e3ba;   /* 양피지 */
+  --px-parch2:#e7cf97;   /* 양피지 음영 */
+  --px-ink:   #4a2f17;   /* 글자 */
+  --px-green: #44963f; --px-green-d:#2a6328;
+  --px-red:   #d6493a; --px-red-d:  #9c2f22;
+  --px-blue:  #3f95c9; --px-blue-d: #2a6a96;
+  --px-gold:  #ecae3c; --px-gold-d: #b5731c;
+  --px-purple:#9a63c2; --px-purple-d:#6f409c;
+}
+/* 픽셀 폰트 + 또렷한 렌더 (UI 전역) */
+#hud, #hud *, #pause-modal, #pause-modal *, #dex-modal, #dex-modal *,
+#event-dex-modal, #event-dex-modal *, #options-modal, #options-modal *,
+#allele-graph-modal, #allele-graph-modal *,
+#result, #result *, #score-submit-modal, #score-submit-modal *,
+#leaderboard-panel, #leaderboard-panel *, #title-screen, #title-screen *,
+#tutorial-overlay, #tutorial-overlay *, .toast {
+  font-family: 'Galmuri11', 'Jua', sans-serif !important;
+  letter-spacing: 0 !important;
+}
+body { image-rendering: pixelated; }
+
+/* ── 공통 패널(양피지 + 픽셀 테두리, blur 제거) ── */
+.panel, .chip, #env-badge, #stats, #bottom-bar, #pause-card, #options-card,
+#dex-sheet, #event-dex-sheet, #allele-graph-sheet, #event-message, .toast, .result-card,
+#leaderboard-panel, #score-submit-card, .dex-card, .evdex-terrain-body,
+#stats-toggle, #dex-toggle, #pause-btn, .dex-filter, .dex-tab, #lb-name-input,
+.evdex-terrain, #dex-mutation-panel, #dex-event-panel {
+  background: var(--px-parch) !important;
+  border: 3px solid var(--px-out) !important;
+  border-radius: 5px !important;
+  color: var(--px-ink) !important;
+  backdrop-filter: none !important;
+  box-shadow: inset 3px 3px 0 0 rgba(255,255,255,.4),
+              inset -3px -3px 0 0 rgba(150,105,55,.30),
+              4px 4px 0 0 rgba(25,15,7,.28) !important;
+}
+/* 시트(도감·이벤트)는 하단에서 올라오므로 아래 모서리만 직각 */
+#dex-sheet, #event-dex-sheet, #allele-graph-sheet { border-radius: 5px 5px 0 0 !important; }
+/* 내부 보조 패널은 그림자 약하게 */
+.dex-card, .evdex-terrain, .evdex-terrain-body, #dex-mutation-panel, #dex-event-panel,
+#stats { box-shadow: inset 2px 2px 0 0 rgba(255,255,255,.35), 3px 3px 0 0 rgba(25,15,7,.18) !important; }
+
+/* 칩 내부 아이콘/강조 */
+.chip .ico { background: var(--px-parch2) !important; border-radius: 3px !important; border: 2px solid var(--px-out); width: 20px; height: 20px; }
+.chip strong { color: var(--px-green-d) !important; }
+.chip.timer strong { color: var(--px-red-d) !important; }
+.chip.timer { background: #f6dca8 !important; }
+
+/* 헤딩 글자색 */
+#stats h2 { color: var(--px-red-d) !important; border-bottom: 2px dashed var(--px-parch2) !important; }
+#dex-header h2, .result-card h2, #allele-graph-head h2 { color: var(--px-red-d) !important; }
+#pause-card h2 { color: var(--px-red-d) !important; }
+#options-card h2 { color: var(--px-purple-d) !important; }
+.row strong, .label, .evdex-name, .evdex-desc, .bar-label, .bar-label b { color: var(--px-ink) !important; }
+
+/* ── 픽셀 버튼 공통(입체 하단 + 하드 그림자) ── */
+.big-btn, .action-btn, .pause-btn, #restart-btn, #lb-submit-btn, #lb-skip-btn,
+#dex-close, .tut-btn {
+  border: 3px solid var(--px-out) !important;
+  border-radius: 5px !important;
+  color: #fff !important;
+  text-shadow: 0 2px 0 rgba(0,0,0,.4) !important;
+  backdrop-filter: none !important;
+  box-shadow: inset 0 2px 0 rgba(255,255,255,.35),
+              inset 0 -3px 0 rgba(0,0,0,.20),
+              0 4px 0 0 var(--px-out),
+              4px 7px 0 0 rgba(25,15,7,.22) !important;
+  transition: transform .06s, box-shadow .06s !important;
+}
+.big-btn:active, .action-btn:active:not(:disabled), .pause-btn:active,
+#restart-btn:active, #lb-submit-btn:active, #lb-skip-btn:active,
+#dex-close:active, .tut-btn:active {
+  transform: translateY(4px) !important;
+  box-shadow: inset 0 2px 0 rgba(255,255,255,.3), 2px 2px 0 0 rgba(25,15,7,.18) !important;
+}
+/* 버튼 색상(플랫) */
+.big-btn, #breed-btn, .pause-resume { background: var(--px-green) !important; }
+.big-btn.sky { background: var(--px-blue) !important; }
+.big-btn.lilac { background: var(--px-purple) !important; }
+.big-btn.coral, #restart-btn, #flee-btn, .pause-home, #dex-close { background: var(--px-red) !important; }
+.pause-settings { background: var(--px-blue) !important; }
+#lb-submit-btn { background: var(--px-green) !important; }
+#lb-skip-btn { background: var(--px-parch2) !important; color: var(--px-ink) !important; text-shadow: none !important; }
+.action-btn:disabled { background: var(--px-parch2) !important; color: rgba(74,47,23,.45) !important; box-shadow: inset 0 0 0 2px rgba(150,105,55,.3) !important; text-shadow: none !important; }
+
+/* 작은 토글/탭 버튼: 양피지 바탕 + 픽셀 테두리 */
+#stats-toggle, #dex-toggle, #pause-btn, .dex-filter, .dex-tab {
+  color: var(--px-ink) !important; text-shadow: none !important;
+}
+.dex-filter.active, .dex-tab.active {
+  background: var(--px-green) !important; color: #fff !important;
+  text-shadow: 0 1px 0 rgba(0,0,0,.3) !important;
+}
+#pause-btn { border-radius: 5px !important; }
+
+/* ── 미터(식량/잉여) 픽셀화 ── */
+.meter {
+  height: 13px !important; border: 2px solid var(--px-out) !important;
+  border-radius: 3px !important; background: #c9a96d !important;
+  box-shadow: inset 1px 1px 0 rgba(0,0,0,.18) !important; overflow: hidden;
+}
+.meter::before { display: none !important; }
+.fill { border-radius: 0 !important; image-rendering: pixelated; }
+#food-fill { background: #5cbf4c !important; }
+#surplus-fill { background: #4aa6e0 !important; }
+
+/* ── 토글 스위치 픽셀화 ── */
+.toggle-btn {
+  border-radius: 3px !important; border: 2px solid var(--px-out) !important;
+  background: #c9a96d !important; box-shadow: inset 1px 1px 0 rgba(0,0,0,.18) !important;
+}
+.toggle-btn.on { background: var(--px-green) !important; }
+.toggle-btn::after { border-radius: 2px !important; background: var(--px-parch) !important; border: 2px solid var(--px-out); top: 1px; left: 1px; width: 18px; height: 18px; }
+.toggle-btn.on::after { left: 25px !important; }
+
+/* ── 모달 딤 배경: blur 제거 ── */
+#pause-modal, #dex-modal, #event-dex-modal, #options-modal, #score-submit-modal {
+  backdrop-filter: none !important; background: rgba(25,15,7,.55) !important;
+}
+
+/* ── 타이틀: 픽셀 폰트 + 또렷한 외곽 ── */
+#title-screen h1 { letter-spacing: 1px !important; }
+#title-screen h1 .en { color: #ffe08a !important; }
+
+/* 순위표 메달 칸 테두리 */
+#leaderboard-list li { border: 2px solid var(--px-out) !important; border-radius: 3px !important; background: var(--px-parch2) !important; color: var(--px-ink) !important; }
+#leaderboard-list li .lb-score { color: var(--px-red-d) !important; }
+#leaderboard-panel .lb-title, #leaderboard-panel .lb-title-text { color: var(--px-ink) !important; }
+</style>
+  <!-- Firebase SDK (순위표용) -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+</head>
+<body>
+<!-- 순위표 패널 (타이틀 화면 위에 표시, fixed) -->
+<div id="leaderboard-panel" class="collapsed">
+  <div class="lb-title" onclick="toggleLeaderboard()">
+    <span class="lb-title-text">🏆 명예의 전당</span>
+    <button id="lb-toggle-btn" type="button" aria-label="순위표 접기/펼치기">▲</button>
+  </div>
+  <div class="lb-list-wrap">
+    <ul id="leaderboard-list">
+      <li class="lb-empty">불러오는 중...</li>
+    </ul>
+  </div>
+</div>
+<div id="title-screen">
+  <h1>슬라임의 기원<span class="en">Origin of Slime</span></h1>
+  <div id="title-menu">
+    <button id="start-btn" class="big-btn" type="button" onclick="startGame()">🌱 게임 시작</button>
+    <button type="button" class="big-btn sky" onclick="openDex()">📖 도감</button>
+    <button type="button" class="big-btn lilac" onclick="openOptionsModal()">⚙️ 옵션</button>
+  </div>
+</div>
+
+<div id="game-container"></div>
+
+<div id="hud">
+  <!-- 상단 바: 지형 · 핵심 수치 · 타이머 · 일시정지 -->
+  <div id="top-bar">
+    <div class="chip"><span class="ico" id="terrain-ico">🌿</span><span id="terrain-name">초원</span></div>
+    <div class="chip"><span class="ico">🐾</span><strong id="c-count">20</strong></div>
+    <div class="chip"><span class="ico">🍓</span><strong id="c-food">30</strong></div>
+    <div class="chip"><span class="ico">🏆</span><strong id="c-win">0</strong></div>
+    <div id="top-spacer"></div>
+    <div class="chip timer"><span class="ico">⏳</span><strong id="c-gen">5:00</strong></div>
+    <button id="pause-btn" type="button" onclick="togglePause()">⏸</button>
+  </div>
+
+  <!-- 우측 보조: 날씨/낮밤 + 현황 토글 -->
+  <div id="side-bar">
+    <div id="env-badge">
+      <span class="weather" id="weather-ico">☀️</span>
+      <span class="clock" id="clock-text">낮</span>
+    </div>
+    <button id="stats-toggle" type="button" onclick="toggleStatsPanel()">📊 현황</button>
+    <button id="dex-toggle" type="button" onclick="openDex()">🔬 도감</button>
+  </div>
+
+  <section id="stats" class="panel">
+    <h2>🐾 집단 현황 <span onclick="toggleStatsPanel()" style="margin-left:auto;cursor:pointer;color:var(--coral)">✕</span></h2>
+    <div class="row"><span class="label">개체 수</span><strong id="s-count">20</strong></div>
+    <div class="row"><span class="label">번식</span><strong id="s-breed">불가</strong></div>
+    <div class="row"><span class="label">평균 HP</span><strong id="s-hp">100</strong></div>
+    <div class="row"><span class="label">공 / 방 / 속</span><strong><span id="s-attack">10</span> / <span id="s-defense">3</span> / <span id="s-speed">80</span></strong></div>
+    <div class="row"><span class="label">채집 / 매력</span><strong><span id="s-gather">5</span> / <span id="s-charm">5</span></strong></div>
+    <h2>🧬 유전자 비율</h2>
+    <div id="s-genes"></div>
+    <h2>🎨 몸색 유전자형</h2>
+    <div id="s-genotypes"></div>
+    <h2>✨ 주요 돌연변이</h2>
+    <div id="s-mutations"></div>
+  </section>
+
+  <div id="bottom-bar">
+    <div id="bars">
+      <div class="bar-label"><span>🍓 식량</span><span><b id="b-food">30</b> · 필요 <b id="b-need">20</b></span></div>
+      <div class="meter"><div class="fill" id="food-fill"></div></div>
+      <div class="bar-label"><span>✨ 잉여</span><span><b id="b-surplus">10</b></span></div>
+      <div class="meter"><div class="fill" id="surplus-fill"></div></div>
+    </div>
+    <button id="breed-btn" class="action-btn" type="button" disabled>🥚<br>번식</button>
+    <button id="flee-btn" class="action-btn" type="button" disabled>💨<br>도망</button>
+  </div>
+
+  <div id="battle-vignette"></div>
+  <div id="battle-banner">⚔️ 전쟁 중</div>
+  <div id="toast-mut" class="toast-stack"></div>
+  <div id="toast-ach" class="toast-stack"></div>
+  <div id="event-message"></div>
+</div>
+<div id="joystick-dom"><div id="joystick-knob"></div></div>
+
+<div id="dex-modal" onclick="if(event.target===this)closeDex()">
+  <div id="dex-sheet">
+    <div id="dex-header">
+      <div id="dex-tabs">
+        <button class="dex-tab active" data-tab="mutation" onclick="switchDexTab('mutation',this)">🔬 돌연변이</button>
+        <button class="dex-tab" data-tab="event" onclick="switchDexTab('event',this)">🌍 이벤트</button>
+      </div>
+      <button id="dex-close" onclick="closeDex()">✕</button>
+    </div>
+    <div id="dex-mutation-panel">
+      <div id="dex-filters">
+        <button class="dex-filter active" onclick="setDexFilter('all',this)">전체</button>
+        <button class="dex-filter" onclick="setDexFilter('owned',this)">보유중</button>
+        <button class="dex-filter" onclick="setDexFilter('good',this)">✅ 이점</button>
+        <button class="dex-filter" onclick="setDexFilter('dual',this)">🔵 양면</button>
+        <button class="dex-filter" onclick="setDexFilter('bad',this)">❌ 불이익</button>
+      </div>
+      <div id="dex-list"></div>
+    </div>
+    <div id="dex-event-panel" style="display:none">
+      <div id="event-dex-filters">
+        <button class="dex-filter active" onclick="setEventFilter('all',this)">전체</button>
+        <button class="dex-filter" onclick="setEventFilter('plain',this)">🌿 초원</button>
+        <button class="dex-filter" onclick="setEventFilter('forest',this)">🌳 숲</button>
+        <button class="dex-filter" onclick="setEventFilter('desert',this)">🏜️ 사막</button>
+        <button class="dex-filter" onclick="setEventFilter('volcano',this)">🌋 화산</button>
+        <button class="dex-filter" onclick="setEventFilter('snow',this)">❄️ 눈밭</button>
+        <button class="dex-filter" onclick="setEventFilter('river',this)">💧 강가</button>
+        <button class="dex-filter" onclick="setEventFilter('swamp',this)">🐸 늪</button>
+        <button class="dex-filter" onclick="setEventFilter('poach',this)">🎯 밀렵</button>
+      </div>
+      <div id="event-dex-list"></div>
+    </div>
+  </div>
+</div>
+
+<div id="options-modal" onclick="if(event.target===this)closeOptionsModal()">
+  <div id="options-card">
+    <h2>⚙️ 옵션</h2>
+    <div class="setting-row">
+      <span>🔊 효과음</span>
+      <button class="toggle-btn on" id="options-sfx-toggle" onclick="toggleOptionsSfx(this)"></button>
+    </div>
+    <div class="setting-row" style="border-top:1px solid var(--ink-faint);padding-top:12px;margin-top:4px">
+      <span>⛶ 전체화면</span>
+      <button class="pause-btn pause-settings fs-toggle-btn" style="width:auto;padding:8px 14px;font-size:13px"
+        onclick="toggleFullscreen()">⛶ 전체화면으로</button>
+    </div>
+    <div class="setting-row">
+      <span>📖 튜토리얼 초기화</span>
+      <button class="pause-btn pause-settings" style="width:auto;padding:8px 14px;font-size:13px"
+        onclick="localStorage.removeItem('gpa_tutorial_done');closeOptionsModal();alert('초기화 완료. 다음 게임 시작 시 튜토리얼이 표시됩니다.')">초기화</button>
+    </div>
+    <button class="pause-btn pause-home" style="margin-top:4px" onclick="closeOptionsModal()">✕ 닫기</button>
+  </div>
+</div>
+
+<div id="pause-modal">
+  <div id="pause-card">
+    <h2>⏸ 일시정지</h2>
+    <button class="pause-btn pause-resume" onclick="togglePause()">▶ 게임 계속</button>
+    <button class="pause-btn pause-settings" onclick="toggleSettings()">⚙️ 설정</button>
+    <div id="settings-panel">
+      <div class="setting-row">
+        <span>🔊 효과음</span>
+        <button class="toggle-btn on" id="sfx-toggle" onclick="toggleSfxSetting(this)"></button>
+      </div>
+      <div class="setting-row">
+        <span>⛶ 전체화면</span>
+        <button class="pause-btn pause-settings fs-toggle-btn" style="width:auto;padding:8px 14px;font-size:14px"
+          onclick="toggleFullscreen()">⛶ 전체화면으로</button>
+      </div>
+      <div class="setting-row">
+        <span>📖 튜토리얼 초기화</span>
+        <button class="pause-btn pause-settings" style="width:auto;padding:8px 14px;font-size:14px"
+          onclick="localStorage.removeItem('gpa_tutorial_done'); location.reload()">초기화</button>
+      </div>
+    </div>
+    <button class="pause-btn pause-home" onclick="if(confirm('메인 메뉴로 돌아갈까요? 현재 게임이 종료됩니다.')) location.reload()">🏠 메인 메뉴로</button>
+  </div>
+</div>
+
+<div id="result">
+  <h1>🏁 모험의 끝</h1>
+  <div id="result-content"></div>
+  <button id="restart-btn" class="big-btn coral" type="button" onclick="location.reload()">🔄 다시 시작</button>
+</div>
+
+<!-- 대립유전자 변화 그래프 모달 -->
+<div id="allele-graph-modal" onclick="if(event.target===this)closeAlleleGraph()">
+  <div id="allele-graph-sheet">
+    <div id="allele-graph-head">
+      <h2 id="allele-graph-title">📈 대립유전자 변화</h2>
+      <button id="allele-graph-close" type="button" onclick="closeAlleleGraph()">✕</button>
+    </div>
+    <div id="allele-graph-body"></div>
+  </div>
+</div>
+
+<!-- 화면 전체 페이드/플래시 오버레이 -->
+<div id="screen-overlay" style="position:fixed;inset:0;z-index:35;pointer-events:none;background:transparent;transition:background .3s;"></div>
+
+<!-- 튜토리얼 오버레이 -->
+<div id="tutorial-overlay">
+  <div id="tutorial-mask"></div>
+  <div id="tutorial-ring"></div>
+  <div id="tutorial-arrow"></div>
+  <div id="tutorial-card">
+    <div class="tut-step" id="tut-step-label">1 / 7</div>
+    <span class="tut-ico" id="tut-ico">🌱</span>
+    <div class="tut-title" id="tut-title">제목</div>
+    <div class="tut-desc"  id="tut-desc">설명</div>
+    <div class="tut-cond"  id="tut-cond"></div>
+    <div class="tut-actions">
+      <button class="tut-btn tut-btn-skip" onclick="Tutorial.skip()">건너뛰기</button>
+      <button class="tut-btn tut-btn-next" id="tut-next-btn" onclick="Tutorial.next()">다음 →</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
+<script>
+'use strict';
+
+// ══════════════════════════════════════════════════════
+// ▶ Firebase 설정 — Firebase Console에서 발급받은 값으로 교체
+// ══════════════════════════════════════════════════════
+const FIREBASE_CONFIG = {
+  apiKey:            "AIzaSyAtKAaC-Tx1vTGi7f-iNEUZBOwzLjjZflk",
+  authDomain:        "origin-of-slime.firebaseapp.com",
+  projectId:         "origin-of-slime",
+  storageBucket:     "origin-of-slime.firebasestorage.app",
+  messagingSenderId: "762926262190",
+  appId:             "1:762926262190:web:7f6c8d42f172a7b06c4a3f",
+};
+
+let _db = null; // Firestore 인스턴스 (초기화 성공 시 할당)
+let _lbUnsub = null; // onSnapshot 구독 해제 함수
+
+function initFirebase() {
+  try {
+    if (FIREBASE_CONFIG.apiKey === 'YOUR_API_KEY') return; // 미설정 → 순위표 숨김
+    if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
+    _db = firebase.firestore();
+  } catch (e) {
+    console.warn('[Leaderboard] Firebase init failed:', e);
+  }
+}
+
+// ── 순위표: 실시간 로드 ──────────────────────────────
+function initLeaderboard() {
+  initFirebase();
+  if (!_db) return; // Firebase 미설정 시 패널 숨김 유지
+  document.getElementById('leaderboard-panel').style.display = 'flex';
+  _startLeaderboardListener();
+}
+
+function _startLeaderboardListener() {
+  if (!_db) return;
+  if (_lbUnsub) _lbUnsub(); // 기존 구독 해제
+  _lbUnsub = _db.collection('leaderboard')
+    .orderBy('score', 'desc')
+    .limit(10)
+    .onSnapshot(snap => {
+      const list = document.getElementById('leaderboard-list');
+      if (!list) return;
+      if (snap.empty) {
+        list.innerHTML = '<li class="lb-empty">아직 기록이 없어요!</li>';
+        return;
+      }
+      const medals = ['🥇','🥈','🥉'];
+      list.innerHTML = snap.docs.map((doc, i) => {
+        const d = doc.data();
+        const rank = medals[i] || `${i + 1}.`;
+        return `<li>
+          <div class="lb-top">
+            <span class="lb-rank">${rank}</span>
+            <span class="lb-name">${escHtml(d.name || '이름 없음')}</span>
+            <span class="lb-score">${Number(d.score).toLocaleString()}점</span>
+          </div>
+          <div class="lb-sub">세대 ${escHtml(String(d.generations ?? '?'))} · 돌연변이 ${escHtml(String(d.mutations ?? '?'))}종 · ${escHtml(String(d.date ?? ''))}</div>
+        </li>`;
+      }).join('');
+    }, err => {
+      console.warn('[Leaderboard] 구독 오류:', err);
+    });
+}
+
+function stopLeaderboard() {
+  if (_lbUnsub) { _lbUnsub(); _lbUnsub = null; }
+  document.getElementById('leaderboard-panel').style.display = 'none';
+}
+
+function toggleLeaderboard() {
+  const panel = document.getElementById('leaderboard-panel');
+  panel.classList.toggle('collapsed');
+}
+
+// ── 점수 등록 ────────────────────────────────────────
+let _pendingScore = null; // openScoreSubmit() 호출 시 임시 저장
+let _scoreSubmitted = false; // 게임당 1회만 등록 (리로드 시 초기화)
+
+function openScoreSubmit({ score, generations, mutations }) {
+  if (_scoreSubmitted) return; // 이미 등록한 게임
+  _pendingScore = { score, generations, mutations };
+  document.getElementById('lb-score-preview').textContent = score.toLocaleString() + '점';
+  document.getElementById('lb-sub-preview').textContent =
+    `세대 ${generations} · 돌연변이 ${mutations}종`;
+  document.getElementById('lb-name-input').value = '';
+  document.getElementById('lb-submit-btn').disabled = false;
+  document.getElementById('lb-feedback').textContent = '';
+  document.getElementById('score-submit-modal').classList.add('open');
+  setTimeout(() => document.getElementById('lb-name-input').focus(), 100);
+}
+
+function closeScoreSubmit() {
+  document.getElementById('score-submit-modal').classList.remove('open');
+  _pendingScore = null;
+}
+
+async function submitScoreFromModal() {
+  if (document.getElementById('lb-submit-btn').disabled) return;
+  if (!_pendingScore || !_db) { closeScoreSubmit(); return; }
+  const name = document.getElementById('lb-name-input').value.trim();
+  if (!name) {
+    document.getElementById('lb-feedback').textContent = '이름을 입력해주세요!';
+    return;
+  }
+  document.getElementById('lb-submit-btn').disabled = true;
+  try {
+    const now = new Date();
+    const date = `${now.getFullYear()}.${String(now.getMonth()+1).padStart(2,'0')}.${String(now.getDate()).padStart(2,'0')}`;
+    await _db.collection('leaderboard').add({
+      name,
+      score:       _pendingScore.score,
+      generations: _pendingScore.generations,
+      mutations:   _pendingScore.mutations,
+      date,
+      timestamp:   firebase.firestore.FieldValue.serverTimestamp(),
+    });
+    _scoreSubmitted = true; // 게임당 1회 제한
+    const regBtn = document.getElementById('result-register-btn');
+    if (regBtn) { regBtn.disabled = true; regBtn.textContent = '✅ 등록 완료'; regBtn.style.opacity = '0.5'; }
+    document.getElementById('lb-feedback').textContent = '✅ 등록 완료!';
+    setTimeout(() => closeScoreSubmit(), 1200);
+  } catch (e) {
+    console.warn('[Leaderboard] 등록 실패:', e);
+    document.getElementById('lb-feedback').textContent = '등록에 실패했습니다.';
+    document.getElementById('lb-submit-btn').disabled = false;
+  }
+}
+
+// Enter 키로 등록
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && document.getElementById('score-submit-modal').classList.contains('open')) {
+    submitScoreFromModal();
+  }
+});
+
+function escHtml(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+const WORLD_W = 5000;
+const WORLD_H = 5000;
+const TILE = 80;
+const START_INDIVIDUALS = 20;
+const START_FOOD = 30;
+const FOOD_CAP = 9999;
+const TARGET_POPULATION = 50;
+const STARVATION_DEFICIT_DIVISOR = 3;
+const MUTATION_EFFECT_MULTIPLIER = 2.5;
+const MAX_NEW_MUTATIONS_PER_CHILD = 2;
+const BODY_COLOR_RED = 0xef4444;
+const BODY_COLOR_BLUE = 0x3b82f6;
+const BODY_COLOR_PURPLE = 0xa855f7;
+const ESCAPE_FOOD_PENALTY = 0.25;
+const ESCAPE_DISTANCE = 260;
+const MAX_INDIVIDUALS = 100;
+const MAX_BATTLE_INDIVIDUALS = 30;
+const MAX_RECRUIT_PER_BATTLE = 3;
+const BREED_COST = 10;
+const SURVIVAL_INTERVAL = 10000;
+const FOOD_INTERVAL = 6500;
+const TERRAIN_EVENT_INTERVAL = 10000;
+const METEOR_TIME = 600000;   // 10분 후 운석 멸종
+const METEOR_WARN_TIME = 585000; // 9분 45초 경고 시작
+const BATTLE_DISTANCE = 155;
+const BATTLE_DURATION = 5000;
+const ATTACK_COOLDOWN = 400;
+const FOLLOW_RADIUS = 78;
+const COLLECT_RADIUS = 72;
+
+// 파스텔 톤 지형 (밝고 부드러운 자연 색감)
+const TERRAIN = {
+  plain:   { id: 'plain',   name: '초원',    ico:'🌿', color: 0x9ed98f, dark: 0x86c977, food: 1.0,  speed: 1.0 },
+  forest:  { id: 'forest',  name: '숲',      ico:'🌳', color: 0x6fc06a, dark: 0x56a857, food: 1.35, speed: 0.9 },
+  desert:  { id: 'desert',  name: '사막',    ico:'🏜️', color: 0xf3d9a0, dark: 0xe6c483, food: 0.65, speed: 1.08 },
+  volcano: { id: 'volcano', name: '화산지대', ico:'🌋', color: 0xe8927c, dark: 0xd97a64, food: 1.05, speed: 0.82, damage: 2 },
+  snow:    { id: 'snow',    name: '눈밭',    ico:'❄️', color: 0xeaf2fb, dark: 0xd2e2f2, food: 0.82, speed: 0.75 },
+  river:   { id: 'river',   name: '강가',    ico:'💧', color: 0x8ecfe8, dark: 0x6fb8d8, food: 1.05, speed: 0.95 },
+  swamp:   { id: 'swamp',   name: '독성 늪',  ico:'🐸', color: 0xb87fd4, dark: 0x9460b8, food: 0.88, speed: 0.65, damage: 3 }
+};
+const TERRAIN_LIST = Object.values(TERRAIN);
+
+// ── 날씨 시스템 ──────────────────────────────────
+const WEATHERS = {
+  sunny:  { id:'sunny',  name:'맑음',   ico:'☀️', foodMult:1.0,  spdMult:1.0,  tint:null },
+  rain:   { id:'rain',   name:'비',     ico:'🌧️', foodMult:1.25, spdMult:0.9,  tint:0x3a5a8a }, // 비 = 식량 풍부, 이동 느림
+  storm:  { id:'storm',  name:'폭풍',   ico:'⛈️', foodMult:0.8,  spdMult:0.8,  tint:0x2a3a5a }, // 폭풍 = 위험
+  fog:    { id:'fog',    name:'안개',   ico:'🌫️', foodMult:0.9,  spdMult:0.95, tint:0x9aa5b5 },
+  clear:  { id:'clear',  name:'쾌청',   ico:'🌤️', foodMult:1.1,  spdMult:1.05, tint:null },
+};
+const WEATHER_LIST = Object.values(WEATHERS);
+const DAY_LENGTH = 60000;   // 1일 = 60초 (낮 36초 + 밤 24초)
+const WEATHER_INTERVAL = 25000; // 25초마다 날씨 변화
+
+// ── 도전과제 ──────────────────────────────────
+const ACHIEVEMENTS = [
+  // ── 생존 ──────────────────────────────────────────────
+  { id:'rookie',      name:'🌱 첫 발걸음',    desc:'1분 생존',                     bonus:80,
+    check:(g,el)=>el>=60000 },
+  { id:'survivor',    name:'🏅 생존자',       desc:'2분 생존',                     bonus:150,
+    check:(g,el)=>el>=120000 },
+  { id:'veteran',     name:'🎖️ 베테랑',      desc:'4분 생존',                     bonus:300,
+    check:(g,el)=>el>=240000 },
+  { id:'last_stand',  name:'🕯️ 마지막 불꽃', desc:'운석 30초 전(4분30초)까지 생존', bonus:500,
+    check:(g,el)=>el>=270000 },
+
+  // ── 집단 크기 ──────────────────────────────────────────
+  { id:'colony',      name:'🐾 군집',        desc:'개체 30마리 보유',              bonus:150,
+    check:(g)=>g.count>=30 },
+  { id:'empire',      name:'🏰 대제국',      desc:'개체 60마리 보유',              bonus:350,
+    check:(g)=>g.count>=60 },
+  { id:'near_death',  name:'☠️ 벼랑 끝',    desc:'개체 3마리 이하까지 몰림',      bonus:100,
+    check:(g,el,d)=>d.hadNeardeath },
+  { id:'comeback',    name:'💪 기적의 역전', desc:'3마리 이하에서 35마리+ 회복',   bonus:700,
+    check:(g,el,d)=>d.hadNeardeath&&g.count>=35 },
+
+  // ── 세대 ───────────────────────────────────────────────
+  { id:'gen5',        name:'🌿 5세대',       desc:'5세대 번식',                   bonus:150,
+    check:(g)=>g.generation>=5 },
+  { id:'gen15',       name:'🌳 15세대',      desc:'15세대 번식',                  bonus:300,
+    check:(g)=>g.generation>=15 },
+
+  // ── 전투 ──────────────────────────────────────────────
+  { id:'first_blood', name:'⚔️ 첫 승리',    desc:'전쟁 첫 승리',                 bonus:100,
+    check:(g)=>g.wins>=1 },
+  { id:'warlord',     name:'🗡️ 전쟁의 신',  desc:'전쟁 3회 이상 승리',           bonus:350,
+    check:(g)=>g.wins>=3 },
+  { id:'pacifist',    name:'🕊️ 평화주의자', desc:'패배 없이 3분 생존',           bonus:350,
+    check:(g,el)=>g.losses===0&&el>=180000 },
+  { id:'escapist',    name:'🏃 도주의 달인', desc:'전투 도망 3회',                bonus:150,
+    check:(g)=>g.escapes>=3 },
+
+  // ── 포섭 ──────────────────────────────────────────────
+  { id:'charmer',     name:'💫 매력 가득',   desc:'포섭 5마리',                   bonus:250,
+    check:(g)=>g.recruited>=5 },
+  { id:'diplomat',    name:'🤝 외교관',      desc:'포섭 10마리',                  bonus:450,
+    check:(g)=>g.recruited>=10 },
+
+  // ── 식량 ──────────────────────────────────────────────
+  { id:'rich',        name:'🌾 식량 부자',   desc:'식량 300 이상',                bonus:200,
+    check:(g)=>g.food>=300 },
+  { id:'feast',       name:'🎉 풍년',        desc:'식량 700 이상',                bonus:350,
+    check:(g)=>g.food>=700 },
+  { id:'no_starve',   name:'🍀 굶주림 없이', desc:'굶주림 사망 없이 3분 생존',    bonus:300,
+    check:(g,el)=>g.starved===0&&el>=180000 },
+
+  // ── 유전자 — 대립유전자 빈도 ──────────────────────────
+  { id:'red_wave',    name:'🔴 붉은 물결',   desc:'R 대립유전자 빈도 70%+',       bonus:200,
+    check:(g)=>(g.geneFrequency()['color']||0)>=70 },
+  { id:'blue_wave',   name:'🔵 푸른 물결',   desc:'B 대립유전자 빈도 70%+',       bonus:200,
+    check:(g)=>(g.geneFrequency()['color']||0)<=30 },
+  { id:'speed_evo',   name:'⚡ 속도 진화',   desc:'S 대립유전자 빈도 75%+',       bonus:200,
+    check:(g)=>(g.geneFrequency()['speed']||0)>=75 },
+  { id:'poison_evo',  name:'☠️ 독성 진화',   desc:'P 대립유전자 빈도 75%+',       bonus:200,
+    check:(g)=>(g.geneFrequency()['poison']||0)>=75 },
+  { id:'charm_evo',   name:'💗 매력 진화',   desc:'C 대립유전자 빈도 75%+',       bonus:200,
+    check:(g)=>(g.geneFrequency()['charm']||0)>=75 },
+  { id:'dominant_all',name:'👑 우성 지배',   desc:'모든 유전자 우성 대립유전자 60%+', bonus:500,
+    check:(g)=>Object.values(g.geneFrequency()).every(p=>p>=60) },
+
+  // ── 유전자 — 다양성·돌연변이 ──────────────────────────
+  { id:'diverse',     name:'🧬 다양성 수호', desc:'2분 후에도 다양성 75%+ 유지',  bonus:250,
+    check:(g,el)=>el>=120000&&g.calcDiversity()>=0.75 },
+  { id:'mutant6',     name:'🔬 돌연변이 6종', desc:'6종 돌연변이 동시 보유',      bonus:250,
+    check:(g)=>Object.keys(g.mutationFrequency()).length>=6 },
+  { id:'mutant10',    name:'🧫 돌연변이 10종', desc:'10종 돌연변이 동시 보유',    bonus:450,
+    check:(g)=>Object.keys(g.mutationFrequency()).length>=10 },
+  { id:'pure_blood',  name:'🫧 순수 혈통',   desc:'2분 후에도 돌연변이 없는 개체 50%+', bonus:250,
+    check:(g,el)=>el>=120000&&g.count>0&&g.individuals.filter(i=>i.mutations.length===0).length/g.count>=0.5 },
+
+  // ── 지형 ──────────────────────────────────────────────
+  { id:'volcano_win', name:'🌋 화산 정복',   desc:'화산지대에서 전쟁 승리',       bonus:300,
+    check:(g,el,d)=>d.volcanoWin },
+  { id:'explorer',    name:'🗺️ 탐험가',      desc:'5종 이상 지형 방문',           bonus:200,
+    check:(g,el,d)=>(d.visitedTerrains||new Set()).size>=5 },
+];
+
+// 지형별 컨셉에 맞는 이벤트 맵
+// 이벤트 종류: { predicate } → 조건에 맞는 개체 사망 | { foodDelta } → 식량 변화 | { foodRatio } → 식량 비율 변화
+const TERRAIN_EVENTS = {
+  plain: [
+    { name: '메뚜기 떼 습격',
+      message: '메뚜기 떼가 밀밭을 습격해 식량이 절반으로 줄었습니다.',
+      foodRatio: 0.50 },
+    { name: '들불',
+      message: '들불이 번져 느린 개체들이 도망치지 못하고 불에 휩쓸렸습니다.',
+      predicate: i => i.stats.speed < 68 },
+    { name: '야생 동물 습격',
+      message: '야생 동물 무리가 습격해 갑옷도 매력도 없는 개체들이 희생됐습니다.',
+      predicate: i => !i.hasDominant('armor') && !i.hasDominant('charm') },
+    { name: '전염병 창궐',
+      message: '전염병이 퍼져 번식력이 강한 개체들 사이에서 빠르게 확산됐습니다.',
+      predicate: i => i.stats.fertility > 1.3 },
+    { name: '붉은 달',
+      message: '붉은 달빛 아래 파란색(BB) 개체들이 포식자에게 발각돼 사라졌습니다.',
+      predicate: i => getGenotypeLabel(i, 'color') === 'BB' }
+  ],
+  forest: [
+    { name: '위장 포식자 출현',
+      message: '숲 속 위장 포식자가 눈에 띄는 붉은 개체(RR)들을 골라 잡아갔습니다.',
+      predicate: i => getGenotypeLabel(i, 'color') === 'RR' },
+    { name: '나무 쓰러짐',
+      message: '폭풍에 거목이 쓰러져 느리게 피한 개체들이 깔렸습니다.',
+      predicate: i => i.stats.speed < 72 },
+    { name: '열매 풍년',
+      message: '숲에 열매가 풍성하게 열려 식량이 크게 늘었습니다!',
+      foodDelta: 55 },
+    { name: '기생충 감염',
+      message: '숲 속 기생충이 갑옷이 없는 개체의 피부에 침투해 쓰러뜨렸습니다.',
+      predicate: i => !i.hasDominant('armor') },
+    { name: '야간 포식자',
+      message: '밤에 무리에서 이탈한 매력 없는 개체들이 포식자에게 잡혔습니다.',
+      predicate: i => !i.hasDominant('charm') }
+  ],
+  desert: [
+    { name: '극심한 폭염',
+      message: '극심한 폭염으로 먹이 요구량이 높은 개체들이 탈수로 쓰러졌습니다.',
+      predicate: i => i.stats.foodNeed >= 1.35 },
+    { name: '오아시스 발견',
+      message: '오아시스를 발견했습니다! 귀한 식량을 획득했습니다.',
+      foodDelta: 40 },
+    { name: '독전갈 습격',
+      message: '독전갈 떼가 습격해 독성 유전자가 없는 개체들을 쏘아 쓰러뜨렸습니다.',
+      predicate: i => !i.hasDominant('poison') },
+    { name: '열사병',
+      message: '극한 폭염에 무거운 갑옷을 두른 개체들이 열사병으로 쓰러졌습니다.',
+      predicate: i => i.hasDominant('armor') },
+    { name: '신기루',
+      message: '신기루를 쫓아가다 지쳐 식량의 30%를 잃었습니다.',
+      foodRatio: 0.70 }
+  ],
+  volcano: [
+    { name: '화산 폭발',
+      message: '화산이 폭발했습니다. 붉은 몸(RR)을 가진 개체만 열기를 버텼습니다.',
+      predicate: i => getGenotypeLabel(i, 'color') !== 'RR' },
+    { name: '독가스 분출',
+      message: '화산 독가스가 분출됐습니다. 독성 유전자가 없는 개체들이 쓰러졌습니다.',
+      predicate: i => !i.hasDominant('poison') },
+    { name: '마그마 흐름',
+      message: '마그마가 흘러들어 느린 개체들이 피하지 못했습니다.',
+      predicate: i => i.stats.speed < 75 },
+    { name: '용암 분수',
+      message: '용암이 솟구쳐 무리 밖에 있던 매력 없는 개체들을 덮쳤습니다.',
+      predicate: i => !i.hasDominant('charm') },
+    { name: '화산재 폭풍',
+      message: '짙은 화산재가 쏟아져 갑옷이 없는 개체들이 질식했습니다.',
+      predicate: i => !i.hasDominant('armor') }
+  ],
+  snow: [
+    { name: '눈보라',
+      message: '눈보라가 몰아쳐 갑옷이 없는 개체들이 동사했습니다.',
+      predicate: i => !i.hasDominant('armor') },
+    { name: '혹한 동상',
+      message: '극심한 추위로 체력이 낮은 개체들이 동상으로 쓰러졌습니다.',
+      predicate: i => i.hp < i.stats.hp * 0.55 },
+    { name: '먹이 고갈',
+      message: '눈이 모든 것을 뒤덮어 식량의 40%가 사라졌습니다.',
+      foodRatio: 0.60 },
+    { name: '극야 생존',
+      message: '극야의 혹한 속 파란 유전자를 가진 개체만 눈밭에 적응해 살아남았습니다.',
+      predicate: i => getGenotypeLabel(i, 'color') === 'RR' },
+    { name: '눈사태',
+      message: '눈사태가 일어나 무거운 갑옷을 두른 개체들이 미처 피하지 못했습니다.',
+      predicate: i => i.hasDominant('armor') }
+  ],
+  river: [
+    { name: '갑작스런 홍수',
+      message: '강이 갑자기 범람해 헤엄치지 못하는 느린 개체들이 떠내려갔습니다.',
+      predicate: i => i.stats.speed < 75 },
+    { name: '강 독소 유입',
+      message: '상류에서 독소가 흘러들었습니다. 독성 유전자가 없는 개체들이 중독됐습니다.',
+      predicate: i => !i.hasDominant('poison') },
+    { name: '물고기 풍년',
+      message: '강에 물고기가 넘쳐 풍성한 식량을 얻었습니다!',
+      foodDelta: 60 },
+    { name: '급류',
+      message: '갑작스러운 급류에 무거운 갑옷을 입은 개체들이 가라앉았습니다.',
+      predicate: i => i.hasDominant('armor') },
+    { name: '강변 포식자',
+      message: '강변에서 무리를 이탈한 매력 없는 개체들이 포식자에게 잡혔습니다.',
+      predicate: i => !i.hasDominant('charm') }
+  ],
+  swamp: [
+    { name: '독성 폭발 확산',
+      message: '늪의 독성이 폭발적으로 강해졌습니다. 독성 유전자가 없는 개체가 전멸했습니다.',
+      predicate: i => !i.hasDominant('poison') },
+    { name: '늪 수렁',
+      message: '늪이 깊어져 느린 개체들이 수렁에 빠져 헤어나오지 못했습니다.',
+      predicate: i => i.stats.speed < 62 },
+    { name: '썩은 열매',
+      message: '늪의 썩은 열매를 먹어 식량의 35%가 손실됐습니다.',
+      foodRatio: 0.65 },
+    { name: '독거미',
+      message: '독거미가 무리에서 이탈한 매력 없는 개체들을 물어 쓰러뜨렸습니다.',
+      predicate: i => !i.hasDominant('charm') },
+    { name: '늪 안개',
+      message: '짙은 늪 안개에 독성 저항도 없고 느리기까지 한 개체들이 질식했습니다.',
+      predicate: i => !i.hasDominant('poison') && i.stats.speed < 65 }
+  ]
+};
+
+const GENES = {
+  color: { alleles: ['R', 'B'], dominant: 'R', recessive: 'B', dominantName: '붉은색', recessiveName: '푸른색', heteroName: '보라색' },
+  speed: { alleles: ['S', 's'], dominant: 'S', recessive: 's', dominantName: '빠른 다리', recessiveName: '보통 속도' },
+  poison: { alleles: ['P', 'p'], dominant: 'P', recessive: 'p', dominantName: '독성 있음', recessiveName: '독성 없음' },
+  armor: { alleles: ['A', 'a'], dominant: 'A', recessive: 'a', dominantName: '갑옷 있음', recessiveName: '갑옷 없음' },
+  charm: { alleles: ['C', 'c'], dominant: 'C', recessive: 'c', dominantName: '높은 매력', recessiveName: '보통 매력' }
+};
+const GENE_EFFECTS = {
+  color: { dominant: {}, recessive: {} },
+  speed: { dominant: { speed: 15 }, recessive: {} },
+  poison: { dominant: { attack: 3 }, recessive: {} },
+  armor: { dominant: { defense: 3, speed: -5 }, recessive: {} },
+  charm: { dominant: { charm: 5 }, recessive: {} }
+};
+const MUTATIONS = [
+  { id: 'strong_jaw', name: '강한 턱', type: 'good', effects: { attack: 4 } },
+  { id: 'fast_legs', name: '빠른 다리', type: 'good', effects: { speed: 25, gather: 1 } },
+  { id: 'regeneration', name: '재생 능력', type: 'good', effects: { hp: 25, defense: 2 } },
+  { id: 'efficient_metabolism', name: '효율 대사', type: 'good', effects: { foodNeed: -0.4 } },
+  { id: 'poison_gland', name: '독성 분비', type: 'good', effects: { attack: 6 } },
+  { id: 'high_fertility', name: '높은 번식력', type: 'dual', effects: { fertility: 0.5, foodNeed: 0.3 } },
+  { id: 'hard_shell', name: '단단한 껍질', type: 'dual', effects: { defense: 5, speed: -10 } },
+  { id: 'large_body', name: '큰 몸집', type: 'dual', effects: { hp: 30, attack: 2, speed: -15, foodNeed: 0.5 } },
+  { id: 'small_body', name: '작은 몸집', type: 'dual', effects: { hp: -15, attack: -1, speed: 20, foodNeed: -0.3 } },
+  { id: 'bright_pattern', name: '화려한 무늬', type: 'dual', effects: { charm: 8, defense: -1 } },
+  { id: 'pheromone', name: '지배 페로몬', type: 'dual', effects: { charm: 15, fertility: -0.2 } },
+  { id: 'unstable_dna', name: '불안정 DNA', type: 'dual', effects: { mutationRate: 0.03 } },
+  { id: 'weak_jaw', name: '약한 턱', type: 'bad', effects: { attack: -4 } },
+  { id: 'thin_shell', name: '얇은 껍질', type: 'bad', effects: { hp: -10, defense: -3, speed: 5 } },
+  { id: 'slow_legs', name: '느린 다리', type: 'bad', effects: { speed: -20, gather: -1 } },
+  { id: 'weak_immunity', name: '약한 면역', type: 'bad', effects: { hp: -15, defense: -2, foodNeed: 0.2 } },
+  { id: 'low_fertility', name: '낮은 번식력', type: 'bad', effects: { fertility: -0.4 } },
+  { id: 'frail_body', name: '약한 체질', type: 'bad', effects: { hp: -25 } },
+  { id: 'timid', name: '겁 많은 성향', type: 'bad', effects: { attack: -2, charm: -3, speed: 5 } },
+  { id: 'bad_metabolism', name: '불완전 대사', type: 'bad', effects: { hp: -10, speed: -5, gather: -2, fertility: -0.2, foodNeed: 0.5 } }
+];
+const BASE_STATS = { hp: 100, attack: 10, defense: 3, speed: 80, gather: 5, fertility: 1, charm: 5, foodNeed: 1, mutationRate: 0.08 };
+const MIN_STATS = { hp: 20, attack: 1, defense: 0, speed: 20, gather: 0, fertility: 0.1, charm: 0, foodNeed: 0.2, mutationRate: 0 };
+const MAX_STATS = { hp: 300, attack: 50, defense: 30, speed: 200, gather: 30, fertility: 3, charm: 50, foodNeed: 5, mutationRate: 0.3 };
+
+let nextIndividualId = 0;
+let nextGroupId = 0;
+
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, value));
+}
+
+function choose(list) {
+  return list[Math.floor(Math.random() * list.length)];
+}
+
+function mutationById(id) {
+  return MUTATIONS.find(mutation => mutation.id === id);
+}
+
+function combineAlleles(gene, alleleA, alleleB) {
+  const def = GENES[gene];
+  const pair = [alleleA, alleleB];
+  if (gene === 'color') {
+    return pair.sort((a, b) => {
+      if (a === 'R' && b === 'B') return -1;
+      if (a === 'B' && b === 'R') return 1;
+      return a.localeCompare(b);
+    });
+  }
+  return pair.sort((a, b) => {
+    if (a === def.dominant && b !== def.dominant) return -1;
+    if (b === def.dominant && a !== def.dominant) return 1;
+    return a.localeCompare(b);
+  });
+}
+
+function makeGamete(individual) {
+  // Mendelian segregation: each gamete receives one allele from each gene pair.
+  // Independent assortment: every gene pair is sampled independently in this loop.
+  const gamete = {};
+  for (const gene of Object.keys(GENES)) {
+    gamete[gene] = choose(individual.genes[gene]);
+  }
+  return gamete;
+}
+
+function getGenotypeLabel(individual, gene) {
+  return individual.genes[gene].join('');
+}
+
+function getPhenotypeLabel(individual, gene) {
+  if (gene === 'color') {
+    const genotype = getGenotypeLabel(individual, gene);
+    if (genotype === 'RR') return '붉은색';
+    if (genotype === 'BB') return '푸른색';
+    return '보라색';
+  }
+  return individual.hasDominant(gene) ? GENES[gene].dominantName : GENES[gene].recessiveName;
+}
+
+function getBodyColor(individual) {
+  const genotype = getGenotypeLabel(individual, 'color');
+  if (genotype === 'RR') return BODY_COLOR_RED;
+  if (genotype === 'BB') return BODY_COLOR_BLUE;
+  return BODY_COLOR_PURPLE;
+}
+
+class Individual {
+  constructor(groupId, x, y, genes = null, mutationsOrGenes = []) {
+    this.id = `individual_${++nextIndividualId}`;
+    this.groupId = groupId;
+    this.x = x;
+    this.y = y;
+    this.offsetX = (Math.random() - 0.5) * FOLLOW_RADIUS * 2;
+    this.offsetY = (Math.random() - 0.5) * FOLLOW_RADIUS * 2;
+    this.genes = genes || this.randomGenes();
+    // 돌연변이 멘델 유전: 각 좌마다 ['M'|'m','M'|'m'] (M=돌연변이 대립유전자, 우성 발현)
+    // mm인 좌는 저장하지 않음. 배열을 받으면 발현 목록으로 보고 각각 Mm 이형접합으로 변환
+    if (Array.isArray(mutationsOrGenes)) {
+      this.mutationGenes = {};
+      for (const id of mutationsOrGenes) this.mutationGenes[id] = ['M', 'm'];
+    } else {
+      this.mutationGenes = mutationsOrGenes || {};
+    }
+    this.stats = this.calculateStats();
+    this.hp = this.stats.hp;
+    this.dead = false;
+    this.lastAttackAt = 0;
+    this.newMutationCount = 0;
+    this.newlyGained = []; // 이번에 새로 발현된 돌연변이 ID (획득 알림용)
+  }
+
+  // 발현된 돌연변이 목록 (M 대립유전자를 하나라도 가진 좌 = 우성 발현)
+  get mutations() {
+    return Object.keys(this.mutationGenes).filter(id => this.mutationGenes[id].includes('M'));
+  }
+
+  // 돌연변이 유전자형 라벨 (비공개 처리용 — 동형/이형접합 구분)
+  mutationZygosity(id) {
+    const g = this.mutationGenes[id];
+    if (!g) return null;
+    return g[0] === 'M' && g[1] === 'M' ? 'homo' : g.includes('M') ? 'hetero' : null;
+  }
+
+  randomGenes() {
+    const genes = {};
+    for (const [name, def] of Object.entries(GENES)) {
+      genes[name] = combineAlleles(name, choose(def.alleles), choose(def.alleles));
+    }
+    return genes;
+  }
+
+  hasDominant(gene) {
+    return this.genes[gene].includes(GENES[gene].dominant);
+  }
+
+  calculateStats() {
+    const stats = { ...BASE_STATS };
+    for (const gene of Object.keys(GENES)) {
+      const effects = this.hasDominant(gene) ? GENE_EFFECTS[gene].dominant : GENE_EFFECTS[gene].recessive;
+      for (const [key, value] of Object.entries(effects)) stats[key] = (stats[key] || 0) + value;
+    }
+    for (const mutationId of this.mutations) {
+      const mutation = mutationById(mutationId);
+      if (!mutation) continue;
+      for (const [key, value] of Object.entries(mutation.effects)) stats[key] = (stats[key] || 0) + value * MUTATION_EFFECT_MULTIPLIER;
+    }
+    for (const key of Object.keys(MIN_STATS)) {
+      stats[key] = clamp(stats[key] || 0, MIN_STATS[key], MAX_STATS[key]);
+    }
+    for (const key of Object.keys(stats)) {
+      if (key === 'mutationRate' || key === 'foodNeed') continue;
+      stats[key] = clamp(stats[key] * (0.88 + Math.random() * 0.24), MIN_STATS[key], MAX_STATS[key]);
+    }
+    return stats;
+  }
+
+  takeHit(attack) {
+    const damage = Math.max(1, attack - this.stats.defense);
+    this.hp -= damage;
+    if (this.hp <= 0) {
+      this.hp = 0;
+      this.dead = true;
+    }
+    return damage;
+  }
+
+  static breed(parentA, parentB, groupId, x, y) {
+    const genes = {};
+    const gameteA = makeGamete(parentA);
+    const gameteB = makeGamete(parentB);
+    for (const gene of Object.keys(GENES)) {
+      genes[gene] = combineAlleles(gene, gameteA[gene], gameteB[gene]);
+    }
+    // 돌연변이 멘델 유전: 각 좌마다 부모 대립유전자 하나씩 분리 → 자식 유전자형
+    const loci = new Set([...Object.keys(parentA.mutationGenes), ...Object.keys(parentB.mutationGenes)]);
+    const childMutGenes = {};
+    for (const id of loci) {
+      const a = parentA.mutationGenes[id] || ['m', 'm'];
+      const b = parentB.mutationGenes[id] || ['m', 'm'];
+      const allele = [choose(a), choose(b)];
+      if (allele.includes('M')) childMutGenes[id] = allele; // mm는 저장 안 함 (발현 안 됨)
+    }
+    // 부모가 발현했던 돌연변이 (새 발현 판정 기준)
+    const parentExpressed = new Set([...parentA.mutations, ...parentB.mutations]);
+
+    // 새 돌연변이 발생 (신규 변이)
+    const mutationRollRate = clamp((parentA.stats.mutationRate + parentB.stats.mutationRate) / 2, 0, MAX_STATS.mutationRate);
+    let newMutationCount = 0;
+    const newlyGained = [];
+    while (newMutationCount < MAX_NEW_MUTATIONS_PER_CHILD && Math.random() < mutationRollRate) {
+      const available = MUTATIONS.filter(m => !(childMutGenes[m.id] && childMutGenes[m.id].includes('M')));
+      if (!available.length) break;
+      const picked = choose(available).id;
+      const existing = childMutGenes[picked] || ['m', 'm'];
+      const idx = existing.indexOf('m');
+      if (idx >= 0) existing[idx] = 'M'; // m 하나를 M으로 (이형접합 신규 변이)
+      childMutGenes[picked] = existing;
+      newlyGained.push(picked);
+      newMutationCount += 1;
+    }
+
+    const child = new Individual(groupId, x, y, genes, childMutGenes);
+    child.newMutationCount = newMutationCount;
+    // 부모에게 없던 발현 = 진짜 새 획득 (멘델 재조합으로 새로 발현된 것 포함)
+    child.newlyGained = child.mutations.filter(id => !parentExpressed.has(id));
+    return child;
+  }
+}
+
+class Group {
+  constructor(x, y, isPlayer = false, name = 'AI 집단') {
+    this.id = `group_${++nextGroupId}`;
+    this.name = name;
+    this.x = x;
+    this.y = y;
+    this.isPlayer = isPlayer;
+    this.food = START_FOOD;
+    this.state = 'normal';
+    this.battleId = null;
+    this.individuals = [];
+    this.generation = 0;
+    this.wins = 0;
+    this.losses = 0;
+    this.recruited = 0;
+    this.recruitedAway = 0;
+    this.escapes = 0;
+    this.starved = 0;
+    this.terrainEventDeaths = 0;
+    this.driftEvents = 0;
+    this.mutationEvents = 0;
+    this.currentBattleRecruits = 0;
+    this.color = isPlayer ? 0x38bdf8 : choose([0xfb7185, 0xf97316, 0xa78bfa, 0x2dd4bf, 0xfacc15, 0x84cc16]);
+    this.aiTimer = 0;
+    this.aiDirection = { x: 1, y: 0 };
+  }
+
+  get count() {
+    return this.individuals.length;
+  }
+
+  need() {
+    return this.individuals.reduce((sum, individual) => sum + individual.stats.foodNeed, 0);
+  }
+
+  surplus() {
+    return this.food - this.need();
+  }
+
+  canBreed() {
+    return this.state === 'normal' && this.count >= 2 && this.count < MAX_INDIVIDUALS && this.surplus() >= BREED_COST;
+  }
+
+  average(stat) {
+    if (!this.individuals.length) return 0;
+    return this.individuals.reduce((sum, individual) => sum + (individual.stats[stat] || 0), 0) / this.individuals.length;
+  }
+
+  // Shannon diversity index (0~1) across all gene allele frequencies
+  calcDiversity() {
+    const freq = this.geneFrequency();
+    let H = 0;
+    for (const pct of Object.values(freq)) {
+      const p = clamp(pct / 100, 0.001, 0.999);
+      const q = 1 - p;
+      H -= p * Math.log2(p) + q * Math.log2(q);
+    }
+    return H / Object.keys(GENES).length; // normalize 0~1 (1 = all genes at 50/50)
+  }
+
+  mutationFrequency() {
+    const frequency = {};
+    if (!this.individuals.length) return frequency;
+    for (const individual of this.individuals) {
+      for (const mutationId of individual.mutations) frequency[mutationId] = (frequency[mutationId] || 0) + 1;
+    }
+    for (const key of Object.keys(frequency)) frequency[key] = frequency[key] / this.individuals.length * 100;
+    return frequency;
+  }
+
+  geneFrequency() {
+    // 대립유전자 빈도: 전체 대립유전자 풀에서 우성 대립유전자의 비율 (p값)
+    // 개체당 2개 대립유전자 → 전체 풀 크기 = 개체수 × 2
+    const frequency = {};
+    if (!this.individuals.length) return frequency;
+    for (const gene of Object.keys(GENES)) {
+      const dominant = GENES[gene].dominant;
+      let domCount = 0;
+      for (const individual of this.individuals) {
+        domCount += individual.genes[gene].filter(a => a === dominant).length;
+      }
+      frequency[gene] = domCount / (this.individuals.length * 2) * 100;
+    }
+    return frequency;
+  }
+
+  genotypeFrequency(gene) {
+    const frequency = {};
+    if (!this.individuals.length) return frequency;
+    for (const individual of this.individuals) {
+      const genotype = getGenotypeLabel(individual, gene);
+      frequency[genotype] = (frequency[genotype] || 0) + 1;
+    }
+    for (const genotype of Object.keys(frequency)) frequency[genotype] = frequency[genotype] / this.individuals.length * 100;
+    return frequency;
+  }
+
+  survivalTick() {
+    const need = this.need();
+    if (this.food >= need) {
+      this.food -= need;
+      return { deaths: 0, consumed: need };
+    }
+    const deficit = need - this.food;
+    this.food = 0;
+    const overTarget = Math.max(0, this.count - TARGET_POPULATION);
+    const deficitDeaths = Math.ceil(deficit / STARVATION_DEFICIT_DIVISOR);
+    const populationPressureDeaths = Math.ceil(overTarget * 0.5);
+    const maxDeaths = Math.max(0, this.count - 2);
+    const deathCount = clamp(Math.max(1, deficitDeaths, populationPressureDeaths), 1, maxDeaths);
+    const victims = this.sortStarvationVictims().slice(0, deathCount);
+    if (!victims.length) return { message: '살아남은 개체가 없습니다.', deaths: 0 };
+    const victimIds = new Set(victims.map(individual => individual.id));
+    this.individuals = this.individuals.filter(individual => !victimIds.has(individual.id));
+    this.starved += victims.length;
+    return { deaths: victims.length, consumed: 0 };
+  }
+
+  pickStarvationVictim() {
+    return this.sortStarvationVictims()[0] || null;
+  }
+
+  sortStarvationVictims() {
+    return [...this.individuals].sort((a, b) => {
+      const foodNeedDelta = b.stats.foodNeed - a.stats.foodNeed;
+      if (foodNeedDelta !== 0) return foodNeedDelta;
+      return (a.hp / a.stats.hp) - (b.hp / b.stats.hp);
+    });
+  }
+
+  // 밀도 의존 번식률: 개체수↑ → 번식 감소 (환경 수용력)
+  densityFactor() {
+    return Math.max(0.10, 1 - (this.count / MAX_INDIVIDUALS) * 0.88);
+  }
+
+  breed() {
+    if (!this.canBreed()) return 0;
+    const rawCount = Math.floor(this.surplus() / BREED_COST);
+    const childCount = Math.min(Math.max(1, Math.floor(rawCount * this.densityFactor())), MAX_INDIVIDUALS - this.count);
+    if (childCount <= 0) return 0;
+    this.food -= childCount * BREED_COST;
+    this.generation += 1;
+    let newMutations = 0;
+    this.lastGainedMutations = []; // 이번 번식에서 새로 발현된 돌연변이 ID
+    for (let i = 0; i < childCount; i += 1) {
+      const parentA = this.pickParent();
+      const parentB = this.pickParent(parentA);
+      if (!parentA || !parentB) break;
+      const child = Individual.breed(parentA, parentB, this.id, this.x + (Math.random() - 0.5) * 84, this.y + (Math.random() - 0.5) * 84);
+      newMutations += child.newMutationCount;
+      for (const id of child.newlyGained) {
+        if (!this.lastGainedMutations.includes(id)) this.lastGainedMutations.push(id);
+      }
+      this.individuals.push(child);
+    }
+    this.mutationEvents += newMutations;
+    return childCount;
+  }
+
+  pickParent(exclude = null) {
+    const candidates = exclude ? this.individuals.filter(i => i !== exclude) : this.individuals;
+    if (!candidates.length) return null;
+    // 선택 가중치 = 번식력 × (1 + 매력 보너스)
+    // 매력이 높을수록 짝으로 선택될 확률 상승 (성선택)
+    const weight = i => i.stats.fertility * (1 + i.stats.charm * 0.04);
+    const total = candidates.reduce((sum, i) => sum + weight(i), 0);
+    let roll = Math.random() * total;
+    for (const i of candidates) {
+      roll -= weight(i);
+      if (roll <= 0) return i;
+    }
+    return candidates[candidates.length - 1];
+  }
+
+  aiTick(dt) {
+    if (this.state !== 'normal' || !this.individuals.length) return;
+    this.aiTimer -= dt;
+    if (this.aiTimer <= 0) {
+      this.aiTimer = 1600 + Math.random() * 3600;
+      const angle = Math.random() * Math.PI * 2;
+      this.aiDirection = { x: Math.cos(angle), y: Math.sin(angle) };
+      if (this.canBreed() && Math.random() < 0.45) this.breed();
+    }
+    const speed = (this.average('speed') / 80) * 128 * (dt / 1000);
+    this.x = clamp(this.x + this.aiDirection.x * speed, 60, WORLD_W - 60);
+    this.y = clamp(this.y + this.aiDirection.y * speed, 60, WORLD_H - 60);
+  }
+}
+
+class Battle {
+  constructor(groupA, groupB, terrainA = TERRAIN.plain, terrainB = TERRAIN.plain) {
+    this.id = `battle_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+    this.groupA = groupA;
+    this.groupB = groupB;
+    this.startedAt = Date.now();
+    this.active = true;
+    this.winner = null;
+    this.recruitsA = 0; // groupA가 이 전투에서 포섭한 수
+    this.recruitsB = 0; // groupB가 이 전투에서 포섭한 수
+    this.isPlayerBattle = groupA.isPlayer || groupB.isPlayer;
+    this.onHit = null; // 플레이어 전투 시 타격 이펙트 콜백 (ArenaScene이 주입)
+    // Terrain-based attack multiplier (natural selection in battle)
+    this.bonusA = Battle.calcTerrainBattleBonus(groupA, terrainA);
+    this.bonusB = Battle.calcTerrainBattleBonus(groupB, terrainB);
+    groupA.state = 'battle';
+    groupB.state = 'battle';
+    groupA.battleId = this.id;
+    groupB.battleId = this.id;
+    groupA.currentBattleRecruits = 0;
+    groupB.currentBattleRecruits = 0;
+    this.sideA = [...groupA.individuals].sort(() => Math.random() - 0.5).slice(0, MAX_BATTLE_INDIVIDUALS);
+    this.sideB = [...groupB.individuals].sort(() => Math.random() - 0.5).slice(0, MAX_BATTLE_INDIVIDUALS);
+  }
+
+  tick() {
+    if (!this.active) return;
+    if (Date.now() - this.startedAt >= BATTLE_DURATION) return this.end('timeout');
+    const liveA = this.sideA.filter(i => !i.dead && i.groupId === this.groupA.id);
+    const liveB = this.sideB.filter(i => !i.dead && i.groupId === this.groupB.id);
+    if (!liveA.length && !liveB.length) return this.end('draw');
+    if (!liveA.length) return this.end('groupB');
+    if (!liveB.length) return this.end('groupA');
+    const allA = this.groupA.individuals.filter(i => !i.dead);
+    const allB = this.groupB.individuals.filter(i => !i.dead);
+    const now = Date.now();
+
+    // 전투 (공격)
+    for (const attacker of liveA) this.attack(attacker, allB, now, this.bonusA);
+    for (const attacker of liveB) this.attack(attacker, allA, now, this.bonusB);
+
+    // 포섭 — 집단 단위로 1회씩 시도 (비대칭 보장)
+    // 매력 우위가 있는 쪽만 포섭 가능, 우위 크기가 성공률 결정
+    this.tryRecruit(this.groupA, this.groupB);
+    this.tryRecruit(this.groupB, this.groupA);
+
+    this.groupA.individuals = this.groupA.individuals.filter(i => !i.dead);
+    this.groupB.individuals = this.groupB.individuals.filter(i => !i.dead);
+    if (!this.groupA.individuals.length) this.end('groupB');
+    if (!this.groupB.individuals.length) this.end('groupA');
+  }
+
+  // 개별 공격 (포섭 로직 분리)
+  attack(attacker, foes, now, terrainBonus = 1) {
+    if (attacker.dead || !foes.length) return;
+    if (now - attacker.lastAttackAt < ATTACK_COOLDOWN) return;
+    const target = nearest(attacker, foes.filter(f => !f.dead));
+    if (!target) return;
+    attacker.lastAttackAt = now;
+    target.takeHit(attacker.stats.attack * terrainBonus);
+    if (this.isPlayerBattle) {
+      Audio.sfxHit();
+      if (this.onHit) this.onHit(target.x, target.y);
+    }
+  }
+
+  // 집단 단위 포섭 시도 — 매력 우위를 가진 쪽만 성공 가능
+  tryRecruit(atkGroup, defGroup) {
+    if (atkGroup.currentBattleRecruits >= MAX_RECRUIT_PER_BATTLE) return;
+
+    const atkCharm = atkGroup.average('charm');
+    const defCharm = defGroup.average('charm');
+    const charmAdv = atkCharm - defCharm; // 양수면 포섭 측 유리
+
+    // 매력 우위 없으면 포섭 불가 (비대칭 핵심)
+    if (charmAdv <= 0) return;
+
+    // 성공률: 매력차 / (최대가능 매력) 기반, 최대 70%
+    const maxCharm = 50;
+    const chance = clamp(charmAdv / maxCharm * 1.4, 0.05, 0.70);
+    if (Math.random() > chance) return;
+
+    // 가장 HP가 낮은 적 개체 대상 (0% ~ 60% HP만 포섭 가능)
+    const wounded = defGroup.individuals
+      .filter(i => !i.dead && i.hp / i.stats.hp < 0.6)
+      .sort((a, b) => (a.hp / a.stats.hp) - (b.hp / b.stats.hp));
+    if (!wounded.length) return;
+
+    const target = wounded[0];
+    defGroup.individuals = defGroup.individuals.filter(i => i !== target);
+    target.groupId = atkGroup.id;
+    target.hp = target.stats.hp * 0.4;
+    atkGroup.individuals.push(target);
+    atkGroup.recruited += 1;
+    atkGroup.currentBattleRecruits += 1;
+    defGroup.recruitedAway += 1;
+    if (atkGroup === this.groupA) this.recruitsA += 1; else this.recruitsB += 1;
+  }
+
+  // 지형-유전자 전투 보너스: 해당 지형에 유리한 형질 보유 비율에 따라 최대 +20% 공격력
+  static calcTerrainBattleBonus(group, terrain) {
+    if (!group.individuals.length) return 1;
+    const n = group.individuals.length;
+    const ratio = (predicate) => group.individuals.filter(predicate).length / n;
+    switch (terrain.id) {
+      case 'volcano': return 1 + ratio(i => getGenotypeLabel(i, 'color') === 'RR') * 0.20;
+      case 'desert':  return 1 + ratio(i => getGenotypeLabel(i, 'color') === 'BB') * 0.20;
+      case 'snow':    return 1 + ratio(i => i.hasDominant('armor')) * 0.15;
+      case 'swamp':   return 1 + ratio(i => i.hasDominant('poison')) * 0.18;
+      case 'forest':  return 1 + ratio(i => i.hasDominant('charm')) * 0.10;
+      default:        return 1;
+    }
+  }
+
+  end(reason) {
+    if (!this.active) return;
+    this.active = false;
+    const resolve = (winner, loser) => {
+      const loot = Math.floor(loser.food * 0.5);
+      winner.food = Math.min(FOOD_CAP, winner.food + loot);
+      loser.food -= loot;
+      winner.wins += 1;
+      loser.losses += 1;
+      this.winner = winner;
+      winner.state = 'normal';
+      loser.state = loser.individuals.length ? 'normal' : 'defeated';
+    };
+    if (reason === 'groupA') resolve(this.groupA, this.groupB);
+    else if (reason === 'groupB') resolve(this.groupB, this.groupA);
+    else {
+      this.groupA.state = this.groupA.individuals.length ? 'normal' : 'defeated';
+      this.groupB.state = this.groupB.individuals.length ? 'normal' : 'defeated';
+    }
+    this.groupA.battleId = null;
+    this.groupB.battleId = null;
+  }
+
+  escape(group) {
+    if (!this.active || (group !== this.groupA && group !== this.groupB)) return null;
+    const enemy = group === this.groupA ? this.groupB : this.groupA;
+    this.active = false;
+    group.state = 'normal';
+    enemy.state = enemy.individuals.length ? 'normal' : 'defeated';
+    group.battleId = null;
+    enemy.battleId = null;
+    group.escapes += 1;
+    return enemy;
+  }
+}
+
+function nearest(source, list) {
+  let best = null;
+  let bestDistance = Infinity;
+  for (const target of list) {
+    const distance = Phaser.Math.Distance.Between(source.x, source.y, target.x, target.y);
+    if (distance < bestDistance) {
+      best = target;
+      bestDistance = distance;
+    }
+  }
+  return best;
+}
+
+// ════════════════════════════════════════════
+//  오디오 매니저 — WebAudio 합성 효과음 + 앰비언트
+// ════════════════════════════════════════════
+class AudioManager {
+  constructor() {
+    this.ctx = null;
+    this.muted = false;
+    this.masterGain = null;
+    this.lastSfx = {};
+  }
+  init() {
+    if (this.ctx) return;
+    try {
+      this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+      this.masterGain = this.ctx.createGain();
+      this.masterGain.gain.value = 0.35;
+      this.masterGain.connect(this.ctx.destination);
+      this.startAmbient();
+    } catch (e) { this.ctx = null; }
+  }
+  resume() { if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume(); }
+  setMuted(m) { this.muted = m; if (this.masterGain) this.masterGain.gain.value = m ? 0 : 0.35; }
+
+  // 톤 생성 헬퍼
+  tone(freq, dur, type = 'sine', vol = 0.3, sweep = 0) {
+    if (!this.ctx || this.muted) return;
+    const t = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const g = this.ctx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, t);
+    if (sweep) osc.frequency.exponentialRampToValueAtTime(Math.max(20, freq + sweep), t + dur);
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(vol, t + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    osc.connect(g); g.connect(this.masterGain);
+    osc.start(t); osc.stop(t + dur);
+  }
+  // 노이즈 (충돌/폭발)
+  noise(dur, vol = 0.3, filterFreq = 1000) {
+    if (!this.ctx || this.muted) return;
+    const t = this.ctx.currentTime;
+    const buf = this.ctx.createBuffer(1, this.ctx.sampleRate * dur, this.ctx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / data.length);
+    const src = this.ctx.createBufferSource(); src.buffer = buf;
+    const filter = this.ctx.createBiquadFilter(); filter.type = 'lowpass'; filter.frequency.value = filterFreq;
+    const g = this.ctx.createGain(); g.gain.value = vol;
+    src.connect(filter); filter.connect(g); g.connect(this.masterGain);
+    src.start(t);
+  }
+  // 쓰로틀 (동일 효과음 연타 방지)
+  throttle(key, ms = 60) {
+    const now = performance.now();
+    if (this.lastSfx[key] && now - this.lastSfx[key] < ms) return false;
+    this.lastSfx[key] = now; return true;
+  }
+
+  sfxCollect() { if (this.throttle('collect', 50)) this.tone(660 + Math.random()*120, 0.12, 'triangle', 0.22, 200); }
+  sfxBreed()   { this.tone(523, 0.1, 'sine', 0.3); setTimeout(()=>this.tone(784, 0.14, 'sine', 0.3), 80); }
+  sfxHit()     { if (this.throttle('hit', 40)) this.noise(0.08, 0.18, 1800); }
+  sfxRecruit() { this.tone(880, 0.1, 'sine', 0.28); setTimeout(()=>this.tone(1175, 0.16, 'sine', 0.28), 90); }
+  sfxWin()     { [523,659,784,1047].forEach((f,i)=>setTimeout(()=>this.tone(f,0.18,'triangle',0.3),i*110)); }
+  sfxLose()    { [392,330,262].forEach((f,i)=>setTimeout(()=>this.tone(f,0.22,'sawtooth',0.22),i*130)); }
+  sfxDeath()   { if (this.throttle('death', 80)) this.tone(200, 0.2, 'sawtooth', 0.18, -120); }
+  sfxBattle()  { this.tone(330, 0.15, 'square', 0.2); setTimeout(()=>this.tone(247, 0.25, 'square', 0.2), 120); }
+  sfxAchieve() { [659,784,988,1319].forEach((f,i)=>setTimeout(()=>this.tone(f,0.16,'sine',0.32),i*90)); }
+  sfxThunder() { this.noise(0.6, 0.4, 600); }
+  sfxQuake()   { this.tone(60, 1.8, 'sawtooth', 0.35, 20); this.noise(1.8, 0.25, 300); }
+  sfxMeteor()  { this.tone(800, 1.0, 'sawtooth', 0.3, -700); }
+  sfxImpact()  { this.noise(1.5, 0.5, 400); this.tone(50, 1.2, 'sine', 0.4); }
+
+  // 부드러운 앰비언트 패드 (낮은 볼륨 지속음)
+  startAmbient() {
+    if (!this.ctx) return;
+    const makePad = (freq, vol) => {
+      const osc = this.ctx.createOscillator();
+      const g = this.ctx.createGain();
+      const lfo = this.ctx.createOscillator();
+      const lfoGain = this.ctx.createGain();
+      osc.type = 'sine'; osc.frequency.value = freq;
+      g.gain.value = vol;
+      lfo.frequency.value = 0.1; lfoGain.gain.value = vol * 0.5;
+      lfo.connect(lfoGain); lfoGain.connect(g.gain);
+      osc.connect(g); g.connect(this.masterGain);
+      osc.start(); lfo.start();
+    };
+    makePad(130.81, 0.04); // C3
+    makePad(196.00, 0.03); // G3
+  }
+}
+const Audio = new AudioManager();
+
+class ArenaScene extends Phaser.Scene {
+  constructor() {
+    super('ArenaScene');
+  }
+
+  create() {
+    this.cameras.main.setBounds(0, 0, WORLD_W, WORLD_H);
+    this.cameras.main.setZoom(0.45);
+    this.terrainGrid = this.generateTerrain();
+    this.drawTerrain();
+    this.foodSprites = [];
+    this.foods = [];
+    this.individualSprites = new Map();
+    this.shadowGraphics = this.add.graphics().setDepth(2); // 슬라임 바닥 그림자
+    this.hpGraphics = this.add.graphics().setDepth(5);
+    this.player = new Group(WORLD_W / 2, WORLD_H / 2, true, '나의 집단');
+    this.initGroup(this.player, START_INDIVIDUALS);
+    this.aiGroups = [];
+    for (const [index, point] of [[380,380],[4620,380],[380,4620],[4620,4620],[2500,280],[2500,4720],[800,2500],[4200,2500]].entries()) {
+      const ai = new Group(point[0], point[1], false, `AI-${index + 1}`);
+      this.initGroup(ai, 10 + Math.floor(Math.random() * 8));
+      this.aiGroups.push(ai);
+    }
+    this.groups = [this.player, ...this.aiGroups];
+    this.cameraTarget = this.add.rectangle(this.player.x, this.player.y, 1, 1, 0, 0);
+    this.cameras.main.startFollow(this.cameraTarget, true, 0.08, 0.08);
+    this.groupLayer = this.add.container(0, 0).setDepth(3);
+    this.rebuildIndividualSprites();
+    for (let i = 0; i < 200; i += 1) this.spawnFood();
+    this.battles = [];
+    this.elapsed = 0;
+    this.lastFoodAt = Date.now();
+    this.lastSurvivalAt = Date.now();
+    this.lastBattleCheckAt = Date.now();
+    this.lastTerrainEventAt = Date.now();
+    this.gameOver = false;
+    window._arenaScene = this; // 순위표 버튼에서 endScoreData 접근용
+    this.initialMutationFrequency = { ...this.player.mutationFrequency() };
+    // 도전과제 추적
+    this.achievements = new Set();
+    // 게임 중 획득한 돌연변이 추적
+    this.gainedMutationsThisGame = new Set();
+    // 지형별 이벤트 발생 횟수 추적
+    this.terrainEventCount = {};
+    // 대립유전자 빈도 시계열 + 이벤트 로그 (결과 그래프용)
+    this.alleleHistory = [];
+    this.eventLog = [];
+    this.lastAlleleSnapAt = 0;
+    this.recordAlleleSnapshot();
+    this.achieveData = {
+      hadNeardeath: false,   // 3마리 이하로 떨어진 적 있는지
+      volcanoWin: false,     // 화산지대에서 전쟁 승리
+      visitedTerrains: new Set(), // 방문한 지형 ID
+    };
+
+    // 날씨/낮밤 시스템
+    this.weather = WEATHERS.sunny;
+    this.lastWeatherAt = Date.now();
+    this.dayPhase = 'day';
+    this.fxParticles = []; // 떠다니는 분위기 파티클 (꽃잎/눈/비)
+
+    // 데미지 숫자 풀
+    this.floatTexts = [];
+
+    // 오디오 (사용자 제스처로 시작됨)
+    Audio.init(); Audio.resume();
+
+    // 낮밤 오버레이 (월드 위 반투명 레이어)
+    this.nightOverlay = this.add.rectangle(WORLD_W/2, WORLD_H/2, WORLD_W, WORLD_H, 0x1a2a4a, 0)
+      .setDepth(8).setScrollFactor(1);
+    this.weatherTint = this.add.rectangle(WORLD_W/2, WORLD_H/2, WORLD_W, WORLD_H, 0x000000, 0)
+      .setDepth(7).setScrollFactor(1);
+
+    this.setupJoystick();
+    this.setupKeyboard();
+    // 방향 전환 시 Phaser 카메라 뷰포트 자동 갱신
+    this.scale.on('resize', this._onSceneResize, this);
+    // pointerdown 사용: 멀티터치 중(조이스틱 유지) click 합성이 막혀도 즉시 동작
+    document.getElementById('breed-btn').addEventListener('pointerdown', e => { e.preventDefault(); this.handleBreed(); });
+    document.getElementById('flee-btn').addEventListener('pointerdown', e => { e.preventDefault(); this.handleFlee(); });
+    this.showMessage('🌱 슬라임 집단을 이끌고\n먹이를 모으세요!');
+    // 튜토리얼 자동 시작 (첫 게임)
+    if (!localStorage.getItem('gpa_tutorial_done')) {
+      setTimeout(() => Tutorial.start(this), 800);
+    }
+  }
+
+  generateTerrain() {
+    const W = Math.floor(WORLD_W / TILE);
+    const H = Math.floor(WORLD_H / TILE);
+
+    // 큰 바이옴 구역 (반경 확대, 더 넓고 뚜렷한 지형)
+    const zones = [
+      { cx:.14, cy:.14, r:.32, terrain: TERRAIN.forest  },  // 좌상 숲
+      { cx:.86, cy:.14, r:.28, terrain: TERRAIN.desert  },  // 우상 사막
+      { cx:.14, cy:.86, r:.28, terrain: TERRAIN.snow    },  // 좌하 눈밭
+      { cx:.86, cy:.86, r:.30, terrain: TERRAIN.forest  },  // 우하 숲
+      { cx:.5,  cy:.08, r:.18, terrain: TERRAIN.volcano },  // 상단 화산
+      { cx:.08, cy:.5,  r:.18, terrain: TERRAIN.swamp   },  // 좌측 늪
+      { cx:.92, cy:.5,  r:.16, terrain: TERRAIN.desert  },  // 우측 사막
+      { cx:.5,  cy:.5,  r:.36, terrain: TERRAIN.plain   },  // 중앙 초원
+    ];
+
+    // 강 경로: 구불구불 흐르는 강 (상단→하단, 살짝 우측 편향)
+    const riverPath = [];
+    let rx = 0.62 + (Math.random() - 0.5) * 0.1;
+    for (let step = 0; step <= H; step++) {
+      riverPath.push(rx);
+      rx += (Math.random() - 0.46) * 0.055; // 약간 우측 편향
+      rx = clamp(rx, 0.30, 0.88);
+    }
+    const RIVER_W = 0.075; // 강 너비 (비율)
+
+    const grid = [];
+    for (let y = 0; y < H; y++) {
+      grid[y] = [];
+      for (let x = 0; x < W; x++) {
+        const nx = x / W, ny = y / H;
+
+        // 강 우선 판정 (구불구불 경로)
+        const pathX = riverPath[y];
+        const distToRiver = Math.abs(nx - pathX);
+        // 강 양쪽은 강가 지형
+        if (distToRiver < RIVER_W * 0.5) {
+          grid[y][x] = TERRAIN.river; continue;
+        }
+        if (distToRiver < RIVER_W * 1.4) {
+          grid[y][x] = TERRAIN.plain; continue; // 강가
+        }
+
+        // 바이옴 구역 판정
+        let picked = TERRAIN.plain, score = 0.12;
+        for (const z of zones) {
+          const s = 1 - Math.hypot(nx - z.cx, ny - z.cy) / z.r;
+          if (s > score) { score = s; picked = z.terrain; }
+        }
+
+        // 극소수 노이즈 (0.3%)
+        if (Math.random() < 0.003) picked = choose(TERRAIN_LIST);
+        grid[y][x] = picked;
+      }
+    }
+    return grid;
+  }
+
+  // 색을 흰색 쪽으로 f(0~1) 만큼 보간
+  _lighten(c, f) {
+    const r = ((c >> 16) & 0xFF), gg = ((c >> 8) & 0xFF), b = (c & 0xFF);
+    return (Math.floor(r + (255 - r) * f) << 16)
+         | (Math.floor(gg + (255 - gg) * f) << 8)
+         |  Math.floor(b + (255 - b) * f);
+  }
+
+  drawTerrain() {
+    const rows = this.terrainGrid.length;
+    const cols = this.terrainGrid[0]?.length || 0;
+    const g = this.add.graphics().setDepth(0);
+
+    // Pass 1: 타일 단위 은은한 색 변주 — 대비를 크게 줄여 자연스럽게
+    //  대부분 기본색, 가끔 아주 살짝 밝거나 어두운 패치 (색상별 그룹핑으로 배치 유지)
+    const byColor = new Map();
+    const push = (c, px, py, w, h) => {
+      if (!byColor.has(c)) byColor.set(c, []);
+      byColor.get(c).push([px, py, w, h]);
+    };
+    for (let y = 0; y < rows; y++) {
+      for (let x = 0; x < cols; x++) {
+        const t = this.terrainGrid[y][x];
+        const lt = this._lighten(t.color, 0.06);   // 아주 살짝 밝게
+        const dk = this._lighten(t.color, -0.05);  // 아주 살짝 어둡게
+        // 기본색 비중을 높여 거의 균일하게, 가끔만 변주
+        const tones = [t.color, t.color, t.color, lt, t.color, dk];
+        const seed = ((x * 73856093) ^ (y * 19349663)) >>> 0;
+        const pick = tones[(seed >>> 4) % tones.length];
+        push(pick, x * TILE, y * TILE, TILE, TILE);
+      }
+    }
+    for (const [color, rects] of byColor) {
+      g.fillStyle(color, 1);
+      for (const [px, py, w, h] of rects) g.fillRect(px, py, w, h);
+    }
+
+    // Pass 2: 지형 디테일 — 해시 기반 난수로 무작위 배치 (정렬 패턴 제거)
+    const rng = (x, y, salt) => {
+      let h = ((x + 1) * 374761393 + (y + 1) * 668265263 + salt * 2246822519) >>> 0;
+      h = Math.imul(h ^ (h >>> 15), 2246822519) >>> 0;
+      h = Math.imul(h ^ (h >>> 13), 3266489917) >>> 0;
+      return ((h ^ (h >>> 16)) >>> 0) / 4294967296; // 0..1
+    };
+    // ── 자연물: 한 번만 텍스처로 굽고 정적 스프라이트로 배치 ──
+    //  (매 프레임 수백 개 원·삼각형을 다시 그리지 않음 → 부드럽게 동작)
+    this.buildNatureTextures();
+    const oy = this._natureOriginY;
+    const place = (key, cx, cy) => this.add.image(cx, cy, key).setOrigin(0.5, oy).setDepth(1);
+    const density = { forest:0.13, swamp:0.10, plain:0.11, river:0.06, volcano:0.09, desert:0.08, snow:0.07 };
+    for (let y = 0; y < rows; y++) {
+      for (let x = 0; x < cols; x++) {
+        const t = this.terrainGrid[y][x];
+        if (rng(x, y, 1) > (density[t.id] ?? 0.10)) continue;
+        const px = x * TILE, py = y * TILE;
+        const cx = px + 20 + Math.floor(rng(x, y, 2) * (TILE - 40));
+        const cy = py + 24 + Math.floor(rng(x, y, 3) * (TILE - 44));
+        const v = rng(x, y, 4);   // 종류 선택용
+        const r = rng(x, y, 5);   // 색·변형용
+        let key;
+        switch (t.id) {
+          case 'forest':  key = r < 0.45 ? 'nat_tree_autumn' : 'nat_tree_green'; break;
+          case 'desert':  key = v < 0.7 ? 'nat_cactus' : 'nat_rock'; break;
+          case 'volcano': key = v < 0.6 ? 'nat_lava' : 'nat_rock'; break;
+          case 'snow':    key = v < 0.7 ? 'nat_snow' : 'nat_rock'; break;
+          case 'river':   key = v < 0.5 ? 'nat_lily' : 'nat_reed'; break;
+          case 'swamp':   key = v < 0.6 ? 'nat_reed' : 'nat_grass'; break;
+          case 'plain':
+          default:
+            if (v < 0.66)      key = 'nat_grass';
+            else if (v < 0.80) key = 'nat_flower' + (Math.floor(r * 4) % 4);
+            else if (v < 0.92) key = r < 0.45 ? 'nat_tree_autumn' : 'nat_tree_green';
+            else               key = 'nat_rock';
+            break;
+        }
+        place(key, cx, cy);
+      }
+    }
+
+    // Pass 3: 부드러운 바이옴 경계 (검은 선 → 어두운 반투명 얇은 선)
+    g.fillStyle(0x2a2018, 0.18);
+    for (let y = 0; y < rows; y++) {
+      for (let x = 0; x < cols; x++) {
+        const id = this.terrainGrid[y][x].id;
+        if (this.terrainGrid[y]?.[x+1]?.id !== id) g.fillRect((x+1)*TILE-1, y*TILE, 2, TILE);
+        if (this.terrainGrid[y+1]?.[x]?.id !== id)  g.fillRect(x*TILE, (y+1)*TILE-1, TILE, 2);
+      }
+    }
+  }
+
+  // 자연물 텍스처를 한 번만 굽는다 (원점 기준으로 그린 뒤 2.2배 확대해 베이크)
+  buildNatureTextures() {
+    if (this._natureBuilt) return;
+    this._natureBuilt = true;
+    const W = 160, H = 180, CX = 80, CY = 110, S = 2.2;
+    this._natureOriginY = CY / H;
+    const bake = (key, draw) => {
+      if (this.textures.exists(key)) return;
+      const g = this.make.graphics({ add: false });
+      g.save(); g.translateCanvas(CX, CY); g.scaleCanvas(S, S);
+      draw(g);
+      g.restore();
+      g.generateTexture(key, W, H);
+      g.destroy();
+    };
+    const shadow = (g, cx, cy, w, h) => { g.fillStyle(0x000000, 0.12); g.fillEllipse(cx, cy, w, h); };
+
+    // 나무 (3겹 음영: 어두움→중간→하이라이트)
+    const tree = (g, pal) => {
+      shadow(g, 0, 16, 32, 11);
+      g.fillStyle(0x5a3c22, 1); g.fillRect(-3, 2, 6, 16);          // 줄기
+      g.fillStyle(0x7a5230, 1); g.fillRect(-3, 2, 3, 16);          // 줄기 밝음
+      g.fillStyle(pal.d, 1);
+      g.fillCircle(-10, -2, 12); g.fillCircle(10, -2, 12); g.fillCircle(0, -12, 13);
+      g.fillStyle(pal.m, 1);
+      g.fillCircle(-8, -4, 9); g.fillCircle(8, -4, 9); g.fillCircle(0, -13, 10);
+      g.fillStyle(pal.l, 1);
+      g.fillCircle(-4, -13, 5); g.fillCircle(4, -9, 4);
+    };
+    bake('nat_tree_green',  g => tree(g, { d: 0x276b27, m: 0x3d8c3d, l: 0x6cc154 }));
+    bake('nat_tree_autumn', g => tree(g, { d: 0xb5572f, m: 0xe28a3c, l: 0xf6bd63 }));
+
+    // 풀 다발
+    bake('nat_grass', g => {
+      g.fillStyle(0x3a7a2c, 1);
+      g.fillTriangle(-7, 6, -5, -6, -3, 6);
+      g.fillTriangle(2, 6, 5, -4, 8, 6);
+      g.fillStyle(0x68b945, 1);
+      g.fillTriangle(-2, 6, 0, -9, 2, 6);
+    });
+
+    // 선인장
+    bake('nat_cactus', g => {
+      shadow(g, 0, 13, 20, 7);
+      g.fillStyle(0x2f7d3a, 1);
+      g.fillRoundedRect(-5, -14, 10, 28, 4);
+      g.fillRoundedRect(-12, -5, 7, 6, 3); g.fillRect(-12, -3, 5, 11);
+      g.fillRoundedRect(5, -10, 7, 6, 3); g.fillRect(7, -10, 5, 14);
+      g.fillStyle(0x53a657, 1); g.fillRect(-3, -11, 3, 22);
+    });
+
+    // 바위
+    bake('nat_rock', g => {
+      shadow(g, 0, 8, 24, 8);
+      g.fillStyle(0x82828c, 1); g.fillCircle(-5, 0, 8); g.fillCircle(6, 1, 7);
+      g.fillStyle(0xb2b2bc, 1); g.fillCircle(-5, -3, 4); g.fillCircle(6, -2, 3);
+    });
+
+    // 눈더미
+    bake('nat_snow', g => {
+      shadow(g, 0, 7, 22, 7);
+      g.fillStyle(0xdce8f5, 1); g.fillCircle(-5, 0, 8); g.fillCircle(6, 1, 7);
+      g.fillStyle(0xffffff, 1); g.fillCircle(-5, -3, 4); g.fillCircle(6, -2, 3);
+    });
+
+    // 용암 바위
+    bake('nat_lava', g => {
+      shadow(g, 0, 8, 22, 7);
+      g.fillStyle(0x4a3026, 1); g.fillCircle(-4, 0, 8); g.fillCircle(6, 1, 6);
+      g.fillStyle(0x6b4636, 1); g.fillCircle(-4, -2, 4);
+      g.fillStyle(0xff6a1a, 1); g.fillRect(-3, -1, 10, 3); g.fillRect(2, -5, 3, 9);
+      g.fillStyle(0xffd23f, 1); g.fillRect(-1, 0, 5, 1.5);
+    });
+
+    // 갈대
+    bake('nat_reed', g => {
+      g.fillStyle(0x2f7d3a, 1);
+      g.fillRect(-1, -14, 2, 18); g.fillRect(-5, -9, 2, 13); g.fillRect(4, -10, 2, 14);
+      g.fillStyle(0x8a5a2a, 1);
+      g.fillEllipse(0, -14, 4, 7); g.fillEllipse(5, -10, 4, 7);
+    });
+
+    // 수련잎
+    bake('nat_lily', g => {
+      g.fillStyle(0x2f8f4f, 1); g.fillCircle(0, 0, 8);
+      g.fillStyle(0x6fb8d8, 1); g.fillTriangle(0, 0, 9, -5, 9, 5);
+      g.fillStyle(0x49a96a, 1); g.fillCircle(-2, -2, 3);
+      g.fillStyle(0xff8fb0, 1); g.fillCircle(0, 0, 2.6);
+      g.fillStyle(0xffd6e4, 1); g.fillCircle(0, 0, 1.2);
+    });
+
+    // 꽃 4색
+    const fcols = [0xff6f91, 0xffd23f, 0xff9f4d, 0xe07bff];
+    fcols.forEach((c, i) => bake('nat_flower' + i, g => {
+      g.fillStyle(0x3a7a2c, 1); g.fillRect(-1, 0, 2, 7);
+      g.fillStyle(c, 1);
+      g.fillCircle(-3, -2, 2.5); g.fillCircle(3, -2, 2.5);
+      g.fillCircle(0, -5, 2.5); g.fillCircle(0, 1, 2.5);
+      g.fillStyle(0xfff3b0, 1); g.fillCircle(0, -2, 1.8);
+    }));
+  }
+
+  terrainAt(x, y) {
+    const tileX = clamp(Math.floor(x / TILE), 0, this.terrainGrid[0].length - 1);
+    const tileY = clamp(Math.floor(y / TILE), 0, this.terrainGrid.length - 1);
+    return this.terrainGrid[tileY][tileX];
+  }
+
+  initGroup(group, count) {
+    // AI 집단: 랜덤 특성 1~2개 초기 보유 (집단마다 다른 전략)
+    const aiBias = group.isPlayer ? [] :
+      [choose(MUTATIONS).id, Math.random() < 0.5 ? choose(MUTATIONS).id : null].filter(Boolean);
+
+    // 균등 유전자 배분: 각 유전자마다 우성·열성이 집단 전체에서 정확히 50%씩
+    // 동형접합(RR/BB) + 이형접합(RB) 조합이 고르게 분포되도록 배정
+    const shuffle = arr => {
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    };
+    const makeBalancedPool = (def, n) => {
+      const half = Math.floor(n / 2);
+      const pool = [
+        ...Array(half).fill(def.dominant),
+        ...Array(n - half).fill(def.recessive)
+      ];
+      return shuffle(pool);
+    };
+
+    // 각 유전자별로 두 개의 균등 배분 풀 생성 (첫 번째·두 번째 유전자 슬롯용)
+    const balancedGenes = {};
+    for (const [name, def] of Object.entries(GENES)) {
+      const pool1 = makeBalancedPool(def, count);
+      const pool2 = makeBalancedPool(def, count);
+      balancedGenes[name] = pool1.map((a, i) => combineAlleles(name, a, pool2[i]));
+    }
+
+    for (let i = 0; i < count; i += 1) {
+      const angle = i / count * Math.PI * 2;
+      const startMuts = group.isPlayer ? [] : aiBias.filter(() => Math.random() < 0.40);
+
+      // 플레이어·AI 모두 균등 유전자 사용 (더 공평한 시작 조건)
+      const genes = Object.fromEntries(
+        Object.keys(GENES).map(name => [name, balancedGenes[name][i]])
+      );
+
+      group.individuals.push(new Individual(
+        group.id,
+        group.x + Math.cos(angle) * 44,
+        group.y + Math.sin(angle) * 44,
+        genes, startMuts
+      ));
+    }
+  }
+
+  // 픽셀아트 슬라임: 넓적한 돔형, 흰 눈 + 동공, 혀, 하이라이트
+  createCreatureTexture(bodyColor) {
+    const key = `creature_${bodyColor}`;
+    if (this.textures.exists(key)) return key;
+    const g = this.make.graphics({ add: false });
+    const S = 4; // screen pixels per grid cell
+
+    // 팔레트: 몸 색 기반 파생
+    const c = bodyColor;
+    const ri = (c >> 16) & 0xFF, gi = (c >> 8) & 0xFF, bi = c & 0xFF;
+    const dark  = (Math.floor(ri*.45)<<16)|(Math.floor(gi*.45)<<8)|Math.floor(bi*.45);
+    const light = (Math.min(255,Math.floor(ri*1.55))<<16)|(Math.min(255,Math.floor(gi*1.55))<<8)|Math.min(255,Math.floor(bi*1.55));
+
+    // 16 col × 10 row 픽셀 그리드 (null = 투명)
+    const _ = null, D = dark, L = light, H = 0xffffff;
+    const E = 0xffffff, PL = 0x111111, M = 0x111111, T = 0xff88aa;
+
+    const grid = [
+      [_,_,_,D,D,D,D,D,D,D,D,D,_,_,_,_],  // 0 top arch
+      [_,_,D,L,L,L,L,L,L,L,L,L,D,_,_,_],  // 1
+      [_,D,L,H,H,L,L,L,L,L,L,L,L,D,_,_],  // 2 highlight
+      [D,L,L,H,L,L,L,L,L,L,L,L,L,L,D,_],  // 3
+      [D,L,L,L,E,E,L,L,L,E,E,L,L,L,D,_],  // 4 eyes white
+      [D,L,L,L,E,PL,L,L,L,E,PL,L,L,L,D,_], // 5 pupils
+      [D,L,L,L,E,E,L,L,L,E,E,L,L,L,D,_],  // 6 eyes base
+      [D,L,L,L,L,M,M,L,M,M,L,L,L,L,D,_],  // 7 mouth corners
+      [_,D,L,L,L,L,T,T,T,L,L,L,L,D,_,_],  // 8 tongue
+      [_,_,D,D,D,D,D,D,D,D,D,D,D,_,_,_],  // 9 flat bottom
+    ];
+
+    for (let row = 0; row < grid.length; row++) {
+      for (let col = 0; col < grid[row].length; col++) {
+        const cl = grid[row][col];
+        if (cl === null) continue;
+        g.fillStyle(cl, 1);
+        g.fillRect(col * S, row * S, S, S);
+      }
+    }
+    g.generateTexture(key, 16 * S, 10 * S); // 64×40
+    g.destroy();
+    return key;
+  }
+
+  rebuildIndividualSprites() {
+    this.groupLayer.removeAll(true);
+    this.individualSprites.clear();
+    for (const group of this.groups) {
+      for (const individual of group.individuals) this.addIndividualSprite(individual, group);
+    }
+  }
+
+  addIndividualSprite(individual, group) {
+    if (this.individualSprites.has(individual.id)) return;
+    const key = this.createCreatureTexture(getBodyColor(individual));
+    const baseScale = clamp(0.55 + individual.stats.hp / 100 * 0.40, 0.60, 1.55);
+    const sprite = this.add.image(individual.x, individual.y, key).setScale(baseScale);
+    this.groupLayer.add(sprite);
+    // 개체별 고유 위상 → 통통 튀는 타이밍이 제각각이라 자연스러움
+    const idStr = String(individual.id);
+    let h = 0; for (let i = 0; i < idStr.length; i++) h = (h * 31 + idStr.charCodeAt(i)) & 0xffff;
+    const phase = (h / 0xffff) * Math.PI * 2;
+    this.individualSprites.set(individual.id, { sprite, groupId: group.id, baseScale, phase });
+  }
+
+  ensureSprites(group) {
+    for (const individual of group.individuals) this.addIndividualSprite(individual, group);
+  }
+
+  // 먹이 = 노란 사과 텍스처 (한 번만 생성, 모든 먹이가 공유 → 배치 렌더)
+  createFoodTexture() {
+    const key = 'food_apple';
+    if (this.textures.exists(key)) return key;
+    const g = this.make.graphics({ add: false });
+    g.fillStyle(0x000000, 0.16); g.fillEllipse(12, 21, 16, 5);   // 바닥 그림자
+    g.fillStyle(0xcf9a1c, 1);   g.fillCircle(8, 13, 7); g.fillCircle(16, 13, 7);  // 외곽(어두움)
+    g.fillStyle(0xf6cb38, 1);   g.fillCircle(8, 12, 6); g.fillCircle(16, 12, 6);  // 사과 두 볼(노랑)
+    g.fillStyle(0xf6cb38, 1);   g.fillRect(8, 7, 8, 11);                          // 가운데 메움
+    g.fillStyle(0xfde07a, 1);   g.fillEllipse(9, 9, 6, 6);       // 상단 광택
+    g.fillStyle(0xffffff, 0.9); g.fillCircle(8, 8, 2);           // 하이라이트
+    g.fillStyle(0x6b3f1f, 1);   g.fillRect(11, 3, 2, 5);         // 꼭지
+    g.fillStyle(0x2f7d2f, 1);   g.fillEllipse(16, 5, 9, 5);      // 잎(어두움)
+    g.fillStyle(0x57b347, 1);   g.fillEllipse(16, 4, 7, 4);      // 잎(밝음)
+    g.generateTexture(key, 24, 24);
+    g.destroy();
+    return key;
+  }
+
+  spawnFood() {
+    let x;
+    let y;
+    let terrain;
+    do {
+      x = 70 + Math.random() * (WORLD_W - 140);
+      y = 70 + Math.random() * (WORLD_H - 140);
+      terrain = this.terrainAt(x, y);
+    } while (terrain.id === 'river');
+    const amount = Math.floor((18 + Math.random() * 18) * terrain.food);
+    const key = this.createFoodTexture();
+    const scale = clamp(0.62 + amount / 46, 0.62, 1.25);
+    const sprite = this.add.image(x, y, key).setDepth(1).setScale(scale);
+    this.foods.push({ x, y, amount, sprite });
+  }
+
+  getPointerClientPosition(pointer) {
+    const event = pointer.event;
+    const touch = event?.changedTouches?.[0] || event?.touches?.[0];
+    return {
+      x: touch?.clientX ?? event?.clientX ?? pointer.x,
+      y: touch?.clientY ?? event?.clientY ?? pointer.y
+    };
+  }
+
+  setupJoystick() {
+    this.input.addPointer(2); // 멀티터치: 조이스틱 + 버튼 동시 입력 허용
+    this.joystick = {
+      active: false,
+      pointerId: null,
+      baseX: 94,
+      baseY: this.scale.height - 132,
+      knobX: 0,
+      knobY: 0,
+      radius: 56,
+      dirX: 0,
+      dirY: 0
+    };
+    this.input.on('pointerdown', pointer => {
+      const event = pointer.event;
+      if (_paused) return;
+      if (event && event.target && event.target.closest && event.target.closest('#hud button, #bottom-bar, #stats, #top-left, #terrain-badge')) return;
+      const { x: clientX, y: clientY } = this.getPointerClientPosition(pointer);
+      Object.assign(this.joystick, { active: true, pointerId: pointer.id, baseX: clientX, baseY: clientY, knobX: 0, knobY: 0, dirX: 0, dirY: 0 });
+      this.updateJoystickDom();
+    });
+    this.input.on('pointermove', pointer => {
+      if (!this.joystick.active || pointer.id !== this.joystick.pointerId) return;
+      const { x: clientX, y: clientY } = this.getPointerClientPosition(pointer);
+      const dx = clientX - this.joystick.baseX;
+      const dy = clientY - this.joystick.baseY;
+      const distance = Math.hypot(dx, dy) || 1;
+      const factor = Math.min(1, this.joystick.radius / distance);
+      this.joystick.knobX = dx * factor;
+      this.joystick.knobY = dy * factor;
+      this.joystick.dirX = this.joystick.knobX / this.joystick.radius;
+      this.joystick.dirY = this.joystick.knobY / this.joystick.radius;
+      this.updateJoystickDom();
+    });
+    this.input.on('pointerup', pointer => {
+      if (pointer.id !== this.joystick.pointerId) return;
+      Object.assign(this.joystick, { active: false, pointerId: null, knobX: 0, knobY: 0, dirX: 0, dirY: 0 });
+      this.hideJoystickDom();
+    });
+  }
+
+  updateJoystickDom() {
+    const joy = this.joystick;
+    const root = document.getElementById('joystick-dom');
+    const knob = document.getElementById('joystick-knob');
+    root.style.display = 'block';
+    root.style.left = `${joy.baseX}px`;
+    root.style.top = `${joy.baseY}px`;
+    knob.style.left = `${56 + joy.knobX}px`;
+    knob.style.top = `${56 + joy.knobY}px`;
+  }
+
+  hideJoystickDom() {
+    document.getElementById('joystick-dom').style.display = 'none';
+  }
+
+  // 방향 전환 / 리사이즈 시 Phaser 씬 내부 정리
+  _onSceneResize(gameSize) {
+    // 카메라는 자동으로 새 뷰포트에 맞게 갱신됨
+    // 활성 조이스틱만 취소
+    if (this.joystick?.active) {
+      Object.assign(this.joystick, { active: false, pointerId: null, knobX: 0, knobY: 0, dirX: 0, dirY: 0 });
+      this.hideJoystickDom();
+    }
+  }
+
+  setupKeyboard() {
+    // Keyboard input for desktop testing: WASD controls the same group center as the virtual joystick.
+    this.keys = this.input.keyboard.addKeys({
+      up: Phaser.Input.Keyboard.KeyCodes.W,
+      left: Phaser.Input.Keyboard.KeyCodes.A,
+      down: Phaser.Input.Keyboard.KeyCodes.S,
+      right: Phaser.Input.Keyboard.KeyCodes.D
+    });
+  }
+
+  update(_time, dt) {
+    if (this.gameOver || this.meteorActive) return;
+    this.elapsed += dt;
+    const now = Date.now();
+    // 대립유전자 빈도 시계열 스냅샷 (1.5초마다)
+    if (this.elapsed - this.lastAlleleSnapAt >= 1500) {
+      this.lastAlleleSnapAt = this.elapsed;
+      this.recordAlleleSnapshot();
+    }
+    // 운석 멸종 이벤트
+    if (this.elapsed >= METEOR_WARN_TIME && !this.meteorWarned) {
+      this.meteorWarned = true;
+      this.startMeteorWarning();
+    }
+    if (this.elapsed >= METEOR_TIME && !this.meteorActive) {
+      return this.triggerMeteor();
+    }
+    if (!this.player.individuals.length) return this.endGame();
+    this.movePlayer(dt);
+    for (const ai of this.aiGroups) ai.aiTick(dt);
+    this.moveIndividuals(dt);
+    this.syncSprites();
+    this.drawHealthBars();
+    this.collectFood();
+    this.applyTerrainDamage(dt);
+    if (now - this.lastFoodAt >= FOOD_INTERVAL) {
+      this.lastFoodAt = now;
+      if (this.foods.length < 350) for (let i = 0; i < 15; i += 1) this.spawnFood();
+    }
+    if (now - this.lastSurvivalAt >= SURVIVAL_INTERVAL) {
+      this.lastSurvivalAt = now;
+      this.survivalTick();
+    }
+    if (now - this.lastBattleCheckAt >= 550) {
+      this.lastBattleCheckAt = now;
+      this.checkBattles();
+    }
+    if (now - this.lastTerrainEventAt >= TERRAIN_EVENT_INTERVAL) {
+      this.lastTerrainEventAt = now;
+      this.terrainEventTick();
+    }
+    if (now - this.lastWeatherAt >= WEATHER_INTERVAL) {
+      this.lastWeatherAt = now;
+      this.changeWeather();
+    }
+    this.updateDayNight();
+    this.updateFloatTexts(dt);
+    for (const battle of this.battles) battle.tick();
+    const ended = this.battles.filter(battle => !battle.active);
+    for (const battle of ended) this.handleBattleEnd(battle);
+    this.battles = this.battles.filter(battle => battle.active);
+    this.aiGroups = this.aiGroups.filter(group => group.individuals.length > 0);
+    this.groups = [this.player, ...this.aiGroups];
+    if (this.aiGroups.length < 7) this.spawnAIGroup();
+    this.cameraTarget.x = this.player.x;
+    this.cameraTarget.y = this.player.y;
+    this.drawJoystick();
+    this.updateHud();
+  }
+
+  movePlayer(dt) {
+    if (this.player.state !== 'normal') return;
+    const terrain = this.terrainAt(this.player.x, this.player.y);
+    const geneSpd = this.calcGeneTerrainSpeedBonus(this.player, terrain);
+    const weatherSpd = this.weather ? this.weather.spdMult : 1;
+    const speed = (this.player.average('speed') / 80) * 165 * (dt / 1000) * terrain.speed * geneSpd * weatherSpd;
+    const keyX = (this.keys.right.isDown ? 1 : 0) - (this.keys.left.isDown ? 1 : 0);
+    const keyY = (this.keys.down.isDown ? 1 : 0) - (this.keys.up.isDown ? 1 : 0);
+    let dirX = this.joystick.dirX + keyX;
+    let dirY = this.joystick.dirY + keyY;
+    const length = Math.hypot(dirX, dirY);
+    if (length > 1) {
+      dirX /= length;
+      dirY /= length;
+    }
+    this.player.x = clamp(this.player.x + dirX * speed, 54, WORLD_W - 54);
+    this.player.y = clamp(this.player.y + dirY * speed, 54, WORLD_H - 54);
+  }
+
+  moveIndividuals(dt) {
+    const baseSpeed = 170 * (dt / 1000);
+    for (const group of this.groups) {
+      const battle = group.state === 'battle' ? this.battles.find(item => item.id === group.battleId) : null;
+      for (const individual of group.individuals) {
+        if (individual.dead) continue;
+        if (battle && battle.active) {
+          const foes = (battle.groupA === group ? battle.groupB.individuals : battle.groupA.individuals).filter(foe => !foe.dead);
+          const target = nearest(individual, foes);
+          if (!target) continue;
+          const dx = target.x - individual.x;
+          const dy = target.y - individual.y;
+          const distance = Math.hypot(dx, dy) || 1;
+          if (distance > 26) {
+            const step = Math.min(distance, (individual.stats.speed / 80) * baseSpeed);
+            individual.x += dx / distance * step;
+            individual.y += dy / distance * step;
+          }
+        } else {
+          const targetX = group.x + individual.offsetX;
+          const targetY = group.y + individual.offsetY;
+          const dx = targetX - individual.x;
+          const dy = targetY - individual.y;
+          const distance = Math.hypot(dx, dy) || 1;
+          if (distance > 5) {
+            const step = Math.min(distance, (individual.stats.speed / 80) * baseSpeed * 1.35);
+            individual.x += dx / distance * step;
+            individual.y += dy / distance * step;
+          }
+          if (Math.random() < .01) {
+            individual.offsetX = (Math.random() - .5) * FOLLOW_RADIUS * 2;
+            individual.offsetY = (Math.random() - .5) * FOLLOW_RADIUS * 2;
+          }
+        }
+      }
+    }
+  }
+
+  syncSprites() {
+    const live = new Set();
+    const t = (this.elapsed || 0) / 1000;
+    const sg = this.shadowGraphics;
+    if (sg) { sg.clear(); sg.fillStyle(0x000000, 0.24); }
+    for (const group of this.groups) {
+      for (const individual of group.individuals) {
+        live.add(individual.id);
+        if (!this.individualSprites.has(individual.id)) this.addIndividualSprite(individual, group);
+        const entry = this.individualSprites.get(individual.id);
+        const bs = entry.baseScale;
+        // 통통 튀는 젤리: 위로 살짝 호핑 + 사인파 스쿼시(가로↔세로)
+        const s = Math.sin(t * 4.2 + entry.phase);
+        const hop = Math.max(0, s);                 // 위로 솟는 구간만
+        entry.sprite.x = individual.x;
+        entry.sprite.y = individual.y - hop * 4 * bs;
+        entry.sprite.scaleX = bs * (1 - 0.08 * s);
+        entry.sprite.scaleY = bs * (1 + 0.08 * s);
+        // 바닥 그림자(발밑 고정) — 점프할수록 작아져 입체감
+        if (sg) sg.fillEllipse(individual.x, individual.y + 20 * bs, (30 - hop * 7) * bs, (11 - hop * 3) * bs);
+      }
+    }
+    for (const [id, entry] of this.individualSprites.entries()) {
+      if (!live.has(id)) {
+        entry.sprite.destroy();
+        this.individualSprites.delete(id);
+      }
+    }
+  }
+
+  drawHealthBars() {
+    this.hpGraphics.clear();
+    for (const group of this.groups) {
+      for (const individual of group.individuals) {
+        const ratio = individual.hp / individual.stats.hp;
+        if (group.state !== 'battle' && ratio > .82) continue;
+        this.hpGraphics.fillStyle(0x0f172a, .85);
+        this.hpGraphics.fillRect(individual.x - 10, individual.y - 22, 20, 4);
+        this.hpGraphics.fillStyle(ratio > .5 ? 0x22c55e : 0xef4444, 1);
+        this.hpGraphics.fillRect(individual.x - 10, individual.y - 22, 20 * ratio, 4);
+      }
+    }
+  }
+
+  collectFood() {
+    const weatherFood = this.weather ? this.weather.foodMult : 1;
+    for (const group of this.groups) {
+      if (group.state === 'battle' || !group.individuals.length) continue;
+      const terrain = this.terrainAt(group.x, group.y);
+      const gatherBonus = Math.max(0.2, 1 + (group.average('gather') - 5) * 0.1);
+      const geneMult = this.calcGeneTerrainFoodBonus(group, terrain);
+      for (let index = this.foods.length - 1; index >= 0; index -= 1) {
+        const food = this.foods[index];
+        if (Phaser.Math.Distance.Between(group.x, group.y, food.x, food.y) > COLLECT_RADIUS) continue;
+        const gain = Math.max(1, Math.floor(food.amount * gatherBonus * terrain.food * geneMult * weatherFood));
+        group.food = Math.min(FOOD_CAP, group.food + gain);
+        // 플레이어 채집 연출
+        if (group.isPlayer) {
+          Audio.sfxCollect();
+          this.spawnFloatText(food.x, food.y - 8, `+${gain}`, '#4e9a4a', 16);
+          this.burst(food.x, food.y, 0x7cc674, 5, 30);
+        }
+        food.sprite.destroy();
+        this.foods.splice(index, 1);
+      }
+    }
+  }
+
+  // 자연선택: 지형에 맞는 유전자 보유 비율에 따라 채집량 최대 +35% 보너스
+  calcGeneTerrainFoodBonus(group, terrain) {
+    if (!group.individuals.length) return 1;
+    const n = group.individuals.length;
+    const ratio = (pred) => group.individuals.filter(pred).length / n;
+    switch (terrain.id) {
+      case 'volcano': return 1 + ratio(i => getGenotypeLabel(i, 'color') === 'RR') * 0.35;
+      case 'desert':  return 1 + ratio(i => getGenotypeLabel(i, 'color') === 'BB') * 0.35;
+      case 'forest':  return 1 + ratio(i => i.hasDominant('charm')) * 0.15
+                               + ratio(i => i.hasDominant('speed')) * 0.10; // 빠른 채집
+      case 'snow':    return 1 + ratio(i => i.hasDominant('armor')) * 0.20;
+      case 'swamp':   return 1 + ratio(i => i.hasDominant('poison')) * 0.30;
+      default:        return 1;
+    }
+  }
+
+  // 자연선택: 사막-BB, 눈밭-갑옷 이동 속도 보너스
+  calcGeneTerrainSpeedBonus(group, terrain) {
+    if (!group.individuals.length) return 1;
+    const n = group.individuals.length;
+    const ratio = (pred) => group.individuals.filter(pred).length / n;
+    switch (terrain.id) {
+      case 'desert': return 1 + ratio(i => getGenotypeLabel(i, 'color') === 'BB') * 0.20;
+      case 'snow':   return 1 - ratio(i => !i.hasDominant('armor')) * 0.10;
+      case 'swamp':  return 1 + ratio(i => i.hasDominant('speed')) * 0.15;
+      default:       return 1;
+    }
+  }
+
+  applyTerrainDamage(dt) {
+    if (Math.random() > 0.25 * (dt / 1000)) return;
+    for (const group of this.groups) {
+      const terrain = this.terrainAt(group.x, group.y);
+      if (!terrain.damage || !group.individuals.length) continue;
+      const target = choose(group.individuals);
+      let dmg = terrain.damage;
+      // 자연선택: 유리한 형질이 지형 피해 감소
+      if (terrain.id === 'swamp' && target.hasDominant('poison')) dmg = Math.ceil(dmg * 0.25); // 독성 저항
+      if (terrain.id === 'volcano' && getGenotypeLabel(target, 'color') === 'RR') dmg = Math.ceil(dmg * 0.40); // 붉은 몸 화산 저항
+      if (terrain.id === 'snow' && target.hasDominant('armor')) dmg = Math.ceil(dmg * 0.50); // 갑옷 눈밭 보호
+      target.hp -= dmg;
+      if (target.hp <= 0) target.dead = true;
+      group.individuals = group.individuals.filter(individual => !individual.dead);
+    }
+  }
+
+  survivalTick() {
+    for (const group of this.groups) {
+      if (!group.individuals.length) continue;
+      const result = group.survivalTick();
+      if (group.isPlayer) {
+        if (result.consumed > 0) {
+          this.spawnHudFloat('b-food', `-${Math.round(result.consumed)}🍓`, '#d97030');
+        }
+        if (result.deaths > 0) {
+          Audio.sfxDeath();
+          this.showMessage(`💀 굶주림으로 ${result.deaths}마리가 죽었습니다.`);
+        }
+      }
+    }
+    for (const ai of this.aiGroups) {
+      if (ai.canBreed() && Math.random() < 0.48) {
+        ai.breed();
+        this.ensureSprites(ai);
+      }
+    }
+    // 현재 플레이어 집단에 있는 모든 돌연변이를 획득 목록에 누적
+    for (const ind of this.player.individuals) {
+      for (const mutId of ind.mutations) this.gainedMutationsThisGame.add(mutId);
+    }
+    this.checkAchievements();
+  }
+
+  checkAchievements() {
+    const g = this.player;
+    const d = this.achieveData;
+    // 특수 조건 갱신
+    if (g.count <= 3) d.hadNeardeath = true;
+    d.visitedTerrains.add(this.terrainAt(g.x, g.y).id);
+    for (const ach of ACHIEVEMENTS) {
+      if (this.achievements.has(ach.id)) continue;
+      try {
+        if (ach.check(g, this.elapsed, this.achieveData)) {
+          this.achievements.add(ach.id);
+          this.showToast(`🏆 ${ach.name} +${ach.bonus}`, 'ach');
+          Audio.sfxAchieve();
+          this.cameras.main.flash(200, 255, 240, 180);
+        }
+      } catch(e) { /* 안전하게 무시 */ }
+    }
+  }
+
+
+
+  terrainEventTick() {
+    // 15% 확률로 밀렵꾼 이벤트 (모든 지형, 전 집단 대상)
+    if (Math.random() < 0.03) {
+      const poachCount = 1 + Math.floor(Math.random() * 3); // 1~3마리
+      let playerLoss = 0;
+      for (const group of this.groups) {
+        if (!group.individuals.length) continue;
+        const victims = group.individuals
+          .sort(() => Math.random() - 0.5)
+          .slice(0, Math.floor(group.individuals.length * 0.9));
+        const ids = new Set(victims.map(i => i.id));
+        group.individuals = group.individuals.filter(i => !ids.has(i.id));
+        group.terrainEventDeaths += victims.length;
+        if (group.isPlayer) playerLoss += victims.length;
+      }
+      if (playerLoss > 0)
+        this.showMessage(`🎯 밀렵꾼 출현!\n무작위로 ${playerLoss}마리를 잡아갔습니다.`, true);
+      return;
+    }
+
+    // 일반 지형 이벤트
+    const occupied = new Set(this.groups.map(g => this.terrainAt(g.x, g.y).id));
+    const candidates = TERRAIN_LIST.filter(t => TERRAIN_EVENTS[t.id] && occupied.has(t.id));
+    if (!candidates.length) return;
+    const targetTerrain = choose(candidates);
+    const event = choose(TERRAIN_EVENTS[targetTerrain.id]);
+    this.applyTerrainEvent(targetTerrain, event);
+  }
+
+  applyTerrainEvent(targetTerrain, event) {
+    // 지형별 이벤트 횟수 누적
+    this.terrainEventCount[targetTerrain.id] = (this.terrainEventCount[targetTerrain.id] || 0) + 1;
+    let playerDeaths = 0;
+    let totalDeaths = 0;
+    let playerAffected = false;
+    for (const group of this.groups) {
+      if (!group.individuals.length) continue;
+      const groupTerrain = this.terrainAt(group.x, group.y);
+      if (groupTerrain.id !== targetTerrain.id) continue;
+      playerAffected = playerAffected || group.isPlayer;
+
+      if (event.predicate) {
+        // 개체 사망 이벤트
+        const victims = group.individuals.filter(i => event.predicate(i));
+        if (victims.length) {
+          const ids = new Set(victims.map(i => i.id));
+          group.individuals = group.individuals.filter(i => !ids.has(i.id));
+          group.terrainEventDeaths += victims.length;
+          totalDeaths += victims.length;
+          if (group.isPlayer) playerDeaths += victims.length;
+        }
+      } else if (event.foodDelta !== undefined) {
+        // 식량 증감 이벤트
+        group.food = clamp(group.food + event.foodDelta, 0, FOOD_CAP);
+      } else if (event.foodRatio !== undefined) {
+        // 식량 비율 이벤트
+        group.food = Math.floor(group.food * event.foodRatio);
+      }
+    }
+
+    // 메시지: 플레이어가 해당 지형이면 항상 표시
+    if (playerAffected) {
+      if (event.predicate) {
+        const suffix = playerDeaths > 0 ? ` (${playerDeaths}마리 사망)` : ' (피해 없음 — 이 집단엔 해당 개체 없음)';
+        this.showMessage(`[${targetTerrain.name}] ${event.name}: ${event.message}${suffix}`, true);
+      } else {
+        this.showMessage(`[${targetTerrain.name}] ${event.name}: ${event.message}`, true);
+      }
+    }
+    return totalDeaths;
+  }
+
+  checkBattles() {
+    for (let i = 0; i < this.groups.length; i += 1) {
+      const groupA = this.groups[i];
+      if (groupA.state !== 'normal' || !groupA.individuals.length) continue;
+      for (let j = i + 1; j < this.groups.length; j += 1) {
+        const groupB = this.groups[j];
+        if (groupB.state !== 'normal' || !groupB.individuals.length) continue;
+        if (Phaser.Math.Distance.Between(groupA.x, groupA.y, groupB.x, groupB.y) <= BATTLE_DISTANCE) {
+          const tA = this.terrainAt(groupA.x, groupA.y);
+          const tB = this.terrainAt(groupB.x, groupB.y);
+          const battle = new Battle(groupA, groupB, tA, tB);
+          this.battles.push(battle);
+          if (groupA.isPlayer || groupB.isPlayer) {
+            const enemy = groupA.isPlayer ? groupB : groupA;
+            this.showMessage(`⚔️ ${enemy.name}와 전쟁 시작!`);
+            document.getElementById('battle-banner').style.display = 'block';
+            document.getElementById('battle-vignette').classList.add('active');
+            Audio.sfxBattle();
+            this.cameras.main.shake(250, 0.008);
+            battle.onHit = (x, y) => this.spawnHitEffect(x, y);
+          }
+        }
+      }
+    }
+    const playerInBattle = this.battles.some(battle => battle.active && (battle.groupA.isPlayer || battle.groupB.isPlayer));
+    if (!playerInBattle) {
+      document.getElementById('battle-banner').style.display = 'none';
+      document.getElementById('battle-vignette').classList.remove('active');
+    }
+  }
+
+  handleBattleEnd(battle) {
+    if (battle.groupA.isPlayer || battle.groupB.isPlayer) {
+      const pgIsA  = battle.groupA.isPlayer;
+      const pg     = pgIsA ? battle.groupA : battle.groupB;
+      // battle 객체에 기록된 이 전투만의 포섭 수 사용 (group 카운터는 리셋되어 부정확)
+      const pgRec  = pgIsA ? battle.recruitsA : battle.recruitsB;
+      const envRec = pgIsA ? battle.recruitsB : battle.recruitsA;
+      const won  = battle.winner === pg;
+      const draw = !battle.winner;
+
+      // 화산지대 승리 조건 기록
+      if (won && this.terrainAt(pg.x, pg.y).id === 'volcano') {
+        this.achieveData.volcanoWin = true;
+      }
+
+      let result = draw ? '🤝 무승부' : (won ? '⚔️ 전쟁 승리!' : '💀 전쟁 패배');
+      const details = [];
+      if (pgRec  > 0) details.push(`포섭 +${pgRec} 🤝`);
+      if (envRec > 0) details.push(`빼앗김 -${envRec} 😢`);
+      if (won) details.push('식량 획득 🌾');
+      this.showMessage(details.length ? `${result}\n${details.join(' · ')}` : result);
+      document.getElementById('battle-banner').style.display = 'none';
+      document.getElementById('battle-vignette').classList.remove('active');
+      // 연출
+      if (won) { Audio.sfxWin(); this.burst(this.player.x, this.player.y, 0xffd97d, 16, 90); this.cameras.main.flash(180, 255, 240, 180); }
+      else if (!draw) { Audio.sfxLose(); this.cameras.main.shake(300, 0.012); }
+      if (pgRec > 0) Audio.sfxRecruit();
+    }
+  }
+
+  spawnAIGroup() {
+    const edgePoints = [
+      [Math.random() * WORLD_W, 80],
+      [Math.random() * WORLD_W, WORLD_H - 80],
+      [80, Math.random() * WORLD_H],
+      [WORLD_W - 80, Math.random() * WORLD_H]
+    ];
+    const [x, y] = choose(edgePoints);
+    const ai = new Group(x, y, false, `AI-${nextGroupId + 1}`);
+    this.initGroup(ai, 8 + Math.floor(Math.random() * 8));
+    this.aiGroups.push(ai);
+    this.groups.push(ai);
+    this.ensureSprites(ai);
+  }
+
+  handleBreed() {
+    if (!this.player.canBreed()) return;
+    const before = this.player.individuals.length;
+    const count = this.player.breed();
+    for (let i = before; i < this.player.individuals.length; i += 1) this.addIndividualSprite(this.player.individuals[i], this.player);
+    const gained = this.player.lastGainedMutations || [];
+    let breedMsg = `🥚 번식 성공! 자손 ${count}마리 탄생`;
+    if (gained.length === 1) {
+      const m = mutationById(gained[0]);
+      if (m) breedMsg += `\n🧬 신규 돌연변이: ${m.name}`;
+    } else if (gained.length > 1) {
+      breedMsg += `\n🧬 신규 돌연변이 ${gained.length}종 발생!`;
+    }
+    this.showMessage(breedMsg);
+    Audio.sfxBreed();
+    this.burst(this.player.x, this.player.y, 0xffb4a2, 12, 70);
+    // 다수 돌연변이일 때 개별 토스트로 상세 표시
+    if (gained.length > 1) {
+      gained.forEach((id, i) => {
+        const m = mutationById(id);
+        if (!m) return;
+        const ico = m.type === 'good' ? '✅' : m.type === 'bad' ? '❌' : '🔵';
+        setTimeout(() => this.showToast(`🧬 ${ico} ${m.name}`, 'mut'), i * 350);
+      });
+    }
+  }
+
+  tryFleeBattle() {
+    const battle = this.battles.find(item => item.active && (item.groupA === this.player || item.groupB === this.player));
+    if (!battle) return false;
+    const enemy = battle.escape(this.player);
+    if (!enemy) return false;
+    this.player.food = Math.max(0, Math.floor(this.player.food * (1 - ESCAPE_FOOD_PENALTY)));
+    const dx = this.player.x - enemy.x;
+    const dy = this.player.y - enemy.y;
+    const distance = Math.hypot(dx, dy) || 1;
+    this.player.x = clamp(enemy.x + dx / distance * ESCAPE_DISTANCE, 54, WORLD_W - 54);
+    this.player.y = clamp(enemy.y + dy / distance * ESCAPE_DISTANCE, 54, WORLD_H - 54);
+    document.getElementById('battle-banner').style.display = 'none';
+    document.getElementById('battle-vignette').classList.remove('active');
+    this.showMessage('전투에서 도망쳤습니다. 식량 일부를 잃었습니다.');
+    return true;
+  }
+
+  handleFlee() {
+    this.tryFleeBattle();
+  }
+
+  drawJoystick() {
+    const joy = this.joystick;
+    if (!joy.active) return;
+    this.updateJoystickDom();
+  }
+
+  // 현재 대립유전자(우성) 빈도 스냅샷을 시계열에 기록
+  recordAlleleSnapshot() {
+    if (!this.alleleHistory) return;
+    if (!this.player.individuals.length) return; // 전멸 시점엔 빈도 0 왜곡 → 직전 값 유지
+    const f = this.player.geneFrequency();
+    this.alleleHistory.push({
+      t: this.elapsed || 0,
+      color: f.color || 0, speed: f.speed || 0, poison: f.poison || 0,
+      armor: f.armor || 0, charm: f.charm || 0,
+      pop: this.player.count,
+    });
+  }
+
+  showMessage(text, env = false) {
+    if (this.eventLog && !this.gameOver) {
+      const clean = String(text).replace(/\n/g, ' ');
+      // 번식/출생 메시지는 너무 잦아 이벤트 목록에서 제외
+      if (!/번식 성공|자손|태어/.test(clean)) {
+        this.eventLog.push({ t: this.elapsed || 0, text: clean, env: !!env });
+        if (this.eventLog.length > 250) this.eventLog.shift();
+      }
+    }
+    const element = document.getElementById('event-message');
+    element.textContent = text;
+    element.style.display = 'block';
+    element.classList.remove('show'); void element.offsetWidth; element.classList.add('show');
+    // 튜토리얼 활성 시 슬라임 가리지 않도록 하단 배치
+    const tutActive = document.getElementById('tutorial-overlay')?.classList.contains('active');
+    element.classList.toggle('tutorial-mode', !!tutActive);
+    clearTimeout(this.messageTimer);
+    this.messageTimer = setTimeout(() => { element.style.display = 'none'; }, 2800);
+  }
+
+  // 도전과제 등 토스트 알림
+  showToast(text, kind = 'ach') {
+    // kind: 'mut'=돌연변이(왼쪽 아래) / 'ach'=도전과제(오른쪽 아래)
+    const wrap = document.getElementById(kind === 'mut' ? 'toast-mut' : 'toast-ach');
+    if (!wrap) return;
+    const el = document.createElement('div');
+    el.className = 'toast toast-' + kind; el.textContent = text;
+    wrap.appendChild(el);
+    setTimeout(() => el.remove(), 3700);
+  }
+
+  // ── 날씨 변화 ──
+  changeWeather() {
+    const prev = this.weather;
+    // 날씨 가중 선택 (맑음 계열이 더 자주)
+    const roll = Math.random();
+    let next;
+    if (roll < 0.35) next = WEATHERS.sunny;
+    else if (roll < 0.55) next = WEATHERS.clear;
+    else if (roll < 0.75) next = WEATHERS.rain;
+    else if (roll < 0.9) next = WEATHERS.fog;
+    else next = WEATHERS.storm;
+    if (next === prev) return;
+    this.weather = next;
+    document.getElementById('weather-ico').textContent = next.ico;
+
+    if (next.id === 'storm') {
+      Audio.sfxThunder();
+      this.cameras.main.flash(300, 255, 255, 255);
+      this.showMessage(`⛈️ 폭풍이 몰아칩니다!\n이동이 느려지고 식량이 줄어듭니다`);
+    } else if (next.id === 'rain') {
+      this.showMessage('🌧️ 비가 내립니다 — 식량이 풍성해집니다');
+    } else if (next.id === 'fog') {
+      this.showMessage('🌫️ 안개가 자욱합니다');
+    }
+  }
+
+  // ── 낮밤 사이클 ──
+  updateDayNight() {
+    const t = (this.elapsed % DAY_LENGTH) / DAY_LENGTH; // 0~1
+    // 0~0.6 낮, 0.6~1.0 밤 (부드러운 전환)
+    let nightAlpha;
+    if (t < 0.5) nightAlpha = 0;
+    else if (t < 0.65) nightAlpha = (t - 0.5) / 0.15 * 0.5;
+    else if (t < 0.9) nightAlpha = 0.5;
+    else nightAlpha = (1 - t) / 0.1 * 0.5;
+    this.nightOverlay.setFillStyle(0x1a2a4a, nightAlpha);
+
+    const isNight = nightAlpha > 0.25;
+    if (isNight !== (this.dayPhase === 'night')) {
+      this.dayPhase = isNight ? 'night' : 'day';
+      document.getElementById('clock-text').textContent = isNight ? '밤' : '낮';
+      if (isNight) this.showMessage('🌙 밤이 찾아옵니다 — 위험이 도사립니다');
+    }
+
+    // 날씨 tint 오버레이
+    const wt = this.weather.tint;
+    if (wt) this.weatherTint.setFillStyle(wt, 0.18);
+    else this.weatherTint.setFillStyle(0x000000, 0);
+  }
+
+  // ── HUD DOM 플로팅 텍스트 (식량 소비 등) ──
+  // anchorId: 기준 DOM 요소 id, side: 'right'(기본) | 'left'
+  spawnHudFloat(anchorId, text, color = '#d97030', side = 'right') {
+    const el = document.getElementById(anchorId);
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const div = document.createElement('div');
+    div.className = 'hud-float';
+    div.textContent = text;
+    div.style.color = color;
+    if (side === 'left') {
+      div.style.right = (window.innerWidth - rect.left + 4) + 'px';
+    } else {
+      div.style.left = (rect.right + 4) + 'px';
+    }
+    div.style.top = (rect.top - 2) + 'px';
+    document.body.appendChild(div);
+    setTimeout(() => div.remove(), 1400);
+  }
+
+  // ── 전투 타격 이펙트 (플레이어 전투 전용) ──
+  spawnHitEffect(x, y) {
+    // 불꽃 파티클 스파크
+    this.burst(x, y, 0xff6b35, 4, 22);
+    // 미세 카메라 흔들림 (타격감)
+    this.cameras.main.shake(90, 0.0035);
+  }
+
+  // ── 데미지/획득 플로팅 텍스트 ──
+  spawnFloatText(x, y, text, color = '#ffffff', size = 18) {
+    const t = this.add.text(x, y, text, {
+      fontFamily: 'Jua, sans-serif', fontSize: `${size}px`, color,
+      stroke: '#ffffff', strokeThickness: 3,
+    }).setOrigin(0.5).setDepth(20);
+    this.floatTexts.push({ obj: t, vy: -40, life: 800, age: 0 });
+  }
+  updateFloatTexts(dt) {
+    for (let i = this.floatTexts.length - 1; i >= 0; i--) {
+      const f = this.floatTexts[i];
+      f.age += dt;
+      f.obj.y += f.vy * (dt / 1000);
+      f.obj.alpha = Math.max(0, 1 - f.age / f.life);
+      if (f.age >= f.life) { f.obj.destroy(); this.floatTexts.splice(i, 1); }
+    }
+  }
+
+  // ── 파티클 폭발 (이펙트) ──
+  burst(x, y, color, count = 8, spread = 60) {
+    for (let i = 0; i < count; i++) {
+      const a = Math.random() * Math.PI * 2;
+      const r = Math.random() * spread;
+      const p = this.add.circle(x, y, 3 + Math.random() * 3, color).setDepth(19);
+      this.tweens.add({
+        targets: p, x: x + Math.cos(a) * r, y: y + Math.sin(a) * r,
+        alpha: 0, scale: 0.2, duration: 400 + Math.random() * 300, ease: 'Quad.out',
+        onComplete: () => p.destroy(),
+      });
+    }
+  }
+
+  updateHud() {
+    const group = this.player;
+    const need = group.need();
+    const surplus = group.surplus();
+    const canBreed = group.canBreed();
+    const terrain = this.terrainAt(group.x, group.y);
+    const setText = (id, value) => { const el = document.getElementById(id); if (el) el.textContent = value; };
+
+    // 상단 칩: 남은 시간 표시 추가
+    const remainMs = Math.max(0, METEOR_TIME - this.elapsed);
+    const rm = Math.floor(remainMs / 60000), rs = Math.floor((remainMs % 60000) / 1000);
+    setText('c-count', group.count);
+    setText('c-food', Math.floor(group.food));
+    setText('c-win', group.wins);
+    setText('c-gen', `${rm}:${String(rs).padStart(2,'0')}`); // 세대→남은시간
+
+    // 현황 패널 (간소화)
+    setText('s-count', group.count);
+    setText('s-breed', canBreed ? '가능 ✓' : '불가 ✗');
+    document.getElementById('s-breed').className = canBreed ? 'good' : 'bad';
+    setText('s-hp', group.average('hp').toFixed(0));
+    setText('s-attack', group.average('attack').toFixed(0));
+    setText('s-defense', group.average('defense').toFixed(0));
+    setText('s-speed', group.average('speed').toFixed(0));
+    setText('s-gather', group.average('gather').toFixed(0));
+    setText('s-charm', group.average('charm').toFixed(0));
+
+    // 하단 바
+    const surplusDisplay = Math.max(0, surplus);
+    setText('b-food', Math.floor(group.food));
+    setText('b-need', need.toFixed(0));
+    setText('b-surplus', surplusDisplay.toFixed(0));
+    setText('food-cap-text', need.toFixed(0));
+    setText('terrain-name', terrain.name);
+    setText('terrain-ico', terrain.ico || '🌿');
+    // 남은 시간 임박 시 칩 강조
+    const cgen = document.getElementById('c-gen');
+    if (cgen) cgen.style.color = remainMs < 30000 ? '#ff7d6e' : '';
+    const foodFill = document.getElementById('food-fill');
+    foodFill.style.width = `${clamp(group.food / Math.max(need, 1) * 100, 0, 100)}%`;
+    foodFill.style.background = group.food >= need ? '#22c55e' : '#ef4444';
+    const surplusPct = surplusDisplay > 0 ? clamp(surplusDisplay / Math.max(need, 1) * 100, 0, 100) : 0;
+    document.getElementById('surplus-fill').style.width = `${surplusPct}%`;
+    document.getElementById('breed-btn').disabled = !canBreed;
+    document.getElementById('flee-btn').disabled = group.state !== 'battle';
+
+    // 전쟁 타이머
+    const activeBattle = this.battles.find(b => b.active && (b.groupA.isPlayer || b.groupB.isPlayer));
+    if (activeBattle) {
+      const remaining = Math.max(0, Math.ceil((BATTLE_DURATION - (Date.now() - activeBattle.startedAt)) / 1000));
+      document.getElementById('battle-banner').textContent = `⚔️ 전쟁 중 ${remaining}초`;
+      document.getElementById('battle-banner').style.display = 'block';
+    }
+
+    // ── 유전자 대립유전자 빈도 (50% 기준선 + 설명)
+    const geneFreq = group.geneFrequency();
+    const GENE_META = {
+      color:  { ico:'🔴', label:'R (몸색)',    desc:'붉은색↑  화산 적응',  allele:'R/B', col:'#ef5555' },
+      speed:  { ico:'⚡', label:'S (속도)',    desc:'속도+15  채집 빠름',  allele:'S/s', col:'#22c55e' },
+      poison: { ico:'☠️', label:'P (독성)',    desc:'공격+3   늪 적응',    allele:'P/p', col:'#a855f7' },
+      armor:  { ico:'🛡️', label:'A (갑옷)',    desc:'방어+3   속도-5',     allele:'A/a', col:'#60a5fa' },
+      charm:  { ico:'💗', label:'C (매력)',    desc:'매력+5   포섭↑',      allele:'C/c', col:'#f0abfc' },
+    };
+    document.getElementById('s-genes').innerHTML = Object.entries(GENE_META).map(([gene, m]) => {
+      const pct = geneFreq[gene] || 0;
+      const delta = pct - 50;
+      const absDelta = Math.abs(delta);
+      const deltaColor = delta > 5 ? m.col : delta < -5 ? '#94a3b8' : 'var(--ink-soft)';
+      const deltaStr = delta > 0 ? `+${delta.toFixed(0)}%` : `${delta.toFixed(0)}%`;
+      return `<div style="margin:4px 0">
+        <div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;margin-bottom:2px">
+          <span style="font-weight:800;color:var(--ink)">${m.ico} ${m.label}</span>
+          <span style="display:flex;gap:4px;align-items:center">
+            <span style="color:${deltaColor};font-weight:900;font-size:11.5px">${pct.toFixed(0)}%</span>
+            <span style="color:${deltaColor};font-size:10px">(${deltaStr})</span>
+          </span>
+        </div>
+        <div style="position:relative;height:8px;background:rgba(110,99,132,.15);border-radius:999px;overflow:hidden">
+          <div style="position:absolute;left:50%;top:0;bottom:0;width:1px;background:rgba(110,99,132,.3)"></div>
+          <div style="position:absolute;height:100%;border-radius:999px;background:${m.col};
+            ${delta>=0 ? `left:50%;width:${Math.min(50,delta)}%` : `left:${50+delta}%;width:${Math.min(50,absDelta)}%;background:#94a3b8`}">
+          </div>
+        </div>
+        <div style="font-size:10px;color:var(--ink-soft);margin-top:1px">${m.desc} · ${m.allele}</div>
+      </div>`;
+    }).join('');
+
+    // 몸색 유전자형 분포 (RR/RB/BB)
+    const colorDist = Object.entries(group.genotypeFrequency('color'))
+      .sort((a, b) => b[1] - a[1])
+      .map(([gt, pct]) => {
+        const dotCol = gt==='RR' ? '#ef5555' : gt==='BB' ? '#60a5fa' : '#a855f7';
+        const name = gt==='RR' ? '붉은색' : gt==='BB' ? '푸른색' : '보라색(이형접합)';
+        return `<div style="display:flex;justify-content:space-between;font-size:11.5px;padding:1px 0">
+          <span style="display:flex;align-items:center;gap:4px">
+            <span style="width:8px;height:8px;border-radius:50%;background:${dotCol};display:inline-block"></span>
+            <span class="label">${gt} ${name}</span>
+          </span>
+          <strong>${pct.toFixed(0)}%</strong>
+        </div>`;
+      }).join('');
+    document.getElementById('s-genotypes').innerHTML = colorDist;
+
+    // 돌연변이 (상위 4개)
+    const frequency = group.mutationFrequency();
+    const topMutations = Object.entries(frequency).sort((a, b) => b[1] - a[1]).slice(0, 4);
+    document.getElementById('s-mutations').innerHTML = topMutations.map(([id, percent]) => {
+      const mutation = mutationById(id);
+      const className = mutation ? (mutation.type === 'bad' ? 'bad' : mutation.type === 'dual' ? 'dual' : 'good') : 'good';
+      return `<div class="${className}">${mutation ? mutation.name : id} ${percent.toFixed(0)}%</div>`;
+    }).join('') || '<div class="label">아직 없음</div>';
+  }
+
+  startMeteorWarning() {
+    this.showMessage('⚠️ 하늘이 붉어집니다...\n거대한 빛이 다가옵니다!', true);
+    Audio.sfxMeteor();
+    // 화면 가장자리 붉은 경고
+    const cam = this.cameras.main;
+    this.warnTween = this.tweens.addCounter({
+      from: 0, to: 1, duration: 800, yoyo: true, repeat: -1,
+      onUpdate: (t) => { cam.setBackgroundColor(`rgba(${Math.floor(40 + t.getValue()*120)},20,20,1)`); }
+    });
+  }
+
+  triggerMeteor() {
+    this.meteorActive = true;
+    const cam = this.cameras.main;
+    if (this.warnTween) this.warnTween.stop();
+    document.getElementById('battle-banner').style.display = 'none';
+    document.getElementById('battle-vignette').classList.remove('active');
+
+    // 1) 지진 — 강한 흔들림
+    cam.shake(2600, 0.035);
+    Audio.sfxQuake();
+    this.showMessage('🌋 대지진이 시작됩니다!', true);
+
+    // 2) 1.4초 후 운석 낙하 (화면 중앙으로 점점 커지는 흰 원)
+    this.time.delayedCall(1400, () => {
+      const flash = this.add.circle(this.player.x, this.player.y - 600, 20, 0xffffff)
+        .setDepth(999).setScrollFactor(0);
+      flash.x = cam.width / 2; flash.y = -100;
+      this.tweens.add({
+        targets: flash, y: cam.height / 2, radius: 80, duration: 900, ease: 'Quad.in',
+        onComplete: () => {
+          // 3) 충돌 섬광 — 화면 전체 흰색
+          cam.flash(1600, 255, 255, 255);
+          cam.shake(1800, 0.05);
+          Audio.sfxImpact();
+          this.burst(this.player.x, this.player.y, 0xffffff, 40, 200);
+          flash.destroy();
+          this.meteorDeathCount = this.player.count;
+          this.savedMeteorDiversity = this.player.calcDiversity();
+          this.savedMeteorMutFreq = this.player.mutationFrequency();
+          this.savedMeteorGeneFreq = this.player.geneFrequency();
+          this.recordAlleleSnapshot(); // 멸종 직전 최종 빈도 기록
+          // 모든 개체 멸종
+          for (const g of this.groups) g.individuals = [];
+          this.syncSprites();
+          // 4) 멸종 엔딩 화면
+          this.time.delayedCall(1600, () => this.endGame(true));
+        }
+      });
+    });
+  }
+
+  endGame(byMeteor = false) {
+    if (this.gameOver) return;
+    this.gameOver = true;
+    this.meteorEnding = byMeteor;
+    const group = this.player;
+    if (!byMeteor) this.recordAlleleSnapshot(); // 종료 시점 최종 빈도 기록
+    const minutes = Math.floor(this.elapsed / 60000);
+    const seconds = Math.floor((this.elapsed % 60000) / 1000);
+    const resultPopulation = byMeteor ? (this.meteorDeathCount || 0) : group.count;
+    const meteorDeathBonus = byMeteor ? resultPopulation * 2 : 0;
+    const finalDiversity = byMeteor ? (this.savedMeteorDiversity || 0) : group.calcDiversity();
+    const diversityBonus = Math.round(finalDiversity * 500);
+    const achieveBonus = [...this.achievements].reduce((sum, id) => {
+      const ach = ACHIEVEMENTS.find(a => a.id === id);
+      return sum + (ach ? ach.bonus : 0);
+    }, 0);
+    const score = Math.max(0, resultPopulation * 10 + Math.floor(group.food) * 5 + group.wins * 50 + group.recruited * 30 + Math.floor(this.elapsed / 10000) * 5 - group.starved * 10 + diversityBonus + achieveBonus + meteorDeathBonus);
+    // 순위표 등록용 데이터 임시 보관
+    this._endScoreData = {
+      score,
+      generations: group.generation,
+      mutations:   this.gainedMutationsThisGame.size,
+    };
+    const frequency = byMeteor ? (this.savedMeteorMutFreq || {}) : group.mutationFrequency();
+    const changes = [];
+    for (const mutationId of new Set([...Object.keys(this.initialMutationFrequency), ...Object.keys(frequency)])) {
+      const initial = this.initialMutationFrequency[mutationId] || 0;
+      const final = frequency[mutationId] || 0;
+      if (Math.abs(final - initial) >= 3) {
+        const mutation = mutationById(mutationId);
+        changes.push({ name: mutation ? mutation.name : mutationId, initial, final, delta: final - initial });
+      }
+    }
+    changes.sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
+    const doneAch = ACHIEVEMENTS.filter(a => this.achievements.has(a.id));
+    const meteorBanner = byMeteor
+      ? `<div class="result-card panel" style="background:rgba(120,20,20,.6);border-color:#ef4444">
+          <h2 style="color:#fca5a5">☄️ 운석 충돌 — 전체 멸종</h2>
+          <div class="row"><span>거대한 빛과 지진과 함께 운석이 떨어져</span></div>
+          <div class="row"><span>섬의 모든 생명이 멸종했습니다.</span></div>
+        </div>` : '';
+
+    // 유전자 대립유전자 빈도 변화 (초기 50% 기준)
+    const finalGeneFreq = byMeteor ? (this.savedMeteorGeneFreq || {}) : group.geneFrequency();
+    const GENE_RESULT_META = {
+      color:  { ico:'🔴', label:'R 대립유전자 (몸색)',   col:'#ef5555' },
+      speed:  { ico:'⚡', label:'S 대립유전자 (속도)',   col:'#22c55e' },
+      poison: { ico:'☠️', label:'P 대립유전자 (독성)',   col:'#a855f7' },
+      armor:  { ico:'🛡️', label:'A 대립유전자 (갑옷)',   col:'#60a5fa' },
+      charm:  { ico:'💗', label:'C 대립유전자 (매력)',   col:'#f0abfc' },
+    };
+    const geneChanges = Object.entries(GENE_RESULT_META).map(([gene, m]) => ({
+      gene, ...m,
+      initial: 50,
+      final: finalGeneFreq[gene] || 0,
+      delta: (finalGeneFreq[gene] || 0) - 50,
+    })).sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
+
+    const maxDelta = Math.max(...geneChanges.map(g => Math.abs(g.delta)), 1);
+    const geneChangeHtml = geneChanges.map((g, i) => {
+      const isBig = i === 0 && Math.abs(g.delta) >= 10;
+      const barW = Math.min(100, Math.abs(g.delta) / maxDelta * 100);
+      const barDir = g.delta >= 0 ? 'right' : 'left';
+      const barCol = g.delta >= 0 ? g.col : '#94a3b8';
+      return `<div onclick="showAlleleGraph('${g.gene}')" style="cursor:pointer;margin:${isBig ? '8px' : '5px'} 0;padding:${isBig ? '8px 10px' : '4px 8px'};
+        border-radius:12px;background:${isBig ? 'rgba(255,220,50,.15)' : 'transparent'};
+        ${isBig ? 'border:1.5px solid rgba(255,200,40,.4)' : ''}">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:${isBig ? '14' : '12'}px;font-weight:900;color:var(--ink)">
+            ${g.ico} ${g.label}${isBig ? ' 🏅' : ''} <span style="font-size:10px;color:var(--ink-soft);font-weight:700">📈</span>
+          </span>
+          <span style="font-size:${isBig ? '17' : '13'}px;font-weight:900;color:${g.delta > 0 ? g.col : g.delta < 0 ? '#94a3b8' : 'var(--ink-soft)'}">
+            50% → ${g.final.toFixed(0)}%
+            <span style="font-size:${isBig ? '13' : '11'}px">(${g.delta > 0 ? '+' : ''}${g.delta.toFixed(0)}%)</span>
+          </span>
+        </div>
+        <div style="margin-top:3px;height:7px;background:rgba(110,99,132,.12);border-radius:999px;position:relative;overflow:hidden">
+          <div style="position:absolute;left:50%;top:0;bottom:0;width:1.5px;background:rgba(110,99,132,.4)"></div>
+          <div style="position:absolute;height:100%;border-radius:999px;background:${barCol};
+            width:${barW/2}%;${barDir === 'right' ? 'left:50%' : `left:${50 - barW/2}%`}"></div>
+        </div>
+      </div>`;
+    }).join('');
+
+    // 최다 이벤트 지형 계산
+    const eventEntries = Object.entries(this.terrainEventCount || {});
+    let hotTerrainHtml = '<div class="row"><span class="label">이벤트 없음</span></div>';
+    if (eventEntries.length) {
+      eventEntries.sort((a, b) => b[1] - a[1]);
+      const [topId, topCount] = eventEntries[0];
+      const topTerrain = TERRAIN[topId];
+      const topName = topTerrain ? `${topTerrain.ico} ${topTerrain.name}` : topId;
+      const rows = eventEntries.slice(0, 4).map(([id, cnt]) => {
+        const t = TERRAIN[id];
+        const label = t ? `${t.ico} ${t.name}` : id;
+        const bar = '█'.repeat(Math.round(cnt / topCount * 8)).padEnd(8, '░');
+        return `<div class="row"><span>${label}</span><strong>${cnt}회 <span style="font-family:monospace;font-size:10px;color:var(--ink-soft)">${bar}</span></strong></div>`;
+      });
+      hotTerrainHtml = rows.join('');
+    }
+
+    // 돌연변이 결과
+    const finalMutFreq = byMeteor ? (this.savedMeteorMutFreq || {}) : group.mutationFrequency();
+    const gainedList = [...this.gainedMutationsThisGame].map(id => mutationById(id)).filter(Boolean);
+    const finalList  = Object.entries(finalMutFreq)
+      .sort((a,b) => b[1]-a[1])
+      .map(([id, pct]) => ({ mut: mutationById(id), pct }))
+      .filter(x => x.mut);
+
+    const mutTypeColor = t => t==='good' ? 'var(--leaf-dk)' : t==='bad' ? 'var(--coral)' : 'var(--lilac-dk)';
+    const mutBadge = t => t==='good' ? '✅' : t==='bad' ? '❌' : '🔵';
+
+    document.getElementById('result-content').innerHTML = `
+      ${meteorBanner}
+      <div class="result-card"><h2>📊 생존 결과</h2>
+        <div class="row"><span>생존 시간</span><strong>${minutes}분 ${seconds}초</strong></div>
+        <div class="row"><span>${byMeteor ? '운석 사망 개체' : '최종 개체'}</span><strong>${resultPopulation}마리</strong></div>
+        <div class="row"><span>세대</span><strong>${group.generation}세대</strong></div>
+        <div class="row"><span>전쟁 승리</span><strong>${group.wins}회</strong></div>
+        <div class="row"><span>포섭 / 빼앗김</span>
+          <span><strong class="good">+${group.recruited}</strong> / <strong class="bad">-${group.recruitedAway}</strong></span>
+        </div>
+      </div>
+
+      <div class="result-card"><h2>🗺️ 지형별 이벤트 발생</h2>
+        ${hotTerrainHtml}
+      </div>
+
+      <div class="result-card"><h2>🧬 유전자 풀 변화 <small style="font-size:11px;color:var(--ink-soft);font-family:Nunito">(초기 50% 기준 · 항목 터치 → 📈 변화 그래프)</small></h2>
+        ${geneChangeHtml}
+        <div class="row" style="margin-top:6px;padding-top:6px;border-top:1px solid var(--ink-faint)">
+          <span>유전적 다양성</span><strong>${(finalDiversity * 100).toFixed(0)}%</strong>
+        </div>
+      </div>
+
+      <div class="result-card"><h2>🔬 돌연변이 기록</h2>
+        <div style="font-size:11px;font-weight:800;color:var(--ink-soft);margin-bottom:6px">📥 이번 게임 획득 (${gainedList.length}종)</div>
+        ${gainedList.length
+          ? `<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px">
+              ${gainedList.map(m => `<span style="font-size:12px;padding:3px 9px;border-radius:999px;
+                background:${m.type==='good' ? 'rgba(61,138,58,.12)' : m.type==='bad' ? 'rgba(249,101,88,.12)' : 'rgba(196,158,224,.15)'};
+                color:${mutTypeColor(m.type)};font-weight:800;border:1.5px solid ${mutTypeColor(m.type)}40">
+                ${mutBadge(m.type)} ${m.name}</span>`).join('')}
+             </div>`
+          : '<div class="label" style="margin-bottom:10px;font-size:12px">획득한 돌연변이 없음</div>'}
+        <div style="font-size:11px;font-weight:800;color:var(--ink-soft);margin-bottom:6px">🧬 최종 보유 (${finalList.length}종)</div>
+        ${finalList.length
+          ? finalList.map(({mut:m, pct}) => `
+            <div class="row">
+              <span style="display:flex;align-items:center;gap:5px;font-size:12px">
+                ${mutBadge(m.type)}
+                <span style="color:${mutTypeColor(m.type)};font-weight:800">${m.name}</span>
+              </span>
+              <strong style="color:${mutTypeColor(m.type)}">${pct.toFixed(0)}%</strong>
+            </div>`).join('')
+          : '<div class="label" style="font-size:12px">없음</div>'}
+      </div>
+
+      <div class="result-card"><h2>🏆 도전과제 ${doneAch.length}/${ACHIEVEMENTS.length}</h2>
+        ${doneAch.length
+          ? doneAch.map(a => `<div class="row"><span>${a.name}</span><strong class="good">+${a.bonus}</strong></div>`).join('')
+          : '<div class="row"><span class="label">달성한 도전과제 없음</span></div>'}
+      </div>
+
+      <div class="result-card"><h2>점수 구성</h2>
+        <div class="row"><span>기본 점수</span><strong>${(score - diversityBonus - achieveBonus - meteorDeathBonus).toLocaleString()}</strong></div>
+        ${byMeteor ? `<div class="row"><span>운석 사망 보너스</span><strong class="good">+${meteorDeathBonus.toLocaleString()}</strong></div>` : ''}
+        <div class="row"><span>다양성 보너스</span><strong class="good">+${diversityBonus}</strong></div>
+        <div class="row"><span>도전과제 보너스</span><strong class="good">+${achieveBonus}</strong></div>
+      </div>
+      <div class="score">${score.toLocaleString()}점</div>
+      <div style="text-align:center;margin-top:12px">
+        <button id="result-register-btn" class="big-btn sky" type="button"
+          style="font-size:14px;padding:10px 24px"
+          onclick="window._arenaScene?._endScoreData && openScoreSubmit(window._arenaScene._endScoreData)">
+          🏆 기록 등록
+        </button>
+      </div>`;
+
+    document.getElementById('result').querySelector('h1').textContent = byMeteor ? '☄️ 멸종 엔딩' : '🏁 게임 종료';
+    document.getElementById('result').style.display = 'block';
+  }
+}
+
+// ── 대립유전자 변화 그래프 (결과 화면) ──────────────────────
+const ALLELE_GRAPH_META = {
+  color:  { ico:'🔴', label:'R 대립유전자 (몸색)',  col:'#ef5555' },
+  speed:  { ico:'⚡', label:'S 대립유전자 (속도)',  col:'#22c55e' },
+  poison: { ico:'☠️', label:'P 대립유전자 (독성)',  col:'#a855f7' },
+  armor:  { ico:'🛡️', label:'A 대립유전자 (갑옷)',  col:'#60a5fa' },
+  charm:  { ico:'💗', label:'C 대립유전자 (매력)',  col:'#f0abfc' },
+};
+const ALLELE_KEYS = ['color','speed','poison','armor','charm'];
+
+function closeAlleleGraph() {
+  document.getElementById('allele-graph-modal').classList.remove('open');
+}
+
+function _fmtClock(ms) {
+  const s = Math.floor((ms || 0) / 1000);
+  return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;
+}
+
+function showAlleleGraph(gene) {
+  const scene = window._arenaScene;
+  const meta = ALLELE_GRAPH_META[gene] || ALLELE_GRAPH_META.color;
+  let hist = (scene && scene.alleleHistory) || [];
+  const events = (scene && scene.eventLog) || [];
+  const body = document.getElementById('allele-graph-body');
+  document.getElementById('allele-graph-title').innerHTML = `📈 ${meta.ico} ${meta.label} 변화`;
+
+  if (!hist.length) {
+    body.innerHTML = '<div class="result-card"><div class="row"><span class="label">기록된 데이터가 없습니다.</span></div></div>';
+    document.getElementById('allele-graph-modal').classList.add('open');
+    return;
+  }
+  // 점이 하나뿐이면(아주 일찍 종료) 평평한 선이 보이도록 복제
+  if (hist.length === 1) hist = [hist[0], { ...hist[0], t: (hist[0].t || 0) + 1 }];
+
+  // 좌표계
+  const W = 360, H = 200, PX0 = 36, PX1 = 352, PY0 = 12, PY1 = 176;
+  const maxT = Math.max(hist[hist.length - 1].t, 1);
+  const x = t => PX0 + (t / maxT) * (PX1 - PX0);
+  const y = v => PY1 - (Math.max(0, Math.min(100, v)) / 100) * (PY1 - PY0);
+
+  // 가로 격자 + y축 라벨
+  let grid = '';
+  for (const v of [0, 25, 50, 75, 100]) {
+    const gy = y(v);
+    const is50 = v === 50;
+    grid += `<line x1="${PX0}" y1="${gy.toFixed(1)}" x2="${PX1}" y2="${gy.toFixed(1)}"
+      stroke="${is50 ? 'rgba(110,99,132,.55)' : 'rgba(110,99,132,.18)'}"
+      stroke-width="${is50 ? 1.2 : 0.8}" ${is50 ? 'stroke-dasharray="4 3"' : ''}/>`;
+    grid += `<text x="${PX0 - 5}" y="${(gy + 3).toFixed(1)}" text-anchor="end"
+      font-size="9" fill="var(--px-ink)" opacity="0.65">${v}</text>`;
+  }
+
+  // 환경 이벤트만 추출 (전쟁·번식·굶주림 제외)
+  const envEvents = events.filter(e => e.env);
+  // 선택 유전자 곡선상의 y를 선형보간으로 구함 (점선 연결용)
+  const gv = hist.map(h => ({ t: h.t, v: h[gene] }));
+  const curveY = (t) => {
+    if (t <= gv[0].t) return y(gv[0].v);
+    const lp = gv[gv.length - 1];
+    if (t >= lp.t) return y(lp.v);
+    for (let i = 1; i < gv.length; i++) {
+      if (t <= gv[i].t) {
+        const a = gv[i - 1], b = gv[i];
+        const f = (t - a.t) / ((b.t - a.t) || 1);
+        return y(a.v + (b.v - a.v) * f);
+      }
+    }
+    return y(lp.v);
+  };
+  // 환경 이벤트: X축 번호 핀 + 곡선까지 점선 연결
+  let envMarks = '';
+  envEvents.forEach((e, i) => {
+    const ex = x(e.t), cy = curveY(e.t);
+    envMarks += `<line x1="${ex.toFixed(1)}" y1="${cy.toFixed(1)}" x2="${ex.toFixed(1)}" y2="${PY1}"
+        stroke="${meta.col}" stroke-width="1" stroke-dasharray="2 3" opacity="0.55"/>
+      <circle cx="${ex.toFixed(1)}" cy="${cy.toFixed(1)}" r="2.3" fill="${meta.col}"/>
+      <circle cx="${ex.toFixed(1)}" cy="${PY1}" r="6.5" fill="${meta.col}" stroke="#fff" stroke-width="1"/>
+      <text x="${ex.toFixed(1)}" y="${(PY1 + 2.6).toFixed(1)}" text-anchor="middle" font-size="8" font-weight="900" fill="#fff">${i + 1}</text>`;
+  });
+
+  // 다른 유전자 옅은 선 (맥락용)
+  let faint = '';
+  for (const k of ALLELE_KEYS) {
+    if (k === gene) continue;
+    const pts = hist.map(h => `${x(h.t).toFixed(1)},${y(h[k]).toFixed(1)}`).join(' ');
+    faint += `<polyline points="${pts}" fill="none" stroke="rgba(110,99,132,.22)" stroke-width="1"/>`;
+  }
+
+  // 선택 유전자 굵은 선 + 끝점
+  const mainPts = hist.map(h => `${x(h.t).toFixed(1)},${y(h[gene]).toFixed(1)}`).join(' ');
+  const last = hist[hist.length - 1];
+  const main = `<polyline points="${mainPts}" fill="none" stroke="${meta.col}"
+      stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round"/>
+    <circle cx="${x(last.t).toFixed(1)}" cy="${y(last[gene]).toFixed(1)}" r="3.5" fill="${meta.col}"/>`;
+
+  // x축 시간 라벨
+  let xlabels = '';
+  for (const frac of [0, 0.5, 1]) {
+    const t = maxT * frac;
+    xlabels += `<text x="${x(t).toFixed(1)}" y="${(PY1 + 14).toFixed(1)}"
+      text-anchor="${frac === 0 ? 'start' : frac === 1 ? 'end' : 'middle'}"
+      font-size="9" fill="var(--px-ink)" opacity="0.65">${_fmtClock(t)}</text>`;
+  }
+
+  const startV = hist[0][gene], endV = last[gene], delta = endV - startV;
+  const deltaCol = delta > 0 ? meta.col : delta < 0 ? '#94a3b8' : 'var(--ink-soft)';
+
+  // 환경 이벤트 목록 — X축 번호 핀과 1:1 대응
+  const envList = envEvents.length
+    ? envEvents.map((e, i) => `<div class="row" style="align-items:flex-start;gap:8px">
+        <span style="flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:${meta.col};color:#fff;font-size:10px;font-weight:900">${i + 1}</span>
+        <span style="flex-shrink:0;font-family:'Galmuri11',monospace;font-size:11px;font-weight:900;color:var(--px-red-d)">${_fmtClock(e.t)}</span>
+        <span style="flex:1;text-align:right;font-size:12px;line-height:1.4">${e.text}</span>
+      </div>`).join('')
+    : '<div class="row"><span class="label">환경 이벤트가 없습니다.</span></div>';
+
+  body.innerHTML = `
+    <div class="result-card">
+      <h2>${meta.ico} ${meta.label} 변화</h2>
+      <div class="row"><span>시작</span><span style="font-weight:900">${startV.toFixed(0)}%</span></div>
+      <div class="row"><span>최종</span><span style="font-weight:900;color:${meta.col}">${endV.toFixed(0)}%</span></div>
+      <div class="row"><span>변화량</span><span style="font-weight:900;color:${deltaCol}">${delta > 0 ? '▲ +' : delta < 0 ? '▼ ' : '– '}${Math.abs(delta).toFixed(0)}%p</span></div>
+      <svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block;margin-top:8px;background:rgba(150,105,55,.06);border-radius:6px">
+        ${grid}${faint}${main}${envMarks}${xlabels}
+      </svg>
+      <div style="font-size:10px;color:var(--px-ink);opacity:.7;text-align:center;margin-top:5px">
+        가로축: 생존 시간 · ●숫자: 환경 이벤트 시점(점선=그래프 연결) · 옅은 선: 다른 유전자
+      </div>
+    </div>
+    <div class="result-card">
+      <h2>🌍 환경 이벤트 (${envEvents.length})</h2>
+      ${envList}
+    </div>`;
+
+  document.getElementById('allele-graph-modal').classList.add('open');
+}
+
+let game = null;
+function startGame() {
+  enterFullscreen();            // 게임 시작 시 전체화면 (사용자 제스처 컨텍스트)
+  stopLeaderboard(); // 게임 중엔 순위표 패널 숨김
+  if (game) return;
+  Audio.init(); Audio.resume(); // 사용자 제스처로 오디오 활성화
+  document.getElementById('title-screen').style.display = 'none';
+  document.getElementById('hud').style.display = 'block';
+  const width = Math.max(window.innerWidth || 800, 400);
+  const height = Math.max(window.innerHeight || 600, 500);
+  game = new Phaser.Game({
+    type: Phaser.AUTO,
+    parent: 'game-container',
+    width,
+    height,
+    backgroundColor: '#9ed98f',
+    pixelArt: true,
+    antialias: false,
+    scene: [ArenaScene],
+    scale: {
+      mode: Phaser.Scale.NONE,
+      autoCenter: Phaser.Scale.CENTER_BOTH,
+      width,
+      height
+    }
+  });
+}
+
+function toggleStatsPanel() {
+  document.getElementById('hud').classList.toggle('stats-open');
+}
+
+function toggleMute() {
+  Audio.muted = !Audio.muted;
+  Audio.setMuted(Audio.muted);
+  const btn = document.getElementById('mute-btn');
+  if (btn) btn.textContent = Audio.muted ? '🔇' : '🔊';
+}
+
+// ── 이벤트 도감 ──────────────────────────────────
+const EVENT_DEX_DATA = [
+  {
+    id:'plain', label:'초원', ico:'🌿',
+    bg:'linear-gradient(135deg,#6ec46a,#3d8a3a)',
+    events:[
+      { name:'메뚜기 떼 습격',   type:'food',  criterion:'식량 50% 감소',              desc:'메뚜기 떼가 밀밭을 습격합니다.' },
+      { name:'들불',             type:'death', criterion:'속도 낮은 개체 사망',          desc:'들불이 번져 느린 개체가 피하지 못합니다.' },
+      { name:'야생 동물 습격',   type:'death', criterion:'갑옷·매력 둘 다 없는 개체',   desc:'두 가지 유전자가 모두 없으면 위험합니다.' },
+      { name:'전염병 창궐',      type:'death', criterion:'번식력 높은 개체 사망',        desc:'번식력 강한 개체 사이에서 빠르게 퍼집니다.' },
+      { name:'붉은 달',          type:'death', criterion:'BB(파란색) 개체 사망',         desc:'붉은 달빛 아래 파란색이 포식자에게 발각됩니다.' },
+    ]
+  },
+  {
+    id:'forest', label:'숲', ico:'🌳',
+    bg:'linear-gradient(135deg,#3d8a3a,#1a5c1a)',
+    events:[
+      { name:'열매 풍년',        type:'food',  criterion:'식량 +55',                    desc:'열매가 풍성하게 열립니다.' },
+      { name:'위장 포식자',      type:'death', criterion:'RR(붉은색) 개체 사망',         desc:'숲 속 위장 포식자가 눈에 띄는 붉은색을 노립니다.' },
+      { name:'나무 쓰러짐',      type:'death', criterion:'속도 낮은 개체 사망',          desc:'폭풍에 거목이 쓰러집니다.' },
+      { name:'기생충 감염',      type:'death', criterion:'갑옷(A_) 없는 개체 사망',      desc:'갑옷이 없으면 기생충을 막지 못합니다.' },
+      { name:'야간 포식자',      type:'death', criterion:'매력(C_) 없는 개체 사망',      desc:'매력 없이 무리를 이탈하면 위험합니다.' },
+    ]
+  },
+  {
+    id:'desert', label:'사막', ico:'🏜️',
+    bg:'linear-gradient(135deg,#e8b84b,#b87d1a)',
+    events:[
+      { name:'오아시스 발견',    type:'food',  criterion:'식량 +40',                    desc:'귀한 오아시스를 발견합니다.' },
+      { name:'신기루',           type:'food',  criterion:'식량 30% 감소',               desc:'신기루를 쫓아가다 지칩니다.' },
+      { name:'극심한 폭염',      type:'death', criterion:'먹이요구 ≥1.35 개체 사망',    desc:'대사량이 높으면 탈수가 빠릅니다.' },
+      { name:'독전갈 습격',      type:'death', criterion:'독성(P_) 없는 개체 사망',     desc:'독성 유전자가 없으면 독에 쓰러집니다.' },
+      { name:'열사병',           type:'death', criterion:'갑옷(A_) 있는 개체 사망',     desc:'사막에서 갑옷은 오히려 열을 가둡니다.' },
+    ]
+  },
+  {
+    id:'volcano', label:'화산지대', ico:'🌋',
+    bg:'linear-gradient(135deg,#e85c3a,#9b2010)',
+    events:[
+      { name:'화산 폭발',        type:'death', criterion:'RR 아닌 모든 개체 사망',       desc:'오직 붉은색(RR) 개체만 열기를 버팁니다.' },
+      { name:'독가스 분출',      type:'death', criterion:'독성(P_) 없는 개체 사망',     desc:'독성 유전자가 없으면 가스에 쓰러집니다.' },
+      { name:'마그마 흐름',      type:'death', criterion:'속도 낮은 개체 사망',          desc:'마그마를 피하려면 빠른 발이 필요합니다.' },
+      { name:'용암 분수',        type:'death', criterion:'매력(C_) 없는 개체 사망',      desc:'무리 밖에 있던 개체가 덮칩니다.' },
+      { name:'화산재 폭풍',      type:'death', criterion:'갑옷(A_) 없는 개체 사망',     desc:'짙은 화산재에 갑옷이 없으면 질식합니다.' },
+    ]
+  },
+  {
+    id:'snow', label:'눈밭', ico:'❄️',
+    bg:'linear-gradient(135deg,#8ecfe8,#4a9ec0)',
+    events:[
+      { name:'먹이 고갈',        type:'food',  criterion:'식량 40% 감소',               desc:'눈이 모든 것을 뒤덮습니다.' },
+      { name:'눈보라',           type:'death', criterion:'갑옷(A_) 없는 개체 사망',     desc:'갑옷이 없으면 동사합니다.' },
+      { name:'혹한 동상',        type:'death', criterion:'HP 55% 미만 개체 사망',        desc:'체력이 낮으면 혹한을 버티지 못합니다.' },
+      { name:'극야 생존',        type:'death', criterion:'BB 아닌 모든 개체 사망',       desc:'흰 눈밭에서 파란색(BB)만 위장이 됩니다.' },
+      { name:'눈사태',           type:'death', criterion:'갑옷(A_) 있는 개체 사망',     desc:'무거운 갑옷이 눈사태에서 발목을 잡습니다.' },
+    ]
+  },
+  {
+    id:'river', label:'강가', ico:'💧',
+    bg:'linear-gradient(135deg,#4ab8d8,#1a6a98)',
+    events:[
+      { name:'물고기 풍년',      type:'food',  criterion:'식량 +60',                    desc:'강에 물고기가 넘칩니다.' },
+      { name:'갑작스런 홍수',    type:'death', criterion:'속도 낮은 개체 사망',          desc:'빠르지 않으면 떠내려갑니다.' },
+      { name:'강 독소 유입',     type:'death', criterion:'독성(P_) 없는 개체 사망',     desc:'상류 독소가 흘러들어옵니다.' },
+      { name:'급류',             type:'death', criterion:'갑옷(A_) 있는 개체 사망',     desc:'갑옷이 무거워 급류에 가라앉습니다.' },
+      { name:'강변 포식자',      type:'death', criterion:'매력(C_) 없는 개체 사망',      desc:'혼자 이탈한 개체가 위험에 처합니다.' },
+    ]
+  },
+  {
+    id:'swamp', label:'독성 늪', ico:'🐸',
+    bg:'linear-gradient(135deg,#7ab84a,#3a6e1a)',
+    events:[
+      { name:'썩은 열매',        type:'food',  criterion:'식량 35% 감소',               desc:'늪의 썩은 열매에 중독됩니다.' },
+      { name:'독성 폭발 확산',   type:'death', criterion:'독성(P_) 없는 개체 전멸',     desc:'독성 유전자 없는 개체가 모두 사라집니다.' },
+      { name:'늪 수렁',          type:'death', criterion:'속도 낮은 개체 사망',          desc:'깊어진 늪에 느린 개체가 빠집니다.' },
+      { name:'독거미',           type:'death', criterion:'매력(C_) 없는 개체 사망',      desc:'무리를 이탈한 개체가 독거미에 물립니다.' },
+      { name:'늪 안개',          type:'death', criterion:'독성없음 AND 속도<65 동시 해당',desc:'두 조건이 겹쳐야 사망합니다.' },
+    ]
+  },
+  {
+    id:'poach', label:'밀렵꾼', ico:'🎯',
+    bg:'linear-gradient(135deg,#888,#444)',
+    events:[
+      { name:'밀렵꾼 출현',      type:'poach', criterion:'집단 개체의 90% 무작위 제거',  desc:'전 지형에서 3% 확률로 발동. 유전자 무관.' },
+    ]
+  },
+];
+
+let _eventFilter = 'all';
+
+function renderEventDex() {
+  const list = document.getElementById('event-dex-list');
+  const filtered = _eventFilter === 'all'
+    ? EVENT_DEX_DATA
+    : EVENT_DEX_DATA.filter(t => t.id === _eventFilter);
+
+  list.innerHTML = filtered.map(terrain => `
+    <div class="evdex-terrain">
+      <div class="evdex-terrain-header" style="background:${terrain.bg}">
+        <span style="font-size:22px">${terrain.ico}</span>
+        <span>${terrain.label}</span>
+        <span style="margin-left:auto;font-size:12px;opacity:.8">${terrain.events.length}개 이벤트</span>
+      </div>
+      <div class="evdex-terrain-body">
+        ${terrain.events.map(ev => `
+          <div class="evdex-event">
+            <div class="evdex-name">${ev.name}</div>
+            <div class="evdex-desc">${ev.desc}</div>
+            <span class="evdex-criterion ${ev.type}">
+              ${ev.type==='death' ? '💀 사망 조건' : ev.type==='food' ? '🌾 식량 변화' : '🎯 무작위'}
+              · ${ev.criterion}
+            </span>
+          </div>`).join('')}
+      </div>
+    </div>`).join('');
+}
+
+function openEventDex() {
+  document.getElementById('event-dex-modal').classList.add('open');
+  renderEventDex();
+}
+function closeEventDex() {
+  document.getElementById('event-dex-modal').classList.remove('open');
+}
+function setEventFilter(filter, btn) {
+  _eventFilter = filter;
+  document.querySelectorAll('#event-dex-filters .dex-filter').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderEventDex();
+}
+
+// ── 돌연변이 도감 ──────────────────────────────
+let _dexFilter = 'all';
+
+const MUT_ICO = { good: '✅', dual: '🔵', bad: '❌' };
+const MUT_LABEL = { good: '이점', dual: '양면', bad: '불이익' };
+
+function effectText(effects) {
+  return Object.entries(effects).map(([k, v]) => {
+    const NAMES = {
+      attack:'공격', defense:'방어', speed:'속도', hp:'HP',
+      gather:'채집', charm:'매력', fertility:'번식력',
+      foodNeed:'먹이요구', mutationRate:'돌연변이율',
+    };
+    const name = NAMES[k] || k;
+    const cls  = v > 0 ? 'up' : 'down';
+    return `<span class="${cls}">${name} ${v > 0 ? '+' : ''}${v}</span>`;
+  }).join('  ');
+}
+
+function renderDex() {
+  const scene = game?.scene?.keys?.ArenaScene;
+  const freq  = scene?.player?.mutationFrequency() || {};
+  const list  = document.getElementById('dex-list');
+  if (!list) return;
+
+  const filtered = MUTATIONS.filter(m => {
+    if (_dexFilter === 'owned') return (freq[m.id] || 0) > 0;
+    if (_dexFilter === 'good')  return m.type === 'good';
+    if (_dexFilter === 'dual')  return m.type === 'dual';
+    if (_dexFilter === 'bad')   return m.type === 'bad';
+    return true;
+  });
+
+  list.innerHTML = filtered.map(m => {
+    const pct     = freq[m.id] || 0;
+    const hasIt   = pct > 0;
+    const typeClass = m.type === 'bad' ? 'type-bad' : m.type === 'dual' ? 'type-dual' : '';
+    const fillClass = m.type === 'bad' ? 'bad' : m.type === 'dual' ? 'dual' : '';
+    return `<div class="dex-card ${hasIt ? 'has-mut' : ''} ${typeClass}">
+      <div class="dex-type-ico">${MUT_ICO[m.type]}</div>
+      <div class="dex-info">
+        <div class="dex-name">${m.name} ${hasIt ? '<span class="dex-badge">보유중</span>' : ''}</div>
+        <div class="dex-effects">${effectText(m.effects)}</div>
+        <div style="font-size:11px;color:var(--ink-soft);margin-top:3px">${MUT_LABEL[m.type]} 돌연변이</div>
+      </div>
+      <div class="dex-freq">
+        <div class="dex-pct ${pct === 0 ? 'zero' : ''}">${pct > 0 ? pct.toFixed(0) + '%' : '미발견'}</div>
+        <div class="dex-bar"><div class="dex-bar-fill ${fillClass}" style="width:${pct}%"></div></div>
+      </div>
+    </div>`;
+  }).join('') || '<div style="text-align:center;color:var(--ink-soft);padding:24px">해당하는 돌연변이 없음</div>';
+}
+
+function openDex(tab) {
+  document.getElementById('dex-modal').classList.add('open');
+  if (tab === 'event') {
+    switchDexTab('event', document.querySelector('.dex-tab[data-tab="event"]'));
+  } else {
+    switchDexTab('mutation', document.querySelector('.dex-tab[data-tab="mutation"]'));
+  }
+  const scene = game?.scene?.keys?.ArenaScene;
+  if (scene && !_paused) scene.scene.pause();
+}
+function openEventDex() { openDex('event'); }
+function closeDex() {
+  document.getElementById('dex-modal').classList.remove('open');
+  const scene = game?.scene?.keys?.ArenaScene;
+  if (scene && !_paused) scene.scene.resume();
+}
+function closeEventDex() { closeDex(); }
+function switchDexTab(tab, btn) {
+  document.querySelectorAll('.dex-tab').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  const mutPanel = document.getElementById('dex-mutation-panel');
+  const evPanel  = document.getElementById('dex-event-panel');
+  if (tab === 'event') {
+    mutPanel.style.display = 'none';
+    evPanel.style.cssText = 'flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden';
+    renderEventDex();
+  } else {
+    evPanel.style.display = 'none';
+    mutPanel.style.cssText = 'flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden';
+    renderDex();
+  }
+}
+function setDexFilter(filter, btn) {
+  _dexFilter = filter;
+  document.querySelectorAll('#dex-filters .dex-filter').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderDex();
+}
+function openOptionsModal() { document.getElementById('options-modal').classList.add('open'); }
+function closeOptionsModal() { document.getElementById('options-modal').classList.remove('open'); }
+function toggleOptionsSfx(btn) {
+  btn.classList.toggle('on');
+  const muted = !btn.classList.contains('on');
+  Audio.setMuted(muted);
+  Audio.muted = muted;
+  const sfxBtn = document.getElementById('sfx-toggle');
+  if (sfxBtn) sfxBtn.classList.toggle('on', !muted);
+}
+
+let _paused = false;
+function togglePause() {
+  _paused = !_paused;
+  const modal = document.getElementById('pause-modal');
+  const btn   = document.getElementById('pause-btn');
+  modal.classList.toggle('open', _paused);
+  if (btn) btn.textContent = _paused ? '▶' : '⏸';
+  // Phaser 씬 일시정지/재개
+  const scene = game?.scene?.keys?.ArenaScene;
+  if (scene) { _paused ? scene.scene.pause() : scene.scene.resume(); }
+}
+
+function toggleSettings() {
+  document.getElementById('settings-panel').classList.toggle('open');
+}
+
+function toggleSfxSetting(btn) {
+  btn.classList.toggle('on');
+  const muted = !btn.classList.contains('on');
+  Audio.setMuted(muted);
+  Audio.muted = muted;
+  const muteBtn = document.getElementById('mute-btn');
+  if (muteBtn) muteBtn.textContent = muted ? '🔇' : '🔊';
+}
+
+/* ── 전체화면 관리 ───────────────────────────────────────────────── */
+function isFullscreen() {
+  return !!(document.fullscreenElement || document.webkitFullscreenElement);
+}
+function enterFullscreen() {
+  const el = document.documentElement;
+  const fn = el.requestFullscreen || el.webkitRequestFullscreen;
+  if (fn) fn.call(el).catch(() => {});
+}
+function exitFullscreen() {
+  const fn = document.exitFullscreen || document.webkitExitFullscreen;
+  if (fn) fn.call(document).catch(() => {});
+}
+function toggleFullscreen() {
+  if (isFullscreen()) exitFullscreen(); else enterFullscreen();
+}
+function _syncFsBtns() {
+  const label = isFullscreen() ? '🔲 창 모드로' : '⛶ 전체화면으로';
+  document.querySelectorAll('.fs-toggle-btn').forEach(btn => { btn.textContent = label; });
+}
+document.addEventListener('fullscreenchange', _syncFsBtns);
+document.addEventListener('webkitfullscreenchange', _syncFsBtns);
+
+/* ── 방향 전환 / 리사이즈 처리 ───────────────────────────────────── */
+let _orientTimer = null;
+
+function _cancelJoystick() {
+  const sc = window._arenaScene;
+  if (!sc?.joystick?.active) return;
+  Object.assign(sc.joystick, { active: false, pointerId: null, knobX: 0, knobY: 0, dirX: 0, dirY: 0 });
+  const dom = document.getElementById('joystick-dom');
+  if (dom) dom.style.display = 'none';
+}
+
+function _applyResize() {
+  if (game) game.scale.resize(window.innerWidth, window.innerHeight);
+}
+
+// 일반 resize (데스크톱 창 크기 변경 + 모바일 기본)
+window.addEventListener('resize', () => {
+  _cancelJoystick();
+  _applyResize();
+});
+
+// orientationchange: iOS는 이 이벤트 직후 window.innerWidth/Height 가
+// 아직 새 값으로 갱신되지 않을 수 있어 300ms 후 재적용
+window.addEventListener('orientationchange', () => {
+  _cancelJoystick();
+  // HUD를 잠시 페이드아웃해 레이아웃 점프를 자연스럽게 숨김
+  const hud = document.getElementById('hud');
+  if (hud && hud.style.display !== 'none') hud.classList.add('orient-fade');
+  clearTimeout(_orientTimer);
+  _orientTimer = setTimeout(() => {
+    _applyResize();
+    if (hud) hud.classList.remove('orient-fade');
+  }, 320);
+});
+
+// ════════════════════════════════════════════
+//  TutorialManager
+// ════════════════════════════════════════════
+const Tutorial = (() => {
+  // 단계 정의
+  // noMask: true → 어두운 오버레이 없이 링만 표시 (이동·식량 단계)
+  const STEPS = [
+    {
+      ico: '👋',
+      title: '슬라임 왕국에 오신 걸 환영해요!',
+      desc: '슬라임 집단을 이끌고 먹이를 모으세요.\n번식·돌연변이·전쟁으로 유전자 풀이 변하고\n5분 뒤 운명의 순간이 찾아옵니다!',
+      target: null, cond: null, nextLabel: '시작하기 →',
+    },
+    {
+      ico: '🕹️',
+      title: '이동하기',
+      desc: '화면 아무 곳이나 꾹 누르고 드래그하면\n가상 조이스틱이 나타나요.\n슬라임들이 따라와요!',
+      target: null,        // 어두운 화면 없이 플레이 가능하게
+      noMask: true,        // 오버레이 투명
+      cond: (scene) => scene._tutorialMoved,
+      condLabel: '조이스틱을 드래그해보세요 👇',
+      nextLabel: '완료! →',
+    },
+    {
+      ico: '🍓',
+      title: '식량 모으기',
+      desc: '맵의 노란 원이 식량이에요.\n집단을 가까이 이동하면 자동으로 수집돼요!\n식량이 많을수록 번식이 쉬워요.',
+      target: null,
+      noMask: true,        // 오버레이 없이 맵 보이게
+      cond: (scene) => scene.player && scene.player.food > 40,
+      condLabel: '식량을 조금 모아보세요 🍓',
+      nextLabel: '좋아요! →',
+    },
+    {
+      ico: '🐾',
+      title: '상단 바 읽기',
+      desc: '🌿지형 · 🐾개체수 · 🍓식량 · 🏆승리\n⏳ 남은 시간을 항상 확인하세요!\n⏸ 버튼으로 일시정지도 가능해요.',
+      target: '#top-bar',
+      cond: null,
+      nextLabel: '알겠어요! →',
+    },
+    {
+      ico: '📊',
+      title: '현황 & 유전자 보기',
+      desc: '우측 📊 현황 버튼을 탭하면\n능력치·유전자 대립유전자 빈도를 볼 수 있어요.\n🔬 도감에서 돌연변이 효과도 확인하세요!',
+      target: '#side-bar',
+      cond: (scene) => document.getElementById('hud')?.classList.contains('stats-open'),
+      condLabel: '📊 현황 버튼을 탭해보세요',
+      nextLabel: '알겠어요! →',
+    },
+    {
+      ico: '🥚',
+      title: '번식 & 멘델 유전',
+      desc: '식량 잉여가 있으면 🥚 번식 버튼이 활성돼요.\n자손은 부모 유전자를 멘델 법칙으로 물려받아요.\n돌연변이도 독립적으로 유전된답니다!',
+      target: '#breed-btn',
+      cond: (scene) => scene.player && scene.player.generation >= 1,
+      condLabel: '번식 버튼을 눌러보세요',
+      nextLabel: '탄생! →',
+    },
+    {
+      ico: '⚔️',
+      title: '전쟁과 포섭',
+      desc: '다른 집단과 만나면 전쟁이 시작돼요.\nC 대립유전자(매력) 빈도가 높을수록\n상대 슬라임을 포섭할 확률이 높아요!',
+      target: '#bottom-bar',
+      cond: null,
+      nextLabel: '알겠어요! →',
+    },
+    {
+      ico: '☄️',
+      title: '5분 뒤 운석이 떨어져요!',
+      desc: '4분 45초 후 경고 시작,\n5분이 되면 운석이 떨어져 전체 멸종!\n그 전까지 집단을 키우고 도전과제를 달성하세요 🏆',
+      target: '#c-gen',
+      cond: null,
+      nextLabel: '도전 시작! 🌱',
+    },
+  ];
+
+  let current = -1;
+  let scene = null;
+  let checkInterval = null;
+  let _active = false;
+  let playTimer = null;   // 인터랙티브 단계에서 설명창을 접는 타이머
+
+  function getEl(sel) { return sel ? document.querySelector(sel) : null; }
+
+  function getTargetRect(sel) {
+    const el = getEl(sel);
+    if (!el) return null;
+    const r = el.getBoundingClientRect();
+    const pad = 10;
+    return { x: r.left - pad, y: r.top - pad, w: r.width + pad*2, h: r.height + pad*2 };
+  }
+
+  function positionCard(step) {
+    const card = document.getElementById('tutorial-card');
+    const rect = step.target ? getTargetRect(step.target) : null;
+    const vw = window.innerWidth, vh = window.innerHeight;
+    const cw = card.offsetWidth || 320, ch = card.offsetHeight || 200;
+
+    if (!rect) {
+      if (step.noMask && step.cond) {
+        // 이동·식량 같은 인터랙티브 단계: 상단에 배치해 중앙 플레이 영역을 비움
+        card.style.left = `${(vw - cw) / 2}px`;
+        card.style.top  = `10px`;
+        return;
+      }
+      // 중앙
+      card.style.left = `${(vw - cw) / 2}px`;
+      card.style.top  = `${(vh - ch) / 2}px`;
+      return;
+    }
+    // 타겟 아래 or 위에 배치
+    const spaceBelow = vh - (rect.y + rect.h);
+    const spaceAbove = rect.y;
+    let top, left;
+    if (spaceBelow >= ch + 20) {
+      top  = rect.y + rect.h + 14;
+    } else if (spaceAbove >= ch + 20) {
+      top  = rect.y - ch - 14;
+    } else {
+      top = Math.max(10, Math.min(vh - ch - 10, rect.y + rect.h / 2 - ch / 2));
+    }
+    left = Math.max(10, Math.min(vw - cw - 10, rect.x + rect.w / 2 - cw / 2));
+    card.style.left = `${left}px`;
+    card.style.top  = `${top}px`;
+  }
+
+  function positionRing(step) {
+    const ring  = document.getElementById('tutorial-ring');
+    const arrow = document.getElementById('tutorial-arrow');
+    if (!step.target) {
+      ring.style.display = 'none';
+      arrow.style.display = 'none';
+      return;
+    }
+    const rect = getTargetRect(step.target);
+    if (!rect) { ring.style.display='none'; arrow.style.display='none'; return; }
+    ring.style.display = 'block';
+    ring.style.left  = `${rect.x}px`;
+    ring.style.top   = `${rect.y}px`;
+    ring.style.width = `${rect.w}px`;
+    ring.style.height= `${rect.h}px`;
+    // 화살표 (링 위 중앙)
+    arrow.style.display = 'block';
+    arrow.textContent = '👆';
+    arrow.style.left = `${rect.x + rect.w/2 - 14}px`;
+    arrow.style.top  = `${rect.y - 36}px`;
+  }
+
+  function applyMask(step) {
+    const mask = document.getElementById('tutorial-mask');
+    // noMask 단계: 오버레이 완전 투명 (이동·식량 등 플레이 방해 없이)
+    if (step.noMask) {
+      mask.style.clipPath = '';
+      mask.style.background = 'transparent';
+      return;
+    }
+    if (!step.target) {
+      mask.style.clipPath = '';
+      mask.style.background = 'rgba(20,14,36,0.65)';
+      return;
+    }
+    const rect = getTargetRect(step.target);
+    if (!rect) { mask.style.clipPath = ''; return; }
+    const x1=rect.x, y1=rect.y, x2=rect.x+rect.w, y2=rect.y+rect.h;
+    const W=window.innerWidth, H=window.innerHeight;
+    mask.style.background = 'rgba(20,14,36,0.65)';
+    mask.style.clipPath =
+      `polygon(0 0, ${W}px 0, ${W}px ${H}px, 0 ${H}px, ` +
+      `0 ${y1}px, ${x1}px ${y1}px, ${x1}px ${y2}px, ${x2}px ${y2}px, ` +
+      `${x2}px ${y1}px, 0 ${y1}px)`;
+  }
+
+  function render() {
+    const step = STEPS[current];
+    document.getElementById('tutorial-card').classList.remove('tut-playing');
+    document.getElementById('tut-step-label').textContent = `${current+1} / ${STEPS.length}`;
+    document.getElementById('tut-ico').textContent   = step.ico;
+    document.getElementById('tut-title').textContent = step.title;
+    document.getElementById('tut-desc').textContent  = step.desc;
+    document.getElementById('tut-cond').textContent  = step.condLabel || '';
+    const nextBtn = document.getElementById('tut-next-btn');
+    nextBtn.textContent = step.nextLabel || '다음 →';
+    // 조건 있는 단계: 버튼 비활성
+    nextBtn.disabled = !!step.cond;
+    nextBtn.style.opacity = step.cond ? '0.4' : '1';
+
+    positionCard(step);
+    positionRing(step);
+    applyMask(step);
+  }
+
+  function startConditionCheck() {
+    clearInterval(checkInterval);
+    const step = STEPS[current];
+    if (!step.cond) return;
+    checkInterval = setInterval(() => {
+      if (!scene || !_active) return;
+      if (step.cond(scene)) {
+        const nextBtn = document.getElementById('tut-next-btn');
+        nextBtn.disabled = false;
+        nextBtn.style.opacity = '1';
+        document.getElementById('tut-cond').textContent = '✅ 완료! 다음을 눌러주세요';
+        // 접혀 있던 설명창을 다시 펼쳐 '다음' 버튼이 보이게
+        clearTimeout(playTimer);
+        const card = document.getElementById('tutorial-card');
+        card.classList.remove('tut-playing');
+        positionCard(step);
+        clearInterval(checkInterval);
+      }
+    }, 300);
+  }
+
+  function show(idx) {
+    current = idx;
+    if (current >= STEPS.length) { end(); return; }
+    const overlay = document.getElementById('tutorial-overlay');
+    overlay.classList.add('active');
+    _active = true;
+    render();
+    startConditionCheck();
+    // 인터랙티브 단계: 설명을 잠깐 보여준 뒤 슬림 띠로 접어 화면을 비움
+    clearTimeout(playTimer);
+    const stepNow = STEPS[current];
+    if (stepNow.noMask && stepNow.cond) {
+      playTimer = setTimeout(() => {
+        if (_active && current === idx) document.getElementById('tutorial-card').classList.add('tut-playing');
+      }, 2600);
+    }
+    // 이동 추적 (step 1)
+    if (current === 1 && scene && !scene._tutorialMovePatch) {
+      scene._tutorialMovePatch = true;
+      const orig = scene.movePlayer.bind(scene);
+      scene.movePlayer = function(dt) {
+        orig(dt);
+        if ((scene.joystick?.active) || scene.keys?.left?.isDown || scene.keys?.right?.isDown || scene.keys?.up?.isDown || scene.keys?.down?.isDown) {
+          scene._tutorialMoved = true;
+        }
+      };
+    }
+  }
+
+  return {
+    start(sceneRef) {
+      scene = sceneRef;
+      show(0);
+    },
+    next() {
+      const step = STEPS[current];
+      if (step.cond) {
+        const btn = document.getElementById('tut-next-btn');
+        if (btn.disabled) return;
+      }
+      show(current + 1);
+    },
+    skip() {
+      end(true);
+    },
+  };
+
+  function end(fromSkip = false) {
+    _active = false;
+    clearInterval(checkInterval);
+    clearTimeout(playTimer);
+    document.getElementById('tutorial-card').classList.remove('tut-playing');
+    localStorage.setItem('gpa_tutorial_done', '1');
+
+    if (fromSkip) {
+      // 건너뛰기도 새 게임 시작
+      document.getElementById('tutorial-overlay').classList.remove('active');
+      document.getElementById('tutorial-mask').style.clipPath = '';
+      location.reload();
+      return;
+    }
+
+    // 마지막 단계 완료: 새 게임 시작 안내 후 리로드
+    const card = document.getElementById('tutorial-card');
+    card.innerHTML = `
+      <span class="tut-ico">🎉</span>
+      <div class="tut-title">튜토리얼 완료!</div>
+      <div class="tut-desc">이제 진짜 게임을 시작합니다.\n5분 안에 살아남으세요!</div>
+      <div class="tut-actions" style="margin-top:14px">
+        <button class="tut-btn tut-btn-next" onclick="location.reload()">🌱 새 게임 시작!</button>
+      </div>`;
+    // 마스크 제거해서 카드만 보이게
+    document.getElementById('tutorial-mask').style.background = 'rgba(30,20,50,0.85)';
+    document.getElementById('tutorial-mask').style.clipPath = '';
+    document.getElementById('tutorial-ring').style.display = 'none';
+    document.getElementById('tutorial-arrow').style.display = 'none';
+
+    // 카드 중앙 배치
+    const vw = window.innerWidth, vh = window.innerHeight;
+    card.style.left = `${(vw - (card.offsetWidth || 300)) / 2}px`;
+    card.style.top  = `${(vh - (card.offsetHeight || 200)) / 2}px`;
+  }
+})();
+
+// 페이지 로드 시 순위표 초기화
+window.addEventListener('DOMContentLoaded', () => {
+  initLeaderboard();
+});
+</script>
+<!-- 점수 등록 모달 -->
+<div id="score-submit-modal">
+  <div id="score-submit-card">
+    <h2>🏆 기록 등록</h2>
+    <div class="score-preview" id="lb-score-preview"></div>
+    <div class="sub-preview" id="lb-sub-preview"></div>
+    <input id="lb-name-input" type="text" maxlength="12" placeholder="이름을 입력하세요" autocomplete="off" />
+    <div class="btn-row">
+      <button id="lb-submit-btn" type="button" onclick="submitScoreFromModal()">등록</button>
+      <button id="lb-skip-btn" type="button" onclick="closeScoreSubmit()">건너뛰기</button>
+    </div>
+    <div id="lb-feedback"></div>
+  </div>
+</div>
+</body>
+</html>
