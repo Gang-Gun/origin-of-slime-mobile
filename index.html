@@ -2831,6 +2831,7 @@ class ArenaScene extends Phaser.Scene {
       if (due) { due.fired = true; this.startBossWarning(bossById(due.bossId), due.slot); this._dueBossHp = due.hp; }
     }
     if (this.bossPhase === 'warning') this.bossWarningTick();
+    if (this.bossPhase === 'chase') this.bossChaseTick(dt);
     // 운석 멸종 이벤트
     if (this.elapsed >= METEOR_WARN_TIME && !this.meteorWarned) {
       this.meteorWarned = true;
@@ -3357,10 +3358,38 @@ class ArenaScene extends Phaser.Scene {
     if (this.elapsed >= this.bossPhaseUntil) this.spawnBoss();
   }
 
-  // (임시 스텁 — Task 6에서 실제 보스 개체 생성으로 교체)
   spawnBoss() {
-    this.bossPhase = 'chase';
+    const boss = this.activeBoss;
+    document.getElementById('boss-banner').classList.remove('show');
     document.getElementById('boss-arrow').classList.remove('show');
+    // 화면 밖 가장자리에서 등장
+    const ang = Math.random()*Math.PI*2;
+    const sx = this.player.x + Math.cos(ang)*900;
+    const sy = this.player.y + Math.sin(ang)*900;
+    const sprite = this.add.text(sx, sy, boss.ico, { fontSize:'56px' }).setOrigin(0.5).setDepth(20);
+    const hpMax = this._dueBossHp || 80;
+    this.bossEntity = { x:sx, y:sy, hp:hpMax, hpMax, sprite, speed: 0.85 };
+    this.bossPhase = 'chase';
+    this.bossPhaseUntil = this.elapsed + (this.bossSlot === 'final' ? (METEOR_TIME - this.elapsed) : BOSS_RETREAT_TIME);
+    document.getElementById('boss-hp').classList.add('show');
+    this.showMessage(`${boss.ico} ${boss.name} 출현! 도망치며 번식해 빈도를 올리세요`, true);
+    this.recordAlleleSnapshot();
+    if (navigator.vibrate) navigator.vibrate(120);
+    this.cameras.main.shake(400, 0.01);
+  }
+
+  bossChaseTick(dt) {
+    const b = this.bossEntity; if (!b) return;
+    // 집단 중심을 향해 추격 (집단보다 살짝 느림)
+    const baseSpd = (this.player.average('speed') / 80) * 165 * (dt/1000);
+    const ang = Math.atan2(this.player.y - b.y, this.player.x - b.x);
+    b.x += Math.cos(ang) * baseSpd * b.speed;
+    b.y += Math.sin(ang) * baseSpd * b.speed;
+    b.sprite.setPosition(b.x, b.y);
+    // HP 바 갱신
+    const pct = Math.max(0, b.hp / b.hpMax * 100);
+    document.getElementById('boss-hp-fill').style.width = pct + '%';
+    document.getElementById('boss-hp-label').textContent = `${this.activeBoss.ico} ${this.activeBoss.name}  ${Math.ceil(b.hp)}/${b.hpMax}`;
   }
 
   startBossWarning(boss, slot) {
