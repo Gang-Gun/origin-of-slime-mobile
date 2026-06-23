@@ -3116,7 +3116,8 @@ class ArenaScene extends Phaser.Scene {
   }
 
   movePlayer(dt) {
-    // 보스 전투 범위 진입 시 플레이어 입력 차단 (일반 집단전과 동일하게 개체들이 자율 전투)
+    // 전투 중 플레이어 입력 차단 (일반 집단전·보스전 모두)
+    if (this.player.state === 'battle') return;
     if (this.bossEntity && Math.hypot(this.bossEntity.x - this.player.x, this.bossEntity.y - this.player.y) <= BOSS_RANGE + 120) return;
     const terrain = this.terrainAt(this.player.x, this.player.y);
     const geneSpd = this.calcGeneTerrainSpeedBonus(this.player, terrain);
