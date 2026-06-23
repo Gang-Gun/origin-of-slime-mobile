@@ -2236,8 +2236,8 @@ const TERRAIN_EVENTS = {
   ],
   volcano: [
     { name: '화산 폭발',
-      message: '화산이 폭발했습니다. 붉은 몸(RR)을 가진 개체만 열기를 버텼습니다.',
-      predicate: i => getGenotypeLabel(i, 'color') !== 'RR' },
+      message: '화산이 폭발했습니다. 붉은 몸(RR)이 없는 개체 다수가 열기를 버티지 못했습니다.',
+      predicate: i => getGenotypeLabel(i, 'color') !== 'RR', killRate: 0.75 },
     { name: '독가스 분출',
       message: '화산 독가스가 분출됐습니다. 독성 유전자가 없는 개체들이 쓰러졌습니다.',
       predicate: i => !i.hasDominant('poison') },
@@ -2287,8 +2287,8 @@ const TERRAIN_EVENTS = {
   ],
   swamp: [
     { name: '독성 폭발 확산',
-      message: '늪의 독성이 폭발적으로 강해졌습니다. 독성 유전자가 없는 개체가 전멸했습니다.',
-      predicate: i => !i.hasDominant('poison') },
+      message: '늪의 독성이 폭발적으로 강해졌습니다. 독성 유전자가 없는 개체 대다수가 쓰러졌습니다.',
+      predicate: i => !i.hasDominant('poison'), killRate: 0.70 },
     { name: '늪 수렁',
       message: '늪이 깊어져 느린 개체들이 수렁에 빠져 헤어나오지 못했습니다.',
       predicate: i => i.stats.speed < 62 },
@@ -2312,11 +2312,11 @@ const GENES = {
   charm: { alleles: ['C', 'c'], dominant: 'C', recessive: 'c', dominantName: '높은 매력', recessiveName: '보통 매력' }
 };
 const GENE_EFFECTS = {
-  color: { dominant: {}, recessive: {} },
-  speed: { dominant: { speed: 15 }, recessive: {} },
-  poison: { dominant: { attack: 3 }, recessive: {} },
-  armor: { dominant: { defense: 3, speed: -5 }, recessive: {} },
-  charm: { dominant: { charm: 5 }, recessive: {} }
+  color:  { dominant: { attack: 5, hp: 8 },                recessive: { defense: 4, foodNeed: -0.2 } }, // R:공격적, B:효율적
+  speed:  { dominant: { speed: 15 },                       recessive: {} },                              // 속도 유전자: 변경 없음
+  poison: { dominant: { attack: 10, defense: 3 },          recessive: {} },                              // 독성: 강한 공격·방어
+  armor:  { dominant: { defense: 10, hp: 15, speed: -8 },  recessive: {} },                              // 갑옷: 높은 방어·체력, 느림
+  charm:  { dominant: { charm: 12, fertility: 0.3 },       recessive: {} },                              // 매력: 높은 매력·번식력
 };
 const MUTATIONS = [
   { id: 'strong_jaw', name: '강한 턱', type: 'good', effects: { attack: 4 } },
@@ -4138,7 +4138,7 @@ class ArenaScene extends Phaser.Scene {
         if (!group.individuals.length) continue;
         const victims = group.individuals
           .sort(() => Math.random() - 0.5)
-          .slice(0, Math.floor(group.individuals.length * 0.9));
+          .slice(0, poachCount);
         const ids = new Set(victims.map(i => i.id));
         group.individuals = group.individuals.filter(i => !ids.has(i.id));
         group.terrainEventDeaths += victims.length;
@@ -4171,9 +4171,12 @@ class ArenaScene extends Phaser.Scene {
       playerAffected = playerAffected || group.isPlayer;
 
       if (event.predicate) {
-        // 개체 사망 이벤트
-        const victims = group.individuals.filter(i => event.predicate(i));
-        if (victims.length) {
+        // 개체 사망 이벤트: killRate 비율만 실제 사망 (기본 60%)
+        const atRisk = group.individuals.filter(i => event.predicate(i));
+        if (atRisk.length) {
+          const rate = event.killRate ?? 0.60;
+          const n = Math.max(1, Math.round(atRisk.length * rate));
+          const victims = atRisk.sort(() => Math.random() - 0.5).slice(0, n);
           const ids = new Set(victims.map(i => i.id));
           group.individuals = group.individuals.filter(i => !ids.has(i.id));
           group.terrainEventDeaths += victims.length;
