@@ -3657,7 +3657,7 @@ class ArenaScene extends Phaser.Scene {
     const sy = this.player.y + Math.sin(ang)*900;
     const sprite = this.add.image(sx, sy, this.createBossTexture(boss.id)).setOrigin(0.5).setDepth(20).setScale(5.0);
     const hpMax = this._dueBossHp || 600;
-    this.bossEntity = { x:sx, y:sy, hp:hpMax, hpMax, sprite, speed: 0.45, lastAttackAt: 0 };
+    this.bossEntity = { x:sx, y:sy, hp:hpMax, hpMax, sprite, speed: 0.45, lastAttackAt: 0, phase: Math.random() * Math.PI * 2 };
     this._bossSpawnCount = this.player.individuals.length;
     this._bossSpawnTime  = this.elapsed;
     this.bossPhase = 'chase';
@@ -3676,7 +3676,15 @@ class ArenaScene extends Phaser.Scene {
     const ang = Math.atan2(this.player.y - b.y, this.player.x - b.x);
     b.x += Math.cos(ang) * baseSpd * b.speed;
     b.y += Math.sin(ang) * baseSpd * b.speed;
-    b.sprite.setPosition(b.x, b.y);
+    // 점프 애니메이션: 슬라임과 동일한 사인파 스쿼시·호핑 (보스는 느리고 크게)
+    const t = this.elapsed / 1000;
+    const s = Math.sin(t * 2.5 + b.phase);
+    const hop = Math.max(0, s);
+    if (!b._chargePlayed) {
+      b.sprite.scaleX = 5.0 * (1 - 0.07 * s);
+      b.sprite.scaleY = 5.0 * (1 + 0.07 * s);
+    }
+    b.sprite.setPosition(b.x, b.y - hop * 18);
     // HP 바 갱신
     const pct = Math.max(0, b.hp / b.hpMax * 100);
     document.getElementById('boss-hp-fill').style.width = pct + '%';
