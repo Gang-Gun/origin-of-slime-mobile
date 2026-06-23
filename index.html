@@ -3763,7 +3763,7 @@ bossCombatTick(dt) {
 
   this.burst(cx, cy, 0xff1111, 20 + hitCount * 2, 140);
   this.burst(cx, cy, 0xff8800, 10, 80);
-  this.cameras.main.shake(300, 0.018);
+  this.cameras.main.shake(500, 0.045);
   this.cameras.main.flash(100, 255, 40, 40, false);
   if (navigator.vibrate) navigator.vibrate(180);
   this.tweens.add({ targets: b.sprite, scaleX: 6.0, scaleY: 4.6, duration: 80, yoyo: true, ease: 'Power3' });
