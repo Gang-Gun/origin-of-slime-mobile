@@ -3715,31 +3715,40 @@ bossCombatTick(dt) {
   b._chargePlayed = false;
   b.sprite.clearTint();
 
-  // 범위 내 모든 집단의 개체를 모아 불안전 우선 → 가장 가까운 1마리 타격
+  // 범위 내 모든 집단의 불안전 개체를 가까운 순으로 최대 10마리 즉사
   const allSlimes = [this.player, ...this.aiGroups]
     .filter(g => g.individuals.length > 0 && Math.hypot(b.x - g.x, b.y - g.y) <= BOSS_RANGE + 120)
     .flatMap(g => g.individuals.map(i => ({ i, g })));
   if (!allSlimes.length) return;
 
-  const unsafe = allSlimes.filter(({ i, g }) => !boss.safe(i, g));
-  const pool = unsafe.length ? unsafe : allSlimes;
-  const { i: target, g: tg } = pool.reduce((best, cur) => {
-    const db = Math.hypot(b.x - best.i.x, b.y - best.i.y);
-    const dc = Math.hypot(b.x - cur.i.x, b.y - cur.i.y);
-    return dc < db ? cur : best;
-  });
+  const unsafe = allSlimes
+    .filter(({ i, g }) => !boss.safe(i, g))
+    .sort((a, c) => Math.hypot(b.x - a.i.x, b.y - a.i.y) - Math.hypot(b.x - c.i.x, b.y - c.i.y))
+    .slice(0, 10);
 
-  target.takeHit(BOSS_ATK_DMG);
-  if (target.hp <= 0) target.dead = true;
-  tg.individuals = tg.individuals.filter(i => !i.dead);
+  if (!unsafe.length) return; // 불안전 개체 없으면 공격 안 함
 
-  this.burst(target.x, target.y, 0xff1111, 16, 120);
-  this.burst(target.x, target.y, 0xff8800, 8, 70);
-  this.cameras.main.shake(220, 0.014);
-  this.cameras.main.flash(70, 255, 40, 40, false);
-  if (navigator.vibrate) navigator.vibrate(150);
+  // 불안전 개체 즉사
+  for (const { i, g } of unsafe) {
+    i.dead = true;
+  }
+  // 사망 처리
+  const affectedGroups = new Set(unsafe.map(({ g }) => g));
+  for (const g of affectedGroups) {
+    g.individuals = g.individuals.filter(i => !i.dead);
+  }
+
+  const hitCount = unsafe.length;
+  const cx = unsafe.reduce((s, { i }) => s + i.x, 0) / hitCount;
+  const cy = unsafe.reduce((s, { i }) => s + i.y, 0) / hitCount;
+
+  this.burst(cx, cy, 0xff1111, 20 + hitCount * 2, 140);
+  this.burst(cx, cy, 0xff8800, 10, 80);
+  this.cameras.main.shake(300, 0.018);
+  this.cameras.main.flash(100, 255, 40, 40, false);
+  if (navigator.vibrate) navigator.vibrate(180);
   this.tweens.add({ targets: b.sprite, scaleX: 6.0, scaleY: 4.6, duration: 80, yoyo: true, ease: 'Power3' });
-  if (this.showToast) this.showToast(`${boss.ico} 공격!`, 'warn');
+  if (this.showToast) this.showToast(`${boss.ico} ${hitCount}마리 즉사!`, 'warn');
 }
 
 resolveBoss(win, reason) {
