@@ -2092,7 +2092,7 @@ const ACHIEVEMENTS = [
     check:(g,el)=>el>=120000 },
   { id:'veteran',     cat:'생존', name:'🎖️ 베테랑',      desc:'4분 생존',                     bonus:300,
     check:(g,el)=>el>=240000 },
-  { id:'last_stand',  cat:'생존', name:'🕯️ 마지막 불꽃', desc:'운석 30초 전(4분30초)까지 생존', bonus:500,
+  { id:'last_stand',  cat:'생존', name:'🕯️ 마지막 불꽃', desc:'운석 30초 전(9분30초)까지 생존', bonus:500,
     check:(g,el)=>el>=270000 },
 
   // ── 집단 크기 ──────────────────────────────────────────
@@ -4389,7 +4389,7 @@ class ArenaScene extends Phaser.Scene {
     const ang = Math.random()*Math.PI*2;
     const sx = this.player.x + Math.cos(ang)*900;
     const sy = this.player.y + Math.sin(ang)*900;
-    const sprite = this.add.image(sx, sy, this.createBossTexture(boss.id)).setOrigin(0.5).setDepth(20).setScale(3.0);
+    const sprite = this.add.image(sx, sy, this.createBossTexture(boss.id)).setOrigin(0.5).setDepth(20).setScale(2.0);
     const shadow = this.add.ellipse(sx, sy + 10, 90, 28, 0x000000, 0.35).setDepth(18);
     const hpMax = this._dueBossHp || 2500;
     this.bossEntity = { x:sx, y:sy, hp:hpMax, hpMax, sprite, shadow, lastAttackAt: 0,
@@ -4414,8 +4414,8 @@ class ArenaScene extends Phaser.Scene {
       b.chargeTimer += dt;
       const t = Math.min(1, b.chargeTimer / b.chargeDuration);
       if (!b._chargePlayed) {
-        b.sprite.scaleX = 3.0 + t * 0.9;
-        b.sprite.scaleY = 3.0 - t * 0.8;
+        b.sprite.scaleX = 2.0 + t * 0.6;
+        b.sprite.scaleY = 2.0 - t * 0.5;
         if (t > 0.5) {
           const f = (t - 0.5) * 2;
           const cg = Math.floor(255 * (1 - f * 0.75));
@@ -4432,10 +4432,16 @@ class ArenaScene extends Phaser.Scene {
         // 발사!
         b.moveState = 'jump';
         b.jumpStart  = { x: b.x, y: b.y };
-        b.jumpTarget = { x: this.player.x, y: this.player.y };
-        const jd = Math.hypot(b.jumpTarget.x - b.jumpStart.x, b.jumpTarget.y - b.jumpStart.y);
-        b.jumpDuration = Math.max(280, Math.min(650, jd * 0.42));
-        b.jumpHeight   = 150 + jd * 0.10;
+        const MAX_JUMP = 630; // 3.5× body (scale 2.0 × 90px texture)
+        const _pdx = this.player.x - b.jumpStart.x;
+        const _pdy = this.player.y - b.jumpStart.y;
+        const _pd  = Math.hypot(_pdx, _pdy);
+        b.jumpTarget = _pd > MAX_JUMP
+          ? { x: b.jumpStart.x + _pdx/_pd*MAX_JUMP, y: b.jumpStart.y + _pdy/_pd*MAX_JUMP }
+          : { x: this.player.x, y: this.player.y };
+        const jd = Math.min(_pd, MAX_JUMP);
+        b.jumpDuration = Math.max(700, Math.min(1500, jd * 1.1));
+        b.jumpHeight   = 120 + jd * 0.12;
         b.jumpProgress = 0;
         if (!b._chargePlayed) b.sprite.clearTint();
         if (navigator.vibrate) navigator.vibrate(55);
@@ -4454,8 +4460,8 @@ class ArenaScene extends Phaser.Scene {
       const land = p > 0.75 ? (p - 0.75) / 0.25 : 0;  // 착지 직전 납작
 
       if (!b._chargePlayed) {
-        b.sprite.scaleX = 3.0 * (1 - 0.22 * arcT + 0.32 * land);
-        b.sprite.scaleY = 3.0 * (1 + 0.32 * arcT - 0.45 * land);
+        b.sprite.scaleX = 2.0 * (1 - 0.22 * arcT + 0.32 * land);
+        b.sprite.scaleY = 2.0 * (1 + 0.32 * arcT - 0.45 * land);
       }
       b.sprite.setPosition(b.x, b.y - yOff);
 
@@ -4475,8 +4481,8 @@ class ArenaScene extends Phaser.Scene {
         this.cameras.main.shake(320, 0.028);
         if (navigator.vibrate) navigator.vibrate([0, 80, 40, 40]);
         if (!b._chargePlayed) {
-          b.sprite.scaleX = 3.8; b.sprite.scaleY = 2.2;
-          this.tweens.add({ targets: b.sprite, scaleX: 3.0, scaleY: 3.0, duration: 220, ease: 'Back.Out' });
+          b.sprite.scaleX = 2.5; b.sprite.scaleY = 1.5;
+          this.tweens.add({ targets: b.sprite, scaleX: 2.0, scaleY: 2.0, duration: 220, ease: 'Back.Out' });
         }
         b.moveState      = 'charge';
         b.chargeTimer    = 0;
@@ -4912,11 +4918,11 @@ resolveBoss(win, reason) {
     // ── 유전자 대립유전자 빈도 (50% 기준선 + 설명)
     const geneFreq = group.geneFrequency();
     const GENE_META = {
-      color:  { ico:'🔴', label:'R (몸색)',    desc:'붉은색↑  화산 적응',  allele:'R/B', col:'#ef5555' },
-      speed:  { ico:'⚡', label:'S (속도)',    desc:'속도+15  채집 빠름',  allele:'S/s', col:'#22c55e' },
-      poison: { ico:'☠️', label:'P (독성)',    desc:'공격+3   늪 적응',    allele:'P/p', col:'#a855f7' },
-      armor:  { ico:'🛡️', label:'A (갑옷)',    desc:'방어+3   속도-5',     allele:'A/a', col:'#60a5fa' },
-      charm:  { ico:'💗', label:'C (매력)',    desc:'매력+5   포섭↑',      allele:'C/c', col:'#f0abfc' },
+      color:  { ico:'🔴', label:'R (몸색)',    desc:'R:공격+5·HP+8 / B:방어+4·식량↓', allele:'R/B', col:'#ef5555' },
+      speed:  { ico:'⚡', label:'S (속도)',    desc:'속도+25  식량소모+0.3',           allele:'S/s', col:'#22c55e' },
+      poison: { ico:'☠️', label:'P (독성)',    desc:'공격+10·방어+3  늪 적응',         allele:'P/p', col:'#a855f7' },
+      armor:  { ico:'🛡️', label:'A (갑옷)',    desc:'방어+10·HP+15·속도-8',            allele:'A/a', col:'#60a5fa' },
+      charm:  { ico:'💗', label:'C (매력)',    desc:'매력+12·번식+0.3  포섭↑',         allele:'C/c', col:'#f0abfc' },
     };
     document.getElementById('s-genes').innerHTML = Object.entries(GENE_META).map(([gene, m]) => {
       const pct = geneFreq[gene] || 0;
@@ -5772,7 +5778,7 @@ const Tutorial = (() => {
     {
       ico: '👋',
       title: '슬라임 왕국에 오신 걸 환영해요!',
-      desc: '슬라임 집단을 이끌고 먹이를 모으세요.\n번식·돌연변이·전쟁으로 유전자 풀이 변하고\n5분 뒤 운명의 순간이 찾아옵니다!',
+      desc: '슬라임 집단을 이끌고 먹이를 모으세요.\n번식·돌연변이·전쟁으로 유전자 풀이 변하고\n10분 뒤 운명의 순간이 찾아옵니다!',
       target: null, cond: null, nextLabel: '시작하기 →',
     },
     {
@@ -5831,8 +5837,8 @@ const Tutorial = (() => {
     },
     {
       ico: '☄️',
-      title: '5분 뒤 운석이 떨어져요!',
-      desc: '4분 45초 후 경고 시작,\n5분이 되면 운석이 떨어져 전체 멸종!\n그 전까지 집단을 키우고 도전과제를 달성하세요 🏆',
+      title: '10분 뒤 운석이 떨어져요!',
+      desc: '9분 45초 후 경고 시작,\n10분이 되면 운석이 떨어져 전체 멸종!\n그 전까지 집단을 키우고 도전과제를 달성하세요 🏆',
       target: '#c-gen',
       cond: null,
       nextLabel: '도전 시작! 🌱',
@@ -6042,7 +6048,7 @@ const Tutorial = (() => {
     card.innerHTML = `
       <span class="tut-ico">🎉</span>
       <div class="tut-title">튜토리얼 완료!</div>
-      <div class="tut-desc">이제 진짜 게임을 시작합니다.\n5분 안에 살아남으세요!</div>
+      <div class="tut-desc">이제 진짜 게임을 시작합니다.\n10분 안에 살아남으세요!</div>
       <div class="tut-actions" style="margin-top:14px">
         <button class="tut-btn tut-btn-next" onclick="location.reload()">🌱 새 게임 시작!</button>
       </div>`;
