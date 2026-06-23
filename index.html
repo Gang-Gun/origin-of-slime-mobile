@@ -4562,6 +4562,8 @@ bossCombatTick(dt) {
 
 resolveBoss(win, reason) {
   const boss = this.activeBoss, slot = this.bossSlot;
+  const bx = this.bossEntity ? this.bossEntity.x : this.player.x;
+  const by = this.bossEntity ? this.bossEntity.y : this.player.y;
   if (this.bossEntity) { this.bossEntity.sprite.destroy(); if (this.bossEntity.shadow) this.bossEntity.shadow.destroy(); this.bossEntity = null; }
   document.getElementById('boss-hp').classList.remove('show');
   document.getElementById('boss-banner').classList.remove('show');
@@ -4573,19 +4575,8 @@ resolveBoss(win, reason) {
     let score = slot === 'final' ? 3000 : 200;
     if (boss.hidden) score = 5000;
     this.bossBonus = (this.bossBonus || 0) + score;
-    // ── 연구소 재화 드롭 ──
-    if (slot === 'mid') {
-      const frags = 10 + Math.floor(Math.random() * 6);
-      const cur = labGetFrag();
-      localStorage.setItem('gpa_frag', cur + frags);
-      if (this.showToast) this.showToast(`🔷 파편 +${frags}`, 'ach');
-    }
-    if (slot === 'final' || boss.hidden) {
-      const ess = 1 + Math.floor(Math.random() * 2);
-      const cur = labGetEss();
-      localStorage.setItem('gpa_ess', cur + ess);
-      if (this.showToast) this.showToast(`💠 정수 +${ess}`, 'ach');
-    }
+    // ── 연구소 재화 드롭 (바닥 아이템 산란) ──
+    this.spawnCurrencyDrops(bx, by, slot, boss.hidden);
     this.showMessage(`🏆 ${boss.name} 처치! +${score}점`, true);
     if (this.showToast) this.showToast(`🏆 ${boss.name} 처치 +${score}`, 'ach');
     if (navigator.vibrate) navigator.vibrate([80,40,120]);
@@ -4608,6 +4599,79 @@ resolveBoss(win, reason) {
   this.activeBoss = null;
   this.bossSlot = null;
 }
+
+  // 보스 처치 시 재화 아이템을 바닥에 산란시키고 자동 수거
+  spawnCurrencyDrops(bx, by, slot, isHidden) {
+    const drops = [];
+    if (slot === 'mid') {
+      const n = 10 + Math.floor(Math.random() * 6);
+      for (let i = 0; i < n; i++) drops.push('frag');
+    }
+    if (slot === 'final' || isHidden) {
+      const n = 1 + Math.floor(Math.random() * 2);
+      for (let i = 0; i < n; i++) drops.push('ess');
+    }
+    if (!drops.length) return;
+
+    const fragTotal = drops.filter(d => d === 'frag').length;
+    const essTotal  = drops.filter(d => d === 'ess').length;
+
+    drops.forEach((type, idx) => {
+      const ico  = type === 'frag' ? '🔷' : '💠';
+      const item = this.add.text(bx, by, ico, {
+        fontSize: type === 'frag' ? '18px' : '22px',
+        stroke: '#ffffff', strokeThickness: 2
+      }).setOrigin(0.5).setDepth(22);
+
+      // 부채꼴로 고르게 산란
+      const baseAngle = (idx / drops.length) * Math.PI * 2;
+      const angle = baseAngle + (Math.random() - 0.5) * 0.7;
+      const dist  = 70 + Math.random() * 150;
+      const tx = bx + Math.cos(angle) * dist;
+      const ty = by + Math.sin(angle) * dist;
+      const delay = idx * 35;
+
+      // X: 직선 / Y: 포물선(위로 솟았다 떨어짐)
+      this.tweens.add({ targets: item, x: tx, duration: 500, delay, ease: 'Power1.Out' });
+      this.tweens.add({
+        targets: item, y: ty - 110, duration: 250, delay, ease: 'Power2.Out',
+        onComplete: () => {
+          this.tweens.add({
+            targets: item, y: ty, duration: 280, ease: 'Bounce.Out',
+            onComplete: () => {
+              // 지면 pulse
+              this.tweens.add({
+                targets: item, scaleX: 1.28, scaleY: 1.28,
+                duration: 380, yoyo: true, repeat: -1, ease: 'Sine.InOut'
+              });
+              // 자동 수거
+              const collectAt = 1600 + Math.random() * 700;
+              this.time.delayedCall(collectAt, () => {
+                if (!item.active) return;
+                this.tweens.killTweensOf(item);
+                this.tweens.add({
+                  targets: item,
+                  x: this.player.x, y: this.player.y,
+                  scaleX: 0, scaleY: 0, alpha: 0,
+                  duration: 360, ease: 'Power2.In',
+                  onComplete: () => {
+                    if (item.active) item.destroy();
+                    if (type === 'frag') localStorage.setItem('gpa_frag', labGetFrag() + 1);
+                    else                localStorage.setItem('gpa_ess',  labGetEss()  + 1);
+                  }
+                });
+              });
+            }
+          });
+        }
+      });
+    });
+
+    // 전체 수거 후 토스트
+    const toastDelay = drops.length * 35 + 2600;
+    if (fragTotal > 0) this.time.delayedCall(toastDelay,       () => { if (this.showToast) this.showToast(`🔷 파편 ×${fragTotal} 수거!`, 'ach'); });
+    if (essTotal  > 0) this.time.delayedCall(toastDelay + 350, () => { if (this.showToast) this.showToast(`💠 정수 ×${essTotal} 수거!`,  'ach'); });
+  }
 
   startBossWarning(boss, slot) {
     this.bossPhase = 'warning';
