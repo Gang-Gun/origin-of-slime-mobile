@@ -1336,6 +1336,9 @@ const BOSS_WARN_TIME = 100000;      // 경고 카운트다운 100초
 const BOSS_RETREAT_TIME = 90000;    // 중간보스 퇴각 제한 90초
 const BOSS_RANGE = 240;             // 보스 공격범위(거리)
 const BOSS_MIN_POP = 3;             // 이 미만으로 떨어지면 게임오버
+const BOSS_ATK_CD = 800;            // 보스 개별 공격 쿨다운(ms)
+const BOSS_ATK_DMG = 20;            // 보스 단타 피해
+const BOSS_DMG_FACTOR = 0.10;       // 안전 개체의 보스 피해 배율
 const HIDDEN_BOSS_CHANCE = 0.02;    // 최종 슬롯 히든 등장 확률 2%
 const DIVERSITY_REQ = 0.6;          // 히든 보스 요구 다양성
 
@@ -3113,6 +3116,8 @@ class ArenaScene extends Phaser.Scene {
   }
 
   movePlayer(dt) {
+    // 보스 전투 범위 진입 시 플레이어 입력 차단 (일반 집단전과 동일하게 개체들이 자율 전투)
+    if (this.bossEntity && Math.hypot(this.bossEntity.x - this.player.x, this.bossEntity.y - this.player.y) <= BOSS_RANGE + 120) return;
     const terrain = this.terrainAt(this.player.x, this.player.y);
     const geneSpd = this.calcGeneTerrainSpeedBonus(this.player, terrain);
     const weatherSpd = this.weather ? this.weather.spdMult : 1;
@@ -3137,6 +3142,7 @@ class ArenaScene extends Phaser.Scene {
       for (const individual of group.individuals) {
         if (individual.dead) continue;
         if (battle && battle.active) {
+          // 일반 집단전: 가장 가까운 적 개체를 향해 이동
           const foes = (battle.groupA === group ? battle.groupB.individuals : battle.groupA.individuals).filter(foe => !foe.dead);
           const target = nearest(individual, foes);
           if (!target) continue;
@@ -3149,22 +3155,48 @@ class ArenaScene extends Phaser.Scene {
             individual.y += dy / distance * step;
           }
         } else {
-          const targetX = group.x + individual.offsetX;
-          const targetY = group.y + individual.offsetY;
-          const dx = targetX - individual.x;
-          const dy = targetY - individual.y;
-          const distance = Math.hypot(dx, dy) || 1;
-          if (distance > 5) {
-            const step = Math.min(distance, (individual.stats.speed / 80) * baseSpeed * 1.35);
-            individual.x += dx / distance * step;
-            individual.y += dy / distance * step;
+          const inBossCombat = this.bossEntity && this.activeBoss &&
+            Math.hypot(this.bossEntity.x - individual.x, this.bossEntity.y - individual.y) <= BOSS_RANGE + 120;
+
+          if (inBossCombat) {
+            // 보스전: 보스 경계까지 접근 (일반 집단전과 동일한 방식)
+            const bx = this.bossEntity.x - individual.x;
+            const by = this.bossEntity.y - individual.y;
+            const bd = Math.hypot(bx, by) || 1;
+            const EDGE = 230;
+            if (bd > EDGE) {
+              const step = Math.min(bd - EDGE, (individual.stats.speed / 80) * baseSpeed);
+              individual.x += bx / bd * step;
+              individual.y += by / bd * step;
+            }
+            // 안전 개체만 보스를 공격 (쿨다운 방식, 일반 attack()과 동일)
+            const now = Date.now();
+            if (!individual.lastAttackAt || now - individual.lastAttackAt >= ATTACK_COOLDOWN) {
+              individual.lastAttackAt = now;
+              if (this.activeBoss.safe(individual, group)) {
+                const dmg = Math.max(1, individual.stats.attack * BOSS_DMG_FACTOR);
+                this.bossEntity.hp = Math.max(0, this.bossEntity.hp - dmg);
+              }
+            }
+          } else {
+            // 일반 이동: 집단 중심 + 랜덤 오프셋
+            const targetX = group.x + individual.offsetX;
+            const targetY = group.y + individual.offsetY;
+            const dx = targetX - individual.x;
+            const dy = targetY - individual.y;
+            const distance = Math.hypot(dx, dy) || 1;
+            if (distance > 5) {
+              const step = Math.min(distance, (individual.stats.speed / 80) * baseSpeed * 1.35);
+              individual.x += dx / distance * step;
+              individual.y += dy / distance * step;
+            }
+            if (Math.random() < .01) {
+              individual.offsetX = (Math.random() - .5) * FOLLOW_RADIUS * 2;
+              individual.offsetY = (Math.random() - .5) * FOLLOW_RADIUS * 2;
+            }
           }
-          if (Math.random() < .01) {
-            individual.offsetX = (Math.random() - .5) * FOLLOW_RADIUS * 2;
-            individual.offsetY = (Math.random() - .5) * FOLLOW_RADIUS * 2;
-          }
-          // AABB 분리: 실제 스프라이트 픽셀 크기 기준으로 겹침 해소
-          // 슬라임 텍스처: 64×40px (S=4, 16×10셀), 반폭=32, 반높이=20
+
+          // AABB 분리: 실제 스프라이트 픽셀 크기 기준 (보스전·일반 모두 적용)
           const SLIME_HW = 32, SLIME_HH = 20;
           const scaleI = clamp(0.55 + individual.stats.hp / 100 * 0.40, 0.60, 1.55);
           const hwI = SLIME_HW * scaleI, hhI = SLIME_HH * scaleI;
@@ -3179,7 +3211,6 @@ class ArenaScene extends Phaser.Scene {
               const overlapX = (hwI + hwF) - Math.abs(ex);
               const overlapY = (hhI + hhF) - Math.abs(ey);
               if (overlapX > 0 && overlapY > 0) {
-                // 겹침이 더 작은 축으로 밀어내기
                 if (overlapX <= overlapY) {
                   individual.x += (ex >= 0 ? 1 : -1) * overlapX;
                 } else {
@@ -3188,7 +3219,7 @@ class ArenaScene extends Phaser.Scene {
               }
             }
           }
-          // 보스 AABB 분리: 텍스처 90×75 × scale5 → 450×375, 반폭=225, 반높이=187
+          // 보스 AABB: 텍스처 90×75 × scale5 → 450×375, 반폭 225 / 반높이 187
           if (this.bossEntity) {
             const bx = individual.x - this.bossEntity.x;
             const by = individual.y - this.bossEntity.y;
@@ -3626,7 +3657,7 @@ class ArenaScene extends Phaser.Scene {
     const sy = this.player.y + Math.sin(ang)*900;
     const sprite = this.add.image(sx, sy, this.createBossTexture(boss.id)).setOrigin(0.5).setDepth(20).setScale(5.0);
     const hpMax = this._dueBossHp || 600;
-    this.bossEntity = { x:sx, y:sy, hp:hpMax, hpMax, sprite, speed: 0.45, turnTimer: 0 };
+    this.bossEntity = { x:sx, y:sy, hp:hpMax, hpMax, sprite, speed: 0.45, lastAttackAt: 0 };
     this._bossSpawnCount = this.player.individuals.length;
     this._bossSpawnTime  = this.elapsed;
     this.bossPhase = 'chase';
@@ -3660,64 +3691,55 @@ class ArenaScene extends Phaser.Scene {
   if (this.elapsed >= this.bossPhaseUntil) this.resolveBoss(false, 'retreat');
   }
 
-// 턴제 전투: 2.5초마다 보스가 범위 내 모든 집단의 최대 10마리씩 동시 타격
+// 보스 전투: 일반 집단전과 동일한 쿨다운 방식
+// - 슬라임 공격: moveIndividuals에서 개체별 ATTACK_COOLDOWN마다 처리
+// - 보스 공격: BOSS_ATK_CD마다 가장 가까운 (불안전) 개체 1마리 타격
 bossCombatTick(dt) {
   const boss = this.activeBoss, b = this.bossEntity;
-  const TURN_MS = 2500;
-  b.turnTimer += dt;
 
-  // 공격 직전 600ms: 보스 붉은 충전 연출
-  const charging = b.turnTimer >= TURN_MS - 600;
-  if (charging && !b._chargePlayed) {
+  // 보스 사망 체크 (슬라임들의 누적 공격으로 HP 소진)
+  if (b.hp <= 0) { this.resolveBoss(true); return; }
+
+  const now = Date.now();
+
+  // 공격 직전 350ms: 충전 연출
+  const timeToAtk = BOSS_ATK_CD - (now - b.lastAttackAt);
+  if (timeToAtk <= 350 && !b._chargePlayed) {
     b._chargePlayed = true;
     b.sprite.setTint(0xff4444);
     this.tweens.add({ targets: b.sprite, scaleX: 5.6, scaleY: 5.6, duration: 120, yoyo: true, ease: 'Power2' });
   }
 
-  // 카운트다운 표시
-  const remain = Math.max(1, Math.ceil((TURN_MS - b.turnTimer) / 1000));
-  document.getElementById('boss-hp-label').textContent =
-    `${boss.ico} ${boss.name}  ${Math.ceil(b.hp)}/${b.hpMax}  ${charging ? '🔴' : '⚔️'}${remain}s`;
-
-  if (b.turnTimer < TURN_MS) return;
-  b.turnTimer -= TURN_MS;
+  if (now - b.lastAttackAt < BOSS_ATK_CD) return;
+  b.lastAttackAt = now;
   b._chargePlayed = false;
   b.sprite.clearTint();
 
-  // 범위 내 모든 집단 처리 (플레이어 + AI)
-  const inRange = [this.player, ...this.aiGroups].filter(g =>
-    g.individuals.length > 0 &&
-    Math.hypot(b.x - g.x, b.y - g.y) <= BOSS_RANGE
-  );
+  // 범위 내 모든 집단의 개체를 모아 불안전 우선 → 가장 가까운 1마리 타격
+  const allSlimes = [this.player, ...this.aiGroups]
+    .filter(g => g.individuals.length > 0 && Math.hypot(b.x - g.x, b.y - g.y) <= BOSS_RANGE + 120)
+    .flatMap(g => g.individuals.map(i => ({ i, g })));
+  if (!allSlimes.length) return;
 
-  let totalHit = 0, totalCounter = 0;
-  for (const g of inRange) {
-    const safeFn = (i) => boss.safe(i, g);
-    // 보스 공격: 미충족 개체 최대 10마리 (20 HP)
-    const unsafe = g.individuals.filter(i => !safeFn(i));
-    const hitN = Math.min(10, unsafe.length);
-    for (let k = 0; k < hitN; k++) {
-      unsafe[k].hp -= 20;
-      if (unsafe[k].hp <= 0) unsafe[k].dead = true;
-    }
-    g.individuals = g.individuals.filter(i => !i.dead);
-    totalHit += hitN;
-    // 반격: 안전 개체 수 × 3
-    totalCounter += g.individuals.filter(safeFn).length * 3;
-  }
+  const unsafe = allSlimes.filter(({ i, g }) => !boss.safe(i, g));
+  const pool = unsafe.length ? unsafe : allSlimes;
+  const { i: target, g: tg } = pool.reduce((best, cur) => {
+    const db = Math.hypot(b.x - best.i.x, b.y - best.i.y);
+    const dc = Math.hypot(b.x - cur.i.x, b.y - cur.i.y);
+    return dc < db ? cur : best;
+  });
 
-  if (totalHit > 0) {
-    this.burst(this.player.x, this.player.y, 0xff1111, 24, 140);
-    this.burst(this.player.x, this.player.y, 0xff8800, 10, 80);
-    this.cameras.main.shake(300, 0.018);
-    this.cameras.main.flash(100, 255, 40, 40, false);
-    if (navigator.vibrate) navigator.vibrate(180);
-    this.tweens.add({ targets: b.sprite, scaleX: 6.0, scaleY: 4.6, duration: 80, yoyo: true, ease: 'Power3' });
-    if (this.showToast) this.showToast(`${boss.ico} 공격! ${totalHit}마리 피해`, 'warn');
-  }
+  target.takeHit(BOSS_ATK_DMG);
+  if (target.hp <= 0) target.dead = true;
+  tg.individuals = tg.individuals.filter(i => !i.dead);
 
-  b.hp -= totalCounter;
-  if (b.hp <= 0) this.resolveBoss(true);
+  this.burst(target.x, target.y, 0xff1111, 16, 120);
+  this.burst(target.x, target.y, 0xff8800, 8, 70);
+  this.cameras.main.shake(220, 0.014);
+  this.cameras.main.flash(70, 255, 40, 40, false);
+  if (navigator.vibrate) navigator.vibrate(150);
+  this.tweens.add({ targets: b.sprite, scaleX: 6.0, scaleY: 4.6, duration: 80, yoyo: true, ease: 'Power3' });
+  if (this.showToast) this.showToast(`${boss.ico} 공격!`, 'warn');
 }
 
 resolveBoss(win, reason) {
