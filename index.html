@@ -4457,8 +4457,8 @@ class ArenaScene extends Phaser.Scene {
       if (b.jumpProgress >= 1) {
         // 착지!
         b.sprite.setPosition(b.x, b.y);
-        this.cameras.main.shake(140, 0.009);
-        if (navigator.vibrate) navigator.vibrate([0, 55]);
+        this.cameras.main.shake(320, 0.028);
+        if (navigator.vibrate) navigator.vibrate([0, 80, 40, 40]);
         if (!b._chargePlayed) {
           b.sprite.scaleX = 3.8; b.sprite.scaleY = 2.2;
           this.tweens.add({ targets: b.sprite, scaleX: 3.0, scaleY: 3.0, duration: 220, ease: 'Back.Out' });
