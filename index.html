@@ -4149,13 +4149,16 @@ class ArenaScene extends Phaser.Scene {
       return;
     }
 
-    // 일반 지형 이벤트
+    // 일반 지형 이벤트: 랜덤 최대 3개 지형에서 동시 발생
     const occupied = new Set(this.groups.map(g => this.terrainAt(g.x, g.y).id));
     const candidates = TERRAIN_LIST.filter(t => TERRAIN_EVENTS[t.id] && occupied.has(t.id));
     if (!candidates.length) return;
-    const targetTerrain = choose(candidates);
-    const event = choose(TERRAIN_EVENTS[targetTerrain.id]);
-    this.applyTerrainEvent(targetTerrain, event);
+    const shuffled = [...candidates].sort(() => Math.random() - 0.5);
+    const picks = shuffled.slice(0, Math.min(3, shuffled.length));
+    for (const targetTerrain of picks) {
+      const event = choose(TERRAIN_EVENTS[targetTerrain.id]);
+      this.applyTerrainEvent(targetTerrain, event);
+    }
   }
 
   applyTerrainEvent(targetTerrain, event) {
