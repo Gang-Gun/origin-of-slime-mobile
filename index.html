@@ -2313,7 +2313,7 @@ const GENES = {
 };
 const GENE_EFFECTS = {
   color:  { dominant: { attack: 5, hp: 8 },                recessive: { defense: 4, foodNeed: -0.2 } }, // R:공격적, B:효율적
-  speed:  { dominant: { speed: 15 },                       recessive: {} },                              // 속도 유전자: 변경 없음
+  speed:  { dominant: { speed: 25, gather: 2 },             recessive: {} },                              // 속도: 빠름 + 채집 증가
   poison: { dominant: { attack: 10, defense: 3 },          recessive: {} },                              // 독성: 강한 공격·방어
   armor:  { dominant: { defense: 10, hp: 15, speed: -8 },  recessive: {} },                              // 갑옷: 높은 방어·체력, 느림
   charm:  { dominant: { charm: 12, fertility: 0.3 },       recessive: {} },                              // 매력: 높은 매력·번식력
