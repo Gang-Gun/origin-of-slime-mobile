@@ -1336,9 +1336,9 @@ const BOSS_WARN_TIME = 100000;      // 경고 카운트다운 100초
 const BOSS_RETREAT_TIME = 90000;    // 중간보스 퇴각 제한 90초
 const BOSS_RANGE = 240;             // 보스 공격범위(거리)
 const BOSS_MIN_POP = 3;             // 이 미만으로 떨어지면 게임오버
-const BOSS_ATK_CD = 800;            // 보스 개별 공격 쿨다운(ms)
-const BOSS_ATK_DMG = 20;            // 보스 단타 피해
-const BOSS_DMG_FACTOR = 0.10;       // 안전 개체의 보스 피해 배율
+const BOSS_ATK_CD = 800;            // 보스 공격 쿨다운(ms)
+const BOSS_DEFENSE = 5;             // 보스 방어력 (일반 개체 defense 스케일)
+const BOSS_ATK_STAT = 40;           // 보스 공격력 (일반 개체 attack 스케일)
 const HIDDEN_BOSS_CHANCE = 0.02;    // 최종 슬롯 히든 등장 확률 2%
 const DIVERSITY_REQ = 0.6;          // 히든 보스 요구 다양성
 
@@ -3170,12 +3170,14 @@ class ArenaScene extends Phaser.Scene {
               individual.x += bx / bd * step;
               individual.y += by / bd * step;
             }
-            // 안전 개체만 보스를 공격 (쿨다운 방식, 일반 attack()과 동일)
+            // 안전 개체만 보스를 공격 — 일반 전투와 동일한 공식 (terrainBonus + defense)
             const now = Date.now();
             if (!individual.lastAttackAt || now - individual.lastAttackAt >= ATTACK_COOLDOWN) {
               individual.lastAttackAt = now;
               if (this.activeBoss.safe(individual, group)) {
-                const dmg = Math.max(1, individual.stats.attack * BOSS_DMG_FACTOR);
+                const terrain = this.terrainAt(group.x, group.y);
+                const bonus = Battle.calcTerrainBattleBonus(group, terrain);
+                const dmg = Math.max(1, individual.stats.attack * bonus - BOSS_DEFENSE);
                 this.bossEntity.hp = Math.max(0, this.bossEntity.hp - dmg);
               }
             }
@@ -3731,7 +3733,7 @@ bossCombatTick(dt) {
   b.sprite.clearTint();
 
   // 범위 내 모든 개체를 가까운 순으로 최대 10마리 공격
-  // 불안전 개체: 즉사 / 안전 개체: BOSS_ATK_DMG 피해
+  // 불안전 개체: 즉사 / 안전 개체: takeHit(BOSS_ATK_STAT) — 일반 전투와 동일한 공식
   const allSlimes = [this.player, ...this.aiGroups]
     .filter(g => g.individuals.length > 0 && Math.hypot(b.x - g.x, b.y - g.y) <= BOSS_RANGE + 120)
     .flatMap(g => g.individuals.map(i => ({ i, g, safe: boss.safe(i, g) })));
@@ -3747,7 +3749,7 @@ bossCombatTick(dt) {
       i.dead = true;
       killed++;
     } else {
-      i.takeHit(BOSS_ATK_DMG);
+      i.takeHit(BOSS_ATK_STAT);
       if (i.hp <= 0) { i.dead = true; killed++; }
     }
   }
