@@ -1608,6 +1608,12 @@ const LAB_NODE_DEFS = [
   { id:'rc2',  t:'frag', parent:'rc1',   ico:'🧲', name:'포섭 II',   costType:'frag', costAmt:16, effect:'포섭 성공률 +12%' },
   { id:'rc3',  t:'frag', parent:'rc2',   ico:'🧲', name:'포섭 III',  costType:'frag', costAmt:28, effect:'포섭 성공률 +20%' },
   { id:'rc4',  t:'frag', parent:'rc3',   ico:'🧲', name:'포섭 IV',   costType:'frag', costAmt:46, effect:'포섭 성공률 +30%' },
+  // 군집한계 계열 (최대 개체 수 증가)
+  { id:'cap1', t:'frag', parent:'froot', ico:'🏟️', name:'군집한계 I',  costType:'frag', costAmt:8,  effect:'최대 개체 수 +10 (→110)' },
+  { id:'cap2', t:'frag', parent:'cap1',  ico:'🏟️', name:'군집한계 II', costType:'frag', costAmt:18, effect:'최대 개체 수 +20 (→130)' },
+  { id:'cap3', t:'frag', parent:'cap2',  ico:'🏟️', name:'군집한계 III',costType:'frag', costAmt:32, effect:'최대 개체 수 +35 (→165)' },
+  { id:'cap4', t:'frag', parent:'cap3',  ico:'🏟️', name:'군집한계 IV', costType:'frag', costAmt:52, effect:'최대 개체 수 +55 (→220)' },
+  { id:'cap5', t:'frag', parent:'cap4',  ico:'🏟️', name:'군집한계 V',  costType:'frag', costAmt:80, effect:'최대 개체 수 +80 (→300)' },
 
   // ── 정수 트리 root ──
   { id:'eroot', t:'ess', parent:null, ico:'👁️', name:'진화의 눈', costType:null, costAmt:0,
@@ -1686,6 +1692,7 @@ function computeLabBuffs() {
     mutationEnabled: has('evo1'),
     mutationChance: has('prob5')?1.0 : has('prob4')?0.75 : has('prob3')?0.50 : has('prob2')?0.30 : has('prob1')?0.15 : 0,
     mutationChoices: has('pick4')?4 : has('pick3')?3 : has('pick2')?2 : has('pick1')?1 : 0,
+    maxPopBonus: (has('cap1')?10:0) + (has('cap2')?20:0) + (has('cap3')?35:0) + (has('cap4')?55:0) + (has('cap5')?80:0),
   };
 }
 computeLabBuffs();
@@ -2572,6 +2579,10 @@ class Group {
     return this.individuals.length;
   }
 
+  _maxPop() {
+    return this.isPlayer ? MAX_INDIVIDUALS + ((LAB_BUFFS && LAB_BUFFS.maxPopBonus) || 0) : MAX_INDIVIDUALS;
+  }
+
   need() {
     return this.individuals.reduce((sum, individual) => sum + individual.stats.foodNeed, 0);
   }
@@ -2582,7 +2593,7 @@ class Group {
 
   canBreed() {
     const bc = this.isPlayer && LAB_BUFFS ? Math.max(1, Math.round(BREED_COST * LAB_BUFFS.breedCostMult)) : BREED_COST;
-    return this.state === 'normal' && this.count >= 2 && this.count < MAX_INDIVIDUALS && this.surplus() >= bc;
+    return this.state === 'normal' && this.count >= 2 && this.count < this._maxPop() && this.surplus() >= bc;
   }
 
   average(stat) {
@@ -2674,7 +2685,7 @@ class Group {
 
   // 밀도 의존 번식률: 개체수↑ → 번식 감소 (환경 수용력)
   densityFactor() {
-    return Math.max(0.10, 1 - (this.count / MAX_INDIVIDUALS) * 0.88);
+    return Math.max(0.10, 1 - (this.count / this._maxPop()) * 0.88);
   }
 
   breed() {
@@ -2683,7 +2694,7 @@ class Group {
       ? Math.max(1, Math.round(BREED_COST * LAB_BUFFS.breedCostMult))
       : BREED_COST;
     const rawCount = Math.floor(this.surplus() / breedCost);
-    const childCount = Math.min(Math.max(1, Math.floor(rawCount * this.densityFactor())), MAX_INDIVIDUALS - this.count);
+    const childCount = Math.min(Math.max(1, Math.floor(rawCount * this.densityFactor())), this._maxPop() - this.count);
     if (childCount <= 0) return 0;
     this.food -= childCount * breedCost;
     this.generation += 1;
@@ -2706,7 +2717,7 @@ class Group {
       this.individuals.push(child);
       // Twin chance (player only)
       if (this.isPlayer && LAB_BUFFS && LAB_BUFFS.twinChance > 0
-          && Math.random() < LAB_BUFFS.twinChance && this.individuals.length < MAX_INDIVIDUALS) {
+          && Math.random() < LAB_BUFFS.twinChance && this.individuals.length < this._maxPop()) {
         const twin = Individual.breed(parentA, parentB, this.id, this.x + (Math.random()-0.5)*84, this.y + (Math.random()-0.5)*84);
         this.individuals.push(twin);
       }
