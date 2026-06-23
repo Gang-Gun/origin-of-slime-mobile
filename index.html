@@ -4382,9 +4382,6 @@ class ArenaScene extends Phaser.Scene {
     this.bossPhase = 'chase';
     this.bossPhaseUntil = this.elapsed + (this.bossSlot === 'final' ? (METEOR_TIME + ((LAB_BUFFS&&LAB_BUFFS.meteorBonus)||0) - this.elapsed) : BOSS_RETREAT_TIME);
     document.getElementById('boss-hp').classList.add('show');
-    const bb = document.getElementById('battle-banner');
-    bb.textContent = `${boss.ico} ${boss.name} 전투 중!`;
-    bb.style.display = 'block';
     this.showMessage(`${boss.ico} ${boss.name} 출현! 도망치며 번식해 빈도를 올리세요`, true);
     this.recordAlleleSnapshot();
     if (navigator.vibrate) navigator.vibrate(120);
@@ -4418,9 +4415,16 @@ class ArenaScene extends Phaser.Scene {
     const pct = Math.max(0, b.hp / b.hpMax * 100);
     document.getElementById('boss-hp-fill').style.width = pct + '%';
     document.getElementById('boss-hp-label').textContent = `${this.activeBoss.ico} ${this.activeBoss.name}  ${Math.ceil(b.hp)}/${b.hpMax}`;
-    // 공격범위 안일 때만 도태/반격
+    // 공격범위 안일 때만 도태/반격 + 배너 토글
     const dist = Math.hypot(b.x - this.player.x, b.y - this.player.y);
-    if (dist <= BOSS_RANGE) this.bossCombatTick(dt);
+    const _bb = document.getElementById('battle-banner');
+    if (dist <= BOSS_RANGE) {
+      _bb.textContent = `${this.activeBoss.ico} ${this.activeBoss.name} 전투 중!`;
+      _bb.style.display = 'block';
+      this.bossCombatTick(dt);
+    } else {
+      _bb.style.display = 'none';
+    }
     if (this.bossPhase !== 'chase') return; // 전투 중 처치되어 이미 종료됨
   // 게임오버: 개체수 임계 미만
   if (this.player.individuals.length < BOSS_MIN_POP) { this.resolveBoss(false, 'wipe'); return this.endGame(); }
