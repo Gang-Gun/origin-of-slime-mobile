@@ -4622,16 +4622,15 @@ resolveBoss(win, reason) {
     if (Audio.sfxMeteor) Audio.sfxMeteor();
   }
 
-  // 이번 판 보스 3종을 중복 없이 추첨. 최종 슬롯은 확률적으로 히든 대체.
+  // 1번: 단일 조건 보스 / 2번: 복합(2개) 조건 보스 / 3번: 히든 보스 고정
   rollBossSchedule() {
-    const regular = BOSS_ROSTER.filter(b => !b.hidden);
-    const pool = [...regular];
-    for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(Math.random()*(i+1)); [pool[i],pool[j]]=[pool[j],pool[i]]; }
+    const single = BOSS_ROSTER.filter(b => !b.hidden && !b.reqText.includes('·'));
+    const dual   = BOSS_ROSTER.filter(b => !b.hidden &&  b.reqText.includes('·'));
+    const hidden = BOSS_ROSTER.find(b => b.hidden);
+    const pick1  = single[Math.floor(Math.random() * single.length)];
+    const pick2  = dual[Math.floor(Math.random() * dual.length)];
     return BOSS_SCHEDULE.map((s, idx) => {
-      let boss = pool[idx];
-      if (s.slot === 'final' && Math.random() < HIDDEN_BOSS_CHANCE) {
-        boss = BOSS_ROSTER.find(b => b.hidden);
-      }
+      const boss = idx === 0 ? pick1 : idx === 1 ? pick2 : hidden;
       return { at: s.at, slot: s.slot, hp: s.hp, bossId: boss.id, fired: false };
     });
   }
