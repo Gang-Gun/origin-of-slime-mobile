@@ -3679,7 +3679,7 @@ class ArenaScene extends Phaser.Scene {
     const ang = Math.atan2(this.player.y - b.y, this.player.x - b.x);
     b.x += Math.cos(ang) * baseSpd * b.speed;
     b.y += Math.sin(ang) * baseSpd * b.speed;
-    // 점프 애니메이션: 느린 사인파 스쿼시·호핑, 착지 시 가벼운 화면 흔들림
+    // 점프 애니메이션: 지상=좌우 스쿼시, 공중=세로 스트레치 (슬라임 동일 방식)
     const t = this.elapsed / 1000;
     const s = Math.sin(t * 1.4 + b.phase);
     const hop = Math.max(0, s);
@@ -3690,10 +3690,11 @@ class ArenaScene extends Phaser.Scene {
     }
     b._prevHop = hop;
     if (!b._chargePlayed) {
-      b.sprite.scaleX = 5.0 * (1 - 0.07 * s);
-      b.sprite.scaleY = 5.0 * (1 + 0.07 * s);
+      // s>0(공중): 세로 길게·가로 좁게 / s<0(지상): 가로 넓게·세로 낮게
+      b.sprite.scaleX = 5.0 * (1 - 0.18 * s);
+      b.sprite.scaleY = 5.0 * (1 + 0.18 * s);
     }
-    b.sprite.setPosition(b.x, b.y - hop * 18);
+    b.sprite.setPosition(b.x, b.y - hop * 22);
     // HP 바 갱신
     const pct = Math.max(0, b.hp / b.hpMax * 100);
     document.getElementById('boss-hp-fill').style.width = pct + '%';
@@ -3724,7 +3725,13 @@ bossCombatTick(dt) {
   if (timeToAtk <= 350 && !b._chargePlayed) {
     b._chargePlayed = true;
     b.sprite.setTint(0xff4444);
-    this.tweens.add({ targets: b.sprite, scaleX: 5.6, scaleY: 5.6, duration: 120, yoyo: true, ease: 'Power2' });
+    // 공격 직전: 가로 스쿼시(납작) → 공격 순간 세로 스트레치(솟구침)
+    this.tweens.add({
+      targets: b.sprite, scaleX: 6.8, scaleY: 3.5, duration: 250, ease: 'Power2',
+      onComplete: () => {
+        this.tweens.add({ targets: b.sprite, scaleX: 3.8, scaleY: 7.2, duration: 100, yoyo: true, ease: 'Power3' });
+      }
+    });
   }
 
   if (now - b.lastAttackAt < BOSS_ATK_CD) return;
@@ -3780,8 +3787,8 @@ resolveBoss(win, reason) {
   this.bossPhase = 'idle';
   this.recordAlleleSnapshot();
   if (win) {
-    let score = slot === 'final' ? 600 : 200;
-    if (boss.hidden) score = 1500;
+    let score = slot === 'final' ? 3000 : 200;
+    if (boss.hidden) score = 5000;
     this.bossBonus = (this.bossBonus || 0) + score;
     this.showMessage(`🏆 ${boss.name} 처치! +${score}점`, true);
     if (this.showToast) this.showToast(`🏆 ${boss.name} 처치 +${score}`, 'ach');
@@ -3794,6 +3801,11 @@ resolveBoss(win, reason) {
     if (this.player.individuals.length >= (this._bossSpawnCount || 0)) d.bossNoLossKill = true;
     if ((this.elapsed - (this._bossSpawnTime || 0)) <= 60000) d.bossQuickKill = true;
     this.checkAchievements();
+    // 최종 보스·히든 보스 처치 → 2초 후 엔딩
+    if (slot === 'final' || boss.hidden) {
+      this.cameras.main.flash(600, 255, 255, 180);
+      this.time.delayedCall(2000, () => this.endGame());
+    }
   } else if (reason === 'retreat') {
     this.showMessage(`${boss.ico} ${boss.name}가 물러갑니다… (보상 없음)`, true);
   }
