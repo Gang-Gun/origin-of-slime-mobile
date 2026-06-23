@@ -3676,10 +3676,16 @@ class ArenaScene extends Phaser.Scene {
     const ang = Math.atan2(this.player.y - b.y, this.player.x - b.x);
     b.x += Math.cos(ang) * baseSpd * b.speed;
     b.y += Math.sin(ang) * baseSpd * b.speed;
-    // 점프 애니메이션: 슬라임과 동일한 사인파 스쿼시·호핑 (보스는 느리고 크게)
+    // 점프 애니메이션: 느린 사인파 스쿼시·호핑, 착지 시 가벼운 화면 흔들림
     const t = this.elapsed / 1000;
-    const s = Math.sin(t * 2.5 + b.phase);
+    const s = Math.sin(t * 1.4 + b.phase);
     const hop = Math.max(0, s);
+    const prevHop = b._prevHop ?? 0;
+    if (prevHop > 0.05 && hop <= 0.05) {
+      // 착지 순간: 가벼운 흔들림
+      this.cameras.main.shake(120, 0.005);
+    }
+    b._prevHop = hop;
     if (!b._chargePlayed) {
       b.sprite.scaleX = 5.0 * (1 - 0.07 * s);
       b.sprite.scaleY = 5.0 * (1 + 0.07 * s);
