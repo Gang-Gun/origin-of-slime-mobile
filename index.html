@@ -2024,18 +2024,27 @@ const HIDDEN_BOSS_CHANCE = 0.02;    // 최종 슬롯 히든 등장 확률 2%
 const DIVERSITY_REQ = 0.6;          // 히든 보스 요구 다양성
 
 const BOSS_ROSTER = [
-  // 단일 유전자 6 (지형 대피 1:1)
-  { id:'lava',   name:'용암 거인',   ico:'🔥', reqText:'붉은몸(RR)', refuge:'volcano', refugeText:'🌋 화산',  safe:i=>getGenotypeLabel(i,'color')==='RR' },
-  { id:'sand',   name:'모래 폭군',   ico:'🏜️', reqText:'푸른몸(BB)', refuge:'desert',  refugeText:'🏜️ 사막',  safe:i=>getGenotypeLabel(i,'color')==='BB' },
-  { id:'glacier',name:'빙하 군주',   ico:'❄️', reqText:'갑옷(A)',    refuge:'snow',    refugeText:'❄️ 눈밭',  safe:i=>i.hasDominant('armor') },
-  { id:'spore',  name:'독포자 마수', ico:'☠️', reqText:'독성(P)',    refuge:'swamp',   refugeText:'🐸 독성늪', safe:i=>i.hasDominant('poison') },
-  { id:'gale',   name:'질풍 추적자', ico:'💨', reqText:'속도(S)',    refuge:'river',   refugeText:'💧 강가',  safe:i=>i.hasDominant('speed') },
-  { id:'charmer',name:'매혹 포식자', ico:'💗', reqText:'매력(C)',    refuge:'forest',  refugeText:'🌳 숲',    safe:i=>i.hasDominant('charm') },
-  // 복합 압력 3
-  { id:'steel',  name:'강철 질주병', ico:'🛡️', reqText:'갑옷+속도(A·S)', refuge:'snow',  refugeText:'❄️ 눈밭', safe:i=>i.hasDominant('armor')&&i.hasDominant('speed') },
-  { id:'plague', name:'화염 역병룡', ico:'🐲', reqText:'붉은몸+독성(R·P)', refuge:'volcano', refugeText:'🌋 화산', safe:i=>getGenotypeLabel(i,'color')==='RR'&&i.hasDominant('poison') },
-  { id:'siren',  name:'심연 세이렌', ico:'🌊', reqText:'푸른몸+매력(B·C)', refuge:'desert', refugeText:'🏜️ 사막', safe:i=>getGenotypeLabel(i,'color')==='BB'&&i.hasDominant('charm') },
-  // 히든 (다양성 요구)
+  // 단일 조건 6 — 유전자 OR 돌연변이 스탯 임계치 중 하나 충족 시 안정
+  { id:'lava',   name:'용암 거인',   ico:'🔥', reqText:'붉은몸(RR) / 방어8↑', refuge:'volcano', refugeText:'🌋 화산',
+    safe:i=> getGenotypeLabel(i,'color')==='RR' || i.stats.defense>=8 },
+  { id:'sand',   name:'모래 폭군',   ico:'🏜️', reqText:'푸른몸(BB) / 속도105↑', refuge:'desert',  refugeText:'🏜️ 사막',
+    safe:i=> getGenotypeLabel(i,'color')==='BB' || i.stats.speed>=105 },
+  { id:'glacier',name:'빙하 군주',   ico:'❄️', reqText:'갑옷(A) / 체력128↑',  refuge:'snow',    refugeText:'❄️ 눈밭',
+    safe:i=> i.hasDominant('armor') || i.stats.hp>=128 },
+  { id:'spore',  name:'독포자 마수', ico:'☠️', reqText:'독성(P) / 방어8↑',    refuge:'swamp',   refugeText:'🐸 독성늪',
+    safe:i=> i.hasDominant('poison') || i.stats.defense>=8 },
+  { id:'gale',   name:'질풍 추적자', ico:'💨', reqText:'속도(S) / 속도110↑',  refuge:'river',   refugeText:'💧 강가',
+    safe:i=> i.hasDominant('speed') || i.stats.speed>=110 },
+  { id:'charmer',name:'매혹 포식자', ico:'💗', reqText:'매력(C) / 매력13↑',   refuge:'forest',  refugeText:'🌳 숲',
+    safe:i=> i.hasDominant('charm') || i.stats.charm>=13 },
+  // 복합 조건 3 — 두 유전자 모두 OR 강화된 스탯 임계치
+  { id:'steel',  name:'강철 질주병', ico:'🛡️', reqText:'갑옷+속도(A·S) / 방어8·속도105↑', refuge:'snow',    refugeText:'❄️ 눈밭',
+    safe:i=> (i.hasDominant('armor')&&i.hasDominant('speed')) || (i.stats.defense>=8&&i.stats.speed>=105) },
+  { id:'plague', name:'화염 역병룡', ico:'🐲', reqText:'붉은몸+독성(R·P) / 방어11↑',      refuge:'volcano', refugeText:'🌋 화산',
+    safe:i=> (getGenotypeLabel(i,'color')==='RR'&&i.hasDominant('poison')) || i.stats.defense>=11 },
+  { id:'siren',  name:'심연 세이렌', ico:'🌊', reqText:'푸른몸+매력(B·C) / 매력16↑',      refuge:'desert',  refugeText:'🏜️ 사막',
+    safe:i=> (getGenotypeLabel(i,'color')==='BB'&&i.hasDominant('charm')) || i.stats.charm>=16 },
+  // 히든 — 다양성 요구 (유전자·스탯 대체 없음)
   { id:'primordial', name:'태초의 포식자', ico:'🌈', hidden:true, reqText:'유전적 다양성', refuge:null, refugeText:'균형 유지(한 형질 몰빵 금지)',
     safe:(i,g)=> g.calcDiversity() >= DIVERSITY_REQ },
 ];
