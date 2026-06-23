@@ -928,12 +928,208 @@ body { image-rendering: pixelated; }
 #leaderboard-list li { border: 2px solid var(--px-out) !important; border-radius: 3px !important; background: var(--px-parch2) !important; color: var(--px-ink) !important; }
 #leaderboard-list li .lb-score { color: var(--px-red-d) !important; }
 #leaderboard-panel .lb-title, #leaderboard-panel .lb-title-text { color: var(--px-ink) !important; }
+
+/* ─── LAB (연구소) SCREEN ─────────────────────────────── */
+@keyframes essPulse {
+  0%,100%{filter:drop-shadow(0 0 3px #c49ee0aa);}
+  50%{filter:drop-shadow(0 0 7px #c49ee0ee);}
+}
+.lab-ess-icon { animation:essPulse 2.4s ease-in-out infinite; }
+#lab-modal {
+  position:fixed; inset:0; z-index:55; display:none;
+  align-items:flex-end; justify-content:center;
+  background:rgba(20,14,36,.55); backdrop-filter:blur(8px);
+}
+#lab-modal.open { display:flex; animation:fadeIn .2s ease; }
+#lab-sheet {
+  background:var(--glass); border:2px solid var(--glass-bdr); border-radius:26px 26px 0 0;
+  width:100%; max-width:600px; max-height:92vh;
+  display:flex; flex-direction:column; overflow:hidden;
+  box-shadow:0 -16px 40px rgba(20,14,36,.25), inset 0 1px 0 rgba(255,255,255,.95);
+  backdrop-filter:blur(14px);
+  animation:slideUp .32s cubic-bezier(.34,1.56,.64,1);
+}
+#lab-header { padding:14px 16px 0; flex-shrink:0; }
+#lab-title-row { display:flex; align-items:center; gap:8px; margin-bottom:10px; }
+#lab-title { font-family:'Jua',sans-serif; font-size:19px; color:var(--lilac-dk); flex:1; }
+#lab-close {
+  width:34px; height:34px; border-radius:999px; border:2px solid rgba(255,255,255,.8);
+  background:linear-gradient(170deg,#ff9483,var(--coral)); font-size:15px; cursor:pointer;
+  box-shadow:0 3px 8px rgba(201,64,47,.3); font-weight:900; color:#fff;
+}
+#lab-close:active { transform:translateY(2px); }
+#lab-currency {
+  display:flex; gap:12px; align-items:center; margin-bottom:10px;
+  font-family:'Jua',sans-serif; font-size:14px; color:var(--ink);
+}
+.lab-cur-badge {
+  display:flex; align-items:center; gap:5px;
+  background:rgba(255,252,245,.8); border:1.5px solid rgba(255,255,255,.7);
+  border-radius:999px; padding:4px 12px;
+  box-shadow:0 2px 6px var(--shadow-sm);
+}
+#lab-tabs { display:flex; gap:6px; padding-bottom:10px; border-bottom:1px solid var(--ink-faint); }
+.lab-tab {
+  font-family:'Jua',sans-serif; font-size:14px; padding:7px 16px; border-radius:999px;
+  border:2px solid var(--ink-faint); background:rgba(255,252,245,.7); color:var(--ink-soft);
+  cursor:pointer; transition:.12s; white-space:nowrap;
+}
+.lab-tab.active { background:var(--lilac-dk); border-color:var(--lilac-dk); color:#fff; box-shadow:0 3px 8px rgba(155,111,196,.35); }
+.lab-panel { flex:1; min-height:0; display:flex; flex-direction:column; overflow:hidden; }
+.lab-tree-wrap { flex:1; min-height:0; overflow-x:auto; overflow-y:auto; padding:12px 16px 28px; }
+.lab-tree-canvas { position:relative; display:inline-block; min-width:100%; }
+.lab-tree-canvas svg.lab-branches { position:absolute; top:0; left:0; pointer-events:none; overflow:visible; }
+/* Nodes */
+.lab-node {
+  position:absolute; width:76px;
+  display:flex; flex-direction:column; align-items:center; gap:2px;
+  cursor:pointer; user-select:none; transition:transform .1s;
+}
+.lab-node:active { transform:scale(.95); }
+.lab-node-box {
+  width:76px; height:50px; border-radius:14px;
+  border:2.5px solid rgba(255,255,255,.8);
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px;
+  box-shadow:0 4px 10px var(--shadow-sm);
+}
+.lab-node-ico { font-size:16px; line-height:1; }
+.lab-node-name { font-family:'Jua',sans-serif; font-size:9px; text-align:center; line-height:1.2; max-width:72px; padding:0 2px; }
+.lab-node-cost { font-size:9px; display:flex; align-items:center; gap:1px; margin-top:1px; font-family:'Nunito',sans-serif; font-weight:800; }
+/* State colors */
+.lab-node.purchased .lab-node-box {
+  background:linear-gradient(170deg,#b8f0b0,#4db848);
+  border-color:#a0e0a0; box-shadow:0 4px 12px rgba(61,138,58,.3);
+}
+.lab-node.purchased .lab-node-name,.lab-node.purchased .lab-node-ico { color:#1a4a1a; }
+.lab-node.purchased .lab-node-cost { display:none; }
+.lab-node.available .lab-node-box {
+  background:linear-gradient(170deg,#d4b8f0,var(--lilac-dk));
+  border-color:rgba(255,255,255,.9);
+}
+.lab-node.available .lab-node-name,.lab-node.available .lab-node-ico { color:#fff; }
+.lab-node.available .lab-node-cost { color:#f0e0ff; }
+.lab-node.locked .lab-node-box {
+  background:linear-gradient(170deg,#d0cce0,#8880a0);
+  border-color:rgba(255,255,255,.5); opacity:.65;
+}
+.lab-node.locked .lab-node-name,.lab-node.locked .lab-node-ico { color:#555; }
+.lab-node.locked .lab-node-cost { display:none; }
+/* Lab confirm popup */
+#lab-confirm {
+  display:none; position:fixed; inset:0; z-index:70;
+  align-items:center; justify-content:center; background:rgba(20,14,36,.6);
+}
+#lab-confirm.open { display:flex; }
+#lab-confirm-card {
+  background:var(--glass); border:2px solid var(--glass-bdr); border-radius:22px;
+  padding:22px 24px; width:min(300px,88vw); text-align:center;
+  box-shadow:0 20px 40px rgba(20,14,36,.4), inset 0 1px 0 rgba(255,255,255,.95);
+  backdrop-filter:blur(16px); display:flex; flex-direction:column; gap:10px;
+  animation:popIn .25s cubic-bezier(.34,1.56,.64,1);
+}
+#lab-confirm-ico { font-size:34px; }
+#lab-confirm-name { font-family:'Jua',sans-serif; font-size:18px; color:var(--lilac-dk); }
+#lab-confirm-desc { font-size:12px; color:var(--ink-soft); line-height:1.5; }
+#lab-confirm-cost { font-family:'Jua',sans-serif; font-size:15px; display:flex; align-items:center; justify-content:center; gap:6px; }
+#lab-confirm-msg { font-size:12px; color:var(--coral); min-height:16px; }
+.lab-confirm-btns { display:flex; gap:10px; justify-content:center; }
+.lab-buy-btn {
+  font-family:'Jua',sans-serif; font-size:14px; padding:9px 22px; border-radius:999px;
+  border:none; cursor:pointer; color:#fff;
+  background:linear-gradient(170deg,#d4b8f0,var(--lilac-dk));
+  box-shadow:0 4px 0 #7a4fa0;
+}
+.lab-buy-btn:active { transform:translateY(3px); box-shadow:0 1px 0 #7a4fa0; }
+.lab-cancel-btn {
+  font-family:'Jua',sans-serif; font-size:14px; padding:9px 18px; border-radius:999px;
+  border:2px solid var(--ink-faint); background:transparent; color:var(--ink-soft); cursor:pointer;
+}
+/* Mutation picker */
+#mutation-picker {
+  display:none; position:fixed; inset:0; z-index:90;
+  align-items:center; justify-content:center; background:rgba(20,14,36,.72); backdrop-filter:blur(8px);
+}
+#mutation-picker.open { display:flex; }
+#mutation-picker-card {
+  background:var(--glass); border:2px solid var(--glass-bdr); border-radius:24px;
+  padding:20px 18px; width:min(340px,92vw); max-height:80vh; overflow-y:auto;
+  box-shadow:0 20px 40px rgba(20,14,36,.5), inset 0 1px 0 rgba(255,255,255,.95);
+  backdrop-filter:blur(16px); animation:popIn .25s cubic-bezier(.34,1.56,.64,1);
+}
+#mutation-picker-card h3 {
+  font-family:'Jua',sans-serif; font-size:18px; color:var(--lilac-dk);
+  text-align:center; margin-bottom:4px;
+}
+#mutation-picker-sub { font-size:12px; color:var(--ink-soft); text-align:center; margin-bottom:14px; }
+.mut-pick-option {
+  border:2px solid rgba(255,255,255,.6); border-radius:15px; padding:12px 14px;
+  margin-bottom:9px; cursor:pointer; background:rgba(255,252,245,.8);
+  display:flex; gap:12px; align-items:center; transition:background .1s;
+}
+.mut-pick-option:active { background:rgba(196,158,224,.3); border-color:var(--lilac); }
+.mut-pick-option .mut-ico { font-size:22px; flex-shrink:0; }
+.mut-pick-option .mut-name { font-family:'Jua',sans-serif; font-size:14px; color:var(--ink); }
+.mut-pick-option .mut-desc { font-size:11px; color:var(--ink-soft); margin-top:2px; }
+.mut-skip-btn {
+  width:100%; margin-top:4px; padding:10px; border-radius:999px;
+  border:2px solid var(--ink-faint); background:transparent; color:var(--ink-soft);
+  font-family:'Jua',sans-serif; font-size:13px; cursor:pointer;
+}
+/* pixel-art overrides for lab elements */
+#lab-modal, #lab-modal * { font-family:'Galmuri11','Jua',sans-serif !important; letter-spacing:0 !important; }
+#lab-sheet, #lab-confirm-card, #mutation-picker-card {
+  background:var(--px-parch) !important; border:3px solid var(--px-out) !important;
+  border-radius:5px !important; backdrop-filter:none !important;
+  box-shadow:inset 3px 3px 0 0 rgba(255,255,255,.4), inset -3px -3px 0 0 rgba(150,105,55,.30),
+             4px 4px 0 0 rgba(25,15,7,.28) !important;
+}
+#lab-sheet { border-radius:5px 5px 0 0 !important; }
+#lab-modal { backdrop-filter:none !important; background:rgba(25,15,7,.55) !important; }
+#lab-close { border-radius:5px !important; border:3px solid var(--px-out) !important;
+  box-shadow:0 4px 0 0 var(--px-out),4px 7px 0 0 rgba(25,15,7,.22) !important; }
+.lab-tab { border-radius:5px !important; border:2px solid var(--px-out) !important;
+  background:var(--px-parch2) !important; color:var(--px-ink) !important; box-shadow:none !important; }
+.lab-tab.active { background:var(--px-purple) !important; color:#fff !important; }
+.lab-cur-badge { border-radius:5px !important; border:2px solid var(--px-out) !important;
+  background:var(--px-parch2) !important; color:var(--px-ink) !important; }
+.lab-node-box { border-radius:5px !important; border:3px solid var(--px-out) !important; }
+.lab-node.purchased .lab-node-box { background:var(--px-green) !important;
+  box-shadow:inset 2px 2px 0 rgba(255,255,255,.3),3px 3px 0 rgba(25,15,7,.18) !important; }
+.lab-node.available .lab-node-box { background:var(--px-purple) !important;
+  box-shadow:inset 2px 2px 0 rgba(255,255,255,.3),3px 3px 0 rgba(25,15,7,.18) !important; }
+.lab-node.locked .lab-node-box { background:#8880a0 !important; }
+.lab-buy-btn { border-radius:5px !important; border:3px solid var(--px-out) !important;
+  background:var(--px-purple) !important;
+  box-shadow:0 4px 0 var(--px-purple-d),4px 7px 0 rgba(25,15,7,.22) !important; }
+.lab-cancel-btn { border-radius:5px !important; border:2px solid var(--px-out) !important; }
+.mut-pick-option { border-radius:5px !important; border:2px solid var(--px-out) !important;
+  background:var(--px-parch2) !important; }
+.mut-skip-btn { border-radius:5px !important; border:2px solid var(--px-out) !important; }
 </style>
   <!-- Firebase SDK (순위표용) -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 </head>
 <body>
+<!-- SVG gradient defs for lab currency icons -->
+<svg width="0" height="0" style="position:absolute;pointer-events:none">
+  <defs>
+    <radialGradient id="lab-egrad" cx="35%" cy="28%" r="68%">
+      <stop offset="0%" stop-color="#f0d0ff"/>
+      <stop offset="40%" stop-color="#b06ee0"/>
+      <stop offset="100%" stop-color="#5a1888"/>
+    </radialGradient>
+    <radialGradient id="lab-fgrad" cx="30%" cy="22%" r="75%">
+      <stop offset="0%" stop-color="#c8eeff"/>
+      <stop offset="50%" stop-color="#5aaedc"/>
+      <stop offset="100%" stop-color="#2a6a9a"/>
+    </radialGradient>
+    <filter id="lab-eglow">
+      <feGaussianBlur stdDeviation="1.4" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+</svg>
 <!-- 순위표 패널 (타이틀 화면 위에 표시, fixed) -->
 <div id="leaderboard-panel" class="collapsed">
   <div class="lb-title" onclick="toggleLeaderboard()">
@@ -951,6 +1147,7 @@ body { image-rendering: pixelated; }
   <div id="title-menu">
     <button id="start-btn" class="big-btn" type="button" onclick="startGame()">🌱 게임 시작</button>
     <button type="button" class="big-btn sky" onclick="openDex()">📖 도감</button>
+    <button type="button" class="big-btn lilac" onclick="openLab()">🌳 계통수</button>
     <button type="button" class="big-btn lilac" onclick="openOptionsModal()">⚙️ 옵션</button>
   </div>
 </div>
@@ -1080,6 +1277,61 @@ body { image-rendering: pixelated; }
         onclick="localStorage.removeItem('gpa_tutorial_done');closeOptionsModal();alert('초기화 완료. 다음 게임 시작 시 튜토리얼이 표시됩니다.')">초기화</button>
     </div>
     <button class="pause-btn pause-home" style="margin-top:4px" onclick="closeOptionsModal()">✕ 닫기</button>
+  </div>
+</div>
+
+<!-- ⚗️ 연구소 -->
+<div id="lab-modal" onclick="if(event.target===this)closeLab()">
+  <div id="lab-sheet">
+    <div id="lab-header">
+      <div id="lab-title-row">
+        <span id="lab-title">🌳 계통수</span>
+        <button id="lab-close" onclick="closeLab()">✕</button>
+      </div>
+      <div id="lab-currency">
+        <div class="lab-cur-badge"><span id="lab-frag-icon"></span><span id="lab-frag-count">0</span></div>
+        <div class="lab-cur-badge"><span id="lab-ess-icon"></span><span id="lab-ess-count">0</span></div>
+      </div>
+      <div id="lab-tabs">
+        <button class="lab-tab active" onclick="switchLabTab('frag',this)">🔷 파편 트리</button>
+        <button class="lab-tab" onclick="switchLabTab('ess',this)">💠 정수 트리</button>
+      </div>
+    </div>
+    <div class="lab-panel" id="lab-panel-frag">
+      <div class="lab-tree-wrap" id="lab-wrap-frag">
+        <div class="lab-tree-canvas" id="lab-canvas-frag"></div>
+      </div>
+    </div>
+    <div class="lab-panel" id="lab-panel-ess" style="display:none">
+      <div class="lab-tree-wrap" id="lab-wrap-ess">
+        <div class="lab-tree-canvas" id="lab-canvas-ess"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Lab node purchase confirm -->
+<div id="lab-confirm" onclick="if(event.target===this)closeLabConfirm()">
+  <div id="lab-confirm-card">
+    <div id="lab-confirm-ico"></div>
+    <div id="lab-confirm-name"></div>
+    <div id="lab-confirm-desc"></div>
+    <div id="lab-confirm-cost"></div>
+    <div id="lab-confirm-msg"></div>
+    <div class="lab-confirm-btns">
+      <button class="lab-buy-btn" onclick="confirmBuyLabNode()">해금</button>
+      <button class="lab-cancel-btn" onclick="closeLabConfirm()">취소</button>
+    </div>
+  </div>
+</div>
+
+<!-- Mutation selection picker -->
+<div id="mutation-picker">
+  <div id="mutation-picker-card">
+    <h3>🧬 돌연변이 선택</h3>
+    <div id="mutation-picker-sub"></div>
+    <div id="mutation-picker-options"></div>
+    <button class="mut-skip-btn" id="mutation-skip-btn" onclick="resolveMutationPick(null)">⏭ 건너뛰기</button>
   </div>
 </div>
 
@@ -1287,6 +1539,428 @@ document.addEventListener('keydown', e => {
 
 function escHtml(str) {
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ══════════════════════════════════════════════════════
+// ▶ 연구소 (Lab) Meta Progression System
+// ══════════════════════════════════════════════════════
+
+// Currency icon builders
+function labFicon(sz=11){
+  return `<svg class="lab-frag-svg" width="${sz}" height="${sz}" viewBox="0 0 14 14" style="vertical-align:middle;flex-shrink:0;margin-right:2px">
+    <polygon points="7,0 14,7 7,14 0,7" fill="url(#lab-fgrad)"/>
+    <polygon points="7,0.5 10.5,5 7,5.8 3.5,5" fill="rgba(255,255,255,.38)"/>
+  </svg>`;
+}
+function labEicon(sz=11){
+  return `<svg class="lab-ess-icon" width="${sz}" height="${sz}" viewBox="0 0 16 16" style="vertical-align:middle;flex-shrink:0;margin-right:2px">
+    <circle cx="8" cy="8" r="7" fill="rgba(176,110,224,.18)"/>
+    <circle cx="8" cy="8" r="5.5" fill="url(#lab-egrad)" filter="url(#lab-eglow)"/>
+    <circle cx="8" cy="8" r="5.5" fill="none" stroke="rgba(220,170,255,.6)" stroke-width=".7"/>
+    <ellipse cx="5.8" cy="5.2" rx="1.8" ry="1.1" fill="rgba(255,255,255,.5)"/>
+  </svg>`;
+}
+function labFc(n){ return `${labFicon()}×${n}`; }
+function labEc(n){ return `${labEicon()}×${n}`; }
+
+// ── Node definitions ────────────────────────────────
+// s: 'root'|'purchased'|'available'|'locked'  (computed at render time)
+// t: 'frag'|'ess'   tree type
+// parent: id string
+// cost: {type:'frag'|'ess', amt:N}
+// effect: human-readable description
+const LAB_NODE_DEFS = [
+  // ── 파편 트리 root ──
+  { id:'froot', t:'frag', parent:null, ico:'🌱', name:'생명의 씨앗', costType:null, costAmt:0,
+    effect:'항상 해금되어 있습니다.' },
+  // 생명력 계열
+  { id:'hp1',  t:'frag', parent:'froot', ico:'🩸', name:'생명력 I',   costType:'frag', costAmt:4,  effect:'초기 개체 HP +10%' },
+  { id:'hp2',  t:'frag', parent:'hp1',   ico:'🩸', name:'생명력 II',  costType:'frag', costAmt:8,  effect:'초기 개체 HP +20%' },
+  { id:'hp3',  t:'frag', parent:'hp2',   ico:'🩸', name:'생명력 III', costType:'frag', costAmt:14, effect:'초기 개체 HP +35%' },
+  { id:'hp4',  t:'frag', parent:'hp3',   ico:'🩸', name:'생명력 IV',  costType:'frag', costAmt:22, effect:'초기 개체 HP +55%' },
+  { id:'hp5',  t:'frag', parent:'hp4',   ico:'🩸', name:'생명력 V',   costType:'frag', costAmt:34, effect:'초기 개체 HP +80%' },
+  { id:'hb1',  t:'frag', parent:'hp3',   ico:'🌿', name:'혈통 I',    costType:'frag', costAmt:26, effect:'적 포섭 저항 +20%' },
+  { id:'hb2',  t:'frag', parent:'hb1',   ico:'🌿', name:'혈통 II',   costType:'frag', costAmt:42, effect:'적 포섭 저항 +40%' },
+  // 군집 계열
+  { id:'pop1', t:'frag', parent:'froot', ico:'🌊', name:'군집 I',    costType:'frag', costAmt:3,  effect:'시작 개체 수 +1' },
+  { id:'pop2', t:'frag', parent:'pop1',  ico:'🌊', name:'군집 II',   costType:'frag', costAmt:6,  effect:'시작 개체 수 +2' },
+  { id:'pop3', t:'frag', parent:'pop2',  ico:'🌊', name:'군집 III',  costType:'frag', costAmt:11, effect:'시작 개체 수 +3' },
+  { id:'pop4', t:'frag', parent:'pop3',  ico:'🌊', name:'군집 IV',   costType:'frag', costAmt:19, effect:'시작 개체 수 +5' },
+  { id:'pop5', t:'frag', parent:'pop4',  ico:'🌊', name:'군집 V',    costType:'frag', costAmt:32, effect:'시작 개체 수 +7' },
+  { id:'col1', t:'frag', parent:'pop3',  ico:'🍖', name:'채집 I',    costType:'frag', costAmt:16, effect:'채집 능력 +4' },
+  { id:'col2', t:'frag', parent:'col1',  ico:'🍖', name:'채집 II',   costType:'frag', costAmt:28, effect:'채집 능력 +8' },
+  { id:'col3', t:'frag', parent:'col2',  ico:'🍖', name:'채집 III',  costType:'frag', costAmt:46, effect:'채집 능력 +14' },
+  // 번식 계열
+  { id:'br1',  t:'frag', parent:'froot', ico:'🔥', name:'번식 I',    costType:'frag', costAmt:3,  effect:'번식 비용 -5%' },
+  { id:'br2',  t:'frag', parent:'br1',   ico:'🔥', name:'번식 II',   costType:'frag', costAmt:7,  effect:'번식 비용 -10%' },
+  { id:'br3',  t:'frag', parent:'br2',   ico:'🔥', name:'번식 III',  costType:'frag', costAmt:13, effect:'번식 비용 -18%' },
+  { id:'tw1',  t:'frag', parent:'br3',   ico:'🥚', name:'쌍둥이 I',  costType:'frag', costAmt:22, effect:'번식 시 쌍둥이 확률 15%' },
+  { id:'tw2',  t:'frag', parent:'tw1',   ico:'🥚', name:'쌍둥이 II', costType:'frag', costAmt:36, effect:'쌍둥이 확률 25%' },
+  { id:'bs1',  t:'frag', parent:'br3',   ico:'🔥', name:'번식속도 I', costType:'frag', costAmt:20, effect:'번식 비용 -28%' },
+  { id:'bs2',  t:'frag', parent:'bs1',   ico:'🔥', name:'번식속도 II',costType:'frag', costAmt:34, effect:'번식 비용 -40%' },
+  // 전투력 계열
+  { id:'bt1',  t:'frag', parent:'froot', ico:'⚔️', name:'전투력 I',  costType:'frag', costAmt:4,  effect:'기본 공격력 +3' },
+  { id:'bt2',  t:'frag', parent:'bt1',   ico:'⚔️', name:'전투력 II', costType:'frag', costAmt:9,  effect:'기본 공격력 +6' },
+  { id:'bt3',  t:'frag', parent:'bt2',   ico:'⚔️', name:'전투력 III',costType:'frag', costAmt:17, effect:'기본 공격력 +10' },
+  { id:'bt4',  t:'frag', parent:'bt3',   ico:'⚔️', name:'전투력 IV', costType:'frag', costAmt:28, effect:'기본 공격력 +16' },
+  { id:'bt5',  t:'frag', parent:'bt4',   ico:'⚔️', name:'전투력 V',  costType:'frag', costAmt:44, effect:'기본 공격력 +24' },
+  { id:'rc1',  t:'frag', parent:'bt1',   ico:'🧲', name:'포섭 I',    costType:'frag', costAmt:8,  effect:'포섭 성공률 +5%' },
+  { id:'rc2',  t:'frag', parent:'rc1',   ico:'🧲', name:'포섭 II',   costType:'frag', costAmt:16, effect:'포섭 성공률 +12%' },
+  { id:'rc3',  t:'frag', parent:'rc2',   ico:'🧲', name:'포섭 III',  costType:'frag', costAmt:28, effect:'포섭 성공률 +20%' },
+  { id:'rc4',  t:'frag', parent:'rc3',   ico:'🧲', name:'포섭 IV',   costType:'frag', costAmt:46, effect:'포섭 성공률 +30%' },
+
+  // ── 정수 트리 root ──
+  { id:'eroot', t:'ess', parent:null, ico:'👁️', name:'진화의 눈', costType:null, costAmt:0,
+    effect:'항상 해금되어 있습니다.' },
+  // 생존 계열
+  { id:'sur1', t:'ess', parent:'eroot', ico:'⏰', name:'생존 I',   costType:'ess', costAmt:1,  effect:'운석 타이머 +20초' },
+  { id:'sur2', t:'ess', parent:'sur1',  ico:'⏰', name:'생존 II',  costType:'ess', costAmt:2,  effect:'운석 타이머 +40초' },
+  { id:'sur3', t:'ess', parent:'sur2',  ico:'⏰', name:'생존 III', costType:'ess', costAmt:4,  effect:'운석 타이머 +65초' },
+  { id:'sur4', t:'ess', parent:'sur3',  ico:'⏰', name:'생존 IV',  costType:'ess', costAmt:8,  effect:'운석 타이머 +95초' },
+  { id:'sur5', t:'ess', parent:'sur4',  ico:'⏰', name:'생존 V',   costType:'ess', costAmt:14, effect:'운석 타이머 +130초' },
+  // 유전자 계열
+  { id:'gen1', t:'ess', parent:'eroot', ico:'⭐', name:'유전자 I',  costType:'ess', costAmt:1,  effect:'시작 시 우성 유전자 1개 선택' },
+  { id:'gen2', t:'ess', parent:'gen1',  ico:'⭐', name:'유전자 II', costType:'ess', costAmt:2,  effect:'시작 시 우성 유전자 2개 선택' },
+  { id:'gen3', t:'ess', parent:'gen2',  ico:'⭐', name:'유전자 III',costType:'ess', costAmt:5,  effect:'시작 시 우성 유전자 3개 선택' },
+  { id:'gen4', t:'ess', parent:'gen3',  ico:'⭐', name:'유전자 IV', costType:'ess', costAmt:10, effect:'보스 요구 유전자 +20초 먼저 공개' },
+  { id:'gp1',  t:'ess', parent:'gen1',  ico:'🔮', name:'보스 예지', costType:'ess', costAmt:3,  effect:'보스 경고 시 요구 유전자 타입 표시' },
+  { id:'gp2',  t:'ess', parent:'gp1',   ico:'🔮', name:'예지 II',   costType:'ess', costAmt:8,  effect:'보스 등장 30초 전 카운트다운 표시' },
+  // 보스저항 계열
+  { id:'bos1', t:'ess', parent:'eroot', ico:'🛡️', name:'보스저항 I', costType:'ess', costAmt:1,  effect:'안전 개체 즉사 면역' },
+  { id:'bos2', t:'ess', parent:'bos1',  ico:'🛡️', name:'저항 II',   costType:'ess', costAmt:3,  effect:'패배 시 30% 확률로 포획 개체 귀환' },
+  { id:'bos3', t:'ess', parent:'bos2',  ico:'🛡️', name:'저항 III',  costType:'ess', costAmt:6,  effect:'보스 피해 -50%' },
+  { id:'bos4', t:'ess', parent:'bos3',  ico:'🛡️', name:'저항 IV',   costType:'ess', costAmt:11, effect:'보스 처치 시 전 개체 HP +30%' },
+  { id:'bos5', t:'ess', parent:'bos4',  ico:'🛡️', name:'저항 V',    costType:'ess', costAmt:20, effect:'안전하지 않은 개체 2마리 이상 필요' },
+  // 선택적 진화 계열
+  { id:'evo1',  t:'ess', parent:'eroot', ico:'🧬', name:'선택적 진화', costType:'ess', costAmt:1,  effect:'돌연변이 선택 시스템 활성화' },
+  { id:'prob1', t:'ess', parent:'evo1',  ico:'📡', name:'감지 I',    costType:'ess', costAmt:1,  effect:'돌연변이 발생 시 선택창 확률 15%' },
+  { id:'prob2', t:'ess', parent:'prob1', ico:'📡', name:'감지 II',   costType:'ess', costAmt:2,  effect:'선택창 확률 30%' },
+  { id:'prob3', t:'ess', parent:'prob2', ico:'📡', name:'감지 III',  costType:'ess', costAmt:4,  effect:'선택창 확률 50%' },
+  { id:'prob4', t:'ess', parent:'prob3', ico:'📡', name:'감지 IV',   costType:'ess', costAmt:8,  effect:'선택창 확률 75%' },
+  { id:'prob5', t:'ess', parent:'prob4', ico:'📡', name:'감지 V',    costType:'ess', costAmt:14, effect:'항상 선택창 표시 (100%)' },
+  { id:'pick1', t:'ess', parent:'evo1',  ico:'🎲', name:'선택 I',    costType:'ess', costAmt:1,  effect:'돌연변이 1개 표시: 수락 또는 거절' },
+  { id:'pick2', t:'ess', parent:'pick1', ico:'🎲', name:'선택 II',   costType:'ess', costAmt:2,  effect:'2개 중 선택' },
+  { id:'pick3', t:'ess', parent:'pick2', ico:'🎲', name:'선택 III',  costType:'ess', costAmt:5,  effect:'3개 중 선택' },
+  { id:'pick4', t:'ess', parent:'pick3', ico:'🎲', name:'선택 IV',   costType:'ess', costAmt:10, effect:'4개 중 선택' },
+];
+
+// Build lookup map
+const LAB_NODE_MAP = {};
+for (const n of LAB_NODE_DEFS) LAB_NODE_MAP[n.id] = n;
+
+// ── localStorage helpers ────────────────────────────
+function labGetFrag()  { return parseInt(localStorage.getItem('gpa_frag')  || '0', 10); }
+function labGetEss()   { return parseInt(localStorage.getItem('gpa_ess')   || '0', 10); }
+function labGetOwned() {
+  try { return JSON.parse(localStorage.getItem('gpa_lab_purchased') || '[]'); }
+  catch(e){ return []; }
+}
+function labSaveOwned(arr) { localStorage.setItem('gpa_lab_purchased', JSON.stringify(arr)); }
+
+// ── Compute LAB_BUFFS from purchased nodes ──────────
+let LAB_BUFFS = {};
+function computeLabBuffs() {
+  const owned = new Set(labGetOwned());
+  const has = id => owned.has(id);
+  LAB_BUFFS = {
+    hpMult:        1 + (has('hp1')?0.10:0) + (has('hp2')?0.20:0) + (has('hp3')?0.35:0) + (has('hp4')?0.55:0) + (has('hp5')?0.80:0),
+    extraPop:      (has('pop1')?1:0) + (has('pop2')?2:0) + (has('pop3')?3:0) + (has('pop4')?5:0) + (has('pop5')?7:0),
+    gatherBonus:   (has('col1')?4:0) + (has('col2')?8:0) + (has('col3')?14:0),
+    attackBonus:   (has('bt1')?3:0) + (has('bt2')?6:0) + (has('bt3')?10:0) + (has('bt4')?16:0) + (has('bt5')?24:0),
+    recruitBonus:  (has('rc1')?0.05:0) + (has('rc2')?0.12:0) + (has('rc3')?0.20:0) + (has('rc4')?0.30:0),
+    resistBonus:   (has('hb1')?0.20:0) + (has('hb2')?0.40:0),
+    breedCostMult: 1 * (has('br1')?0.95:1) * (has('br2')?0.90:1) * (has('br3')?0.82:1)
+                     * (has('bs1')?0.72/0.82:1) * (has('bs2')?0.60/0.72:1),
+    twinChance:    has('tw2') ? 0.25 : has('tw1') ? 0.15 : 0,
+    meteorBonus:   (has('sur1')?20000:0) + (has('sur2')?40000:0) + (has('sur3')?65000:0)
+                 + (has('sur4')?95000:0) + (has('sur5')?130000:0),
+    chosenGenes:   has('gen3') ? 3 : has('gen2') ? 2 : has('gen1') ? 1 : 0,
+    bossEarlyReveal: has('gen4'),
+    bossWarnEarly:   has('gp2'),
+    bossShowGeneType:has('gp1'),
+    bossResist1:   has('bos1'),
+    captureReturn: has('bos2') ? 0.30 : 0,
+    bossDmgHalf:   has('bos3'),
+    bossHealOnKill:has('bos4'),
+    bossHarderThreshold: has('bos5'),
+    mutationEnabled: has('evo1'),
+    mutationChance: has('prob5')?1.0 : has('prob4')?0.75 : has('prob3')?0.50 : has('prob2')?0.30 : has('prob1')?0.15 : 0,
+    mutationChoices: has('pick4')?4 : has('pick3')?3 : has('pick2')?2 : has('pick1')?1 : 0,
+  };
+}
+computeLabBuffs();
+
+// ── Tree layout algorithm ────────────────────────────
+const LAB_NW=80, LAB_NH=52, LAB_GX=22, LAB_GY=46, LAB_SX=LAB_NW+LAB_GX, LAB_SY=LAB_NH+LAB_GY, LAB_PAD=16;
+
+function _labBuildTree(type) {
+  const nodes = LAB_NODE_DEFS.filter(n => n.t === type);
+  const byId = {};
+  for (const n of nodes) byId[n.id] = { ...n, children:[] };
+  const roots = [];
+  for (const n of nodes) {
+    if (n.parent && byId[n.parent]) byId[n.parent].children.push(byId[n.id]);
+    else roots.push(byId[n.id]);
+  }
+  return roots[0]; // single root per tree
+}
+
+function _labLeafCount(node) {
+  return node.children.length === 0 ? 1 : node.children.reduce((s,c)=>s+_labLeafCount(c),0);
+}
+function _labMaxDepth(node, d=0) {
+  return node.children.length === 0 ? d : Math.max(...node.children.map(c=>_labMaxDepth(c,d+1)));
+}
+function _labLayout(node, depth, leftX, maxD) {
+  const leafs = _labLeafCount(node);
+  node.cx = leftX + (leafs * LAB_SX - LAB_GX) / 2;
+  node.x  = node.cx - LAB_NW / 2;
+  node.y  = LAB_PAD + (maxD - depth) * LAB_SY;
+  let cx = leftX;
+  for (const c of node.children) { _labLayout(c, depth+1, cx, maxD); cx += _labLeafCount(c)*LAB_SX; }
+}
+
+function _labNodeState(id) {
+  const owned = new Set(labGetOwned());
+  owned.add('froot'); owned.add('eroot'); // roots are always owned
+  if (owned.has(id)) return 'purchased';
+  const node = LAB_NODE_MAP[id];
+  if (node.parent && owned.has(node.parent)) return 'available';
+  return 'locked';
+}
+
+function _labDrawEdges(svg, parent, depth) {
+  for (const child of parent.children) {
+    const x1=parent.cx, y1=parent.y;
+    const x2=child.cx,  y2=child.y + LAB_NH;
+    const dy = Math.abs(y2-y1), dx = x2-x1;
+    const ctrl = dy*0.52, lean = Math.abs(dx)*0.15;
+    const c1x = x1 + (dx>0 ? lean : -lean);
+    const c2x = x2 + (dx>0 ? -lean : lean);
+    const d = `M${x1},${y1} C${c1x},${y1-ctrl} ${c2x},${y2+ctrl} ${x2},${y2}`;
+    const w = Math.max(1.2, 3.6 - depth*0.55);
+    // shadow + main
+    const shadow = document.createElementNS('http://www.w3.org/2000/svg','path');
+    shadow.setAttribute('d',d); shadow.setAttribute('stroke','rgba(0,0,0,.18)');
+    shadow.setAttribute('stroke-width',w+1.5); shadow.setAttribute('fill','none');
+    shadow.setAttribute('stroke-linecap','round');
+    svg.appendChild(shadow);
+    const main = document.createElementNS('http://www.w3.org/2000/svg','path');
+    main.setAttribute('d',d);
+    const owned = _labNodeState(child.id) !== 'locked';
+    main.setAttribute('stroke', owned ? '#9b6fc4' : '#a09ab8');
+    main.setAttribute('stroke-width',w); main.setAttribute('fill','none');
+    main.setAttribute('stroke-linecap','round');
+    if (!owned) main.setAttribute('stroke-dasharray','5,4');
+    svg.appendChild(main);
+    _labDrawEdges(svg, child, depth+1);
+  }
+}
+
+function renderLabTree(type) {
+  const canvas = document.getElementById(`lab-canvas-${type}`);
+  if (!canvas) return;
+  canvas.innerHTML = '';
+
+  const root = _labBuildTree(type);
+  const maxD = _labMaxDepth(root);
+  const totalLeafs = _labLeafCount(root);
+  const W = totalLeafs * LAB_SX - LAB_GX + LAB_PAD*2;
+  const H = (maxD+1) * LAB_SY + LAB_PAD*2;
+  _labLayout(root, 0, LAB_PAD, maxD);
+
+  canvas.style.width = W + 'px';
+  canvas.style.height = H + 'px';
+
+  // SVG branches
+  const svg = document.createElementNS('http://www.w3.org/2000/svg','svg');
+  svg.classList.add('lab-branches');
+  svg.setAttribute('width', W); svg.setAttribute('height', H);
+  _labDrawEdges(svg, root, 0);
+  canvas.appendChild(svg);
+
+  // Nodes (DFS)
+  const queue = [root];
+  while (queue.length) {
+    const node = queue.shift();
+    const state = _labNodeState(node.id);
+    const el = document.createElement('div');
+    el.className = `lab-node ${state}`;
+    el.style.left = node.x + 'px';
+    el.style.top  = node.y + 'px';
+    const isRoot = (node.id==='froot'||node.id==='eroot');
+    const locked = state==='locked';
+    const costHtml = node.costAmt > 0
+      ? `<span class="lab-node-cost">${node.costType==='frag' ? labFc(node.costAmt) : labEc(node.costAmt)}</span>` : '';
+    el.innerHTML = `<div class="lab-node-box">
+      <span class="lab-node-ico">${locked ? '🔒' : node.ico}</span>
+      <span class="lab-node-name">${locked ? '???' : node.name}</span>
+    </div>${locked ? '' : costHtml}`;
+    if (state === 'available') {
+      el.onclick = () => openLabConfirm(node.id);
+    }
+    canvas.appendChild(el);
+    for (const c of node.children) queue.push(c);
+  }
+}
+
+// ── Lab screen open/close ────────────────────────────
+let _labActiveTab = 'frag';
+function openLab() {
+  computeLabBuffs();
+  document.getElementById('lab-modal').classList.add('open');
+  _labUpdateCurrency();
+  renderLabTree('frag');
+  renderLabTree('ess');
+  // Scroll each wrap to bottom-center after slideUp animation (0.32s) completes
+  setTimeout(() => {
+    ['frag','ess'].forEach(t => {
+      const wrap = document.getElementById('lab-wrap-' + t);
+      if (wrap) {
+        wrap.scrollTop  = wrap.scrollHeight;
+        wrap.scrollLeft = Math.max(0, (wrap.scrollWidth - wrap.clientWidth) / 2);
+      }
+    });
+  }, 350);
+}
+function closeLab() {
+  document.getElementById('lab-modal').classList.remove('open');
+}
+function switchLabTab(type, btn) {
+  _labActiveTab = type;
+  document.querySelectorAll('.lab-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('lab-panel-frag').style.display = type==='frag' ? '' : 'none';
+  document.getElementById('lab-panel-ess').style.display  = type==='ess'  ? '' : 'none';
+}
+function _labUpdateCurrency() {
+  const f = labGetFrag(), e = labGetEss();
+  document.getElementById('lab-frag-icon').innerHTML = labFicon(13);
+  document.getElementById('lab-ess-icon').innerHTML  = labEicon(13);
+  document.getElementById('lab-frag-count').textContent = f;
+  document.getElementById('lab-ess-count').textContent  = e;
+}
+
+// ── Node purchase flow ───────────────────────────────
+let _pendingBuyId = null;
+function openLabConfirm(id) {
+  const node = LAB_NODE_MAP[id];
+  if (!node) return;
+  _pendingBuyId = id;
+  document.getElementById('lab-confirm-ico').textContent  = node.ico;
+  document.getElementById('lab-confirm-name').textContent = node.name;
+  document.getElementById('lab-confirm-desc').textContent = node.effect;
+  document.getElementById('lab-confirm-cost').innerHTML =
+    node.costType === 'frag' ? labFc(node.costAmt) : labEc(node.costAmt);
+  document.getElementById('lab-confirm-msg').textContent = '';
+  document.getElementById('lab-confirm').classList.add('open');
+}
+function closeLabConfirm() {
+  document.getElementById('lab-confirm').classList.remove('open');
+  _pendingBuyId = null;
+}
+function confirmBuyLabNode() {
+  const id = _pendingBuyId;
+  if (!id) return;
+  const node = LAB_NODE_MAP[id];
+  const frag = labGetFrag(), ess = labGetEss();
+  const owned = labGetOwned();
+  if (owned.includes(id)) { closeLabConfirm(); return; }
+  if (node.costType==='frag' && frag < node.costAmt) {
+    document.getElementById('lab-confirm-msg').textContent =
+      `파편이 부족합니다. (보유: ${frag} / 필요: ${node.costAmt})`;
+    return;
+  }
+  if (node.costType==='ess' && ess < node.costAmt) {
+    document.getElementById('lab-confirm-msg').textContent =
+      `정수가 부족합니다. (보유: ${ess} / 필요: ${node.costAmt})`;
+    return;
+  }
+  if (node.costType==='frag') localStorage.setItem('gpa_frag', frag - node.costAmt);
+  if (node.costType==='ess')  localStorage.setItem('gpa_ess',  ess  - node.costAmt);
+  owned.push(id);
+  labSaveOwned(owned);
+  computeLabBuffs();
+  closeLabConfirm();
+  _labUpdateCurrency();
+  renderLabTree(node.t);
+}
+
+// ── Mutation selection window ────────────────────────
+let _mutPickResolve = null;
+let _mutPickChild = null;
+
+function showMutationPicker(child, naturalMutId, scene) {
+  if (!LAB_BUFFS.mutationEnabled || LAB_BUFFS.mutationChoices < 1) return false;
+  if (Math.random() >= LAB_BUFFS.mutationChance) return false;
+
+  // Generate candidate pool
+  const nChoices = LAB_BUFFS.mutationChoices;
+  const allMutIds = (typeof MUTATIONS !== 'undefined') ? MUTATIONS.map(m=>m.id) : [];
+  const candidates = [naturalMutId];
+  const others = allMutIds.filter(id => id !== naturalMutId);
+  // shuffle
+  for (let i = others.length-1; i > 0; i--) {
+    const j = Math.floor(Math.random()*(i+1));
+    [others[i],others[j]] = [others[j],others[i]];
+  }
+  for (let i = 0; i < Math.min(nChoices-1, others.length); i++) candidates.push(others[i]);
+
+  const subEl = document.getElementById('mutation-picker-sub');
+  const optsEl = document.getElementById('mutation-picker-options');
+  const skipBtn = document.getElementById('mutation-skip-btn');
+  subEl.textContent = nChoices === 1
+    ? '이 돌연변이를 수락하거나 거절하세요.'
+    : `${candidates.length}개 중 하나를 선택하세요.`;
+  skipBtn.textContent = nChoices === 1 ? '❌ 거절' : '⏭ 건너뛰기';
+
+  const _mutIco = {good:'✅',dual:'🔵',bad:'❌'};
+  const _mutEffectDesc = (effects) => {
+    if (!effects) return '';
+    return Object.entries(effects).map(([k,v]) => {
+      const labels = {hp:'HP',attack:'공격',defense:'방어',speed:'속도',gather:'채집',charm:'매력',foodNeed:'식량소모',fertility:'번식력',mutationRate:'돌연변이율'};
+      const sign = v > 0 ? '+' : '';
+      return `${labels[k]||k} ${sign}${v}`;
+    }).join(' · ');
+  };
+  optsEl.innerHTML = candidates.map(mid => {
+    const m = mutationById(mid);
+    const ico  = m ? (_mutIco[m.type] || '🧬') : '🧬';
+    const name = m ? m.name : mid;
+    const desc = m ? _mutEffectDesc(m.effects) : '';
+    return `<div class="mut-pick-option" onclick="resolveMutationPick('${mid}')">
+      <span class="mut-ico">${ico}</span>
+      <div class="mut-info">
+        <div class="mut-name">${name}</div>
+        <div class="mut-desc">${desc}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  _mutPickChild = child;
+  _mutPickResolve = (chosenId) => {
+    // Remove all candidates from child, then apply chosen
+    for (const mid of candidates) {
+      delete child.mutationGenes[mid];
+    }
+    if (chosenId) {
+      child.mutationGenes[chosenId] = ['M','m'];
+      child.newlyGained = [chosenId];
+    } else {
+      child.newlyGained = [];
+      child.newMutationCount = 0;
+    }
+    if (scene && !scene._paused) scene.scene.resume();
+  };
+
+  document.getElementById('mutation-picker').classList.add('open');
+  if (scene) scene.scene.pause();
+  return true;
+}
+
+function resolveMutationPick(chosenId) {
+  document.getElementById('mutation-picker').classList.remove('open');
+  if (_mutPickResolve) { _mutPickResolve(chosenId); _mutPickResolve = null; _mutPickChild = null; }
 }
 
 const WORLD_W = 5000;
@@ -1907,7 +2581,8 @@ class Group {
   }
 
   canBreed() {
-    return this.state === 'normal' && this.count >= 2 && this.count < MAX_INDIVIDUALS && this.surplus() >= BREED_COST;
+    const bc = this.isPlayer && LAB_BUFFS ? Math.max(1, Math.round(BREED_COST * LAB_BUFFS.breedCostMult)) : BREED_COST;
+    return this.state === 'normal' && this.count >= 2 && this.count < MAX_INDIVIDUALS && this.surplus() >= bc;
   }
 
   average(stat) {
@@ -2004,10 +2679,13 @@ class Group {
 
   breed() {
     if (!this.canBreed()) return 0;
-    const rawCount = Math.floor(this.surplus() / BREED_COST);
+    const breedCost = this.isPlayer && LAB_BUFFS
+      ? Math.max(1, Math.round(BREED_COST * LAB_BUFFS.breedCostMult))
+      : BREED_COST;
+    const rawCount = Math.floor(this.surplus() / breedCost);
     const childCount = Math.min(Math.max(1, Math.floor(rawCount * this.densityFactor())), MAX_INDIVIDUALS - this.count);
     if (childCount <= 0) return 0;
-    this.food -= childCount * BREED_COST;
+    this.food -= childCount * breedCost;
     this.generation += 1;
     let newMutations = 0;
     this.lastGainedMutations = []; // 이번 번식에서 새로 발현된 돌연변이 ID
@@ -2020,7 +2698,18 @@ class Group {
       for (const id of child.newlyGained) {
         if (!this.lastGainedMutations.includes(id)) this.lastGainedMutations.push(id);
       }
+      // Mutation selection picker (player only, when evo upgrades purchased)
+      if (this.isPlayer && child.newlyGained.length > 0 && LAB_BUFFS && LAB_BUFFS.mutationEnabled) {
+        const scene = window._arenaScene;
+        if (scene) showMutationPicker(child, child.newlyGained[0], scene);
+      }
       this.individuals.push(child);
+      // Twin chance (player only)
+      if (this.isPlayer && LAB_BUFFS && LAB_BUFFS.twinChance > 0
+          && Math.random() < LAB_BUFFS.twinChance && this.individuals.length < MAX_INDIVIDUALS) {
+        const twin = Individual.breed(parentA, parentB, this.id, this.x + (Math.random()-0.5)*84, this.y + (Math.random()-0.5)*84);
+        this.individuals.push(twin);
+      }
     }
     this.mutationEvents += newMutations;
     return childCount;
@@ -2327,8 +3016,9 @@ class ArenaScene extends Phaser.Scene {
     this.individualSprites = new Map();
     this.shadowGraphics = this.add.graphics().setDepth(2); // 슬라임 바닥 그림자
     this.hpGraphics = this.add.graphics().setDepth(5);
+    computeLabBuffs();
     this.player = new Group(WORLD_W / 2, WORLD_H / 2, true, '나의 집단');
-    this.initGroup(this.player, START_INDIVIDUALS);
+    this.initGroup(this.player, START_INDIVIDUALS + (LAB_BUFFS ? LAB_BUFFS.extraPop : 0));
     this.aiGroups = [];
     for (const [index, point] of [[380,380],[4620,380],[380,4620],[4620,4620],[2500,280],[2500,4720],[800,2500],[4200,2500]].entries()) {
       const ai = new Group(point[0], point[1], false, `AI-${index + 1}`);
@@ -2707,12 +3397,26 @@ class ArenaScene extends Phaser.Scene {
         Object.keys(GENES).map(name => [name, balancedGenes[name][i]])
       );
 
-      group.individuals.push(new Individual(
+      const ind = new Individual(
         group.id,
         group.x + Math.cos(angle) * 44,
         group.y + Math.sin(angle) * 44,
         genes, startMuts
-      ));
+      );
+      // Apply lab buffs to player's starting individuals
+      if (group.isPlayer && LAB_BUFFS) {
+        if (LAB_BUFFS.hpMult > 1) {
+          ind.stats.hp     = Math.round(ind.stats.hp     * LAB_BUFFS.hpMult);
+          ind.hp           = ind.stats.hp;
+        }
+        if (LAB_BUFFS.attackBonus > 0) {
+          ind.stats.attack = Math.min(ind.stats.attack + LAB_BUFFS.attackBonus, 200);
+        }
+        if (LAB_BUFFS.gatherBonus > 0) {
+          ind.stats.gather = Math.min(ind.stats.gather + LAB_BUFFS.gatherBonus, 100);
+        }
+      }
+      group.individuals.push(ind);
     }
   }
 
@@ -3064,12 +3768,13 @@ class ArenaScene extends Phaser.Scene {
     }
     if (this.bossPhase === 'warning') this.bossWarningTick();
     if (this.bossPhase === 'chase') this.bossChaseTick(dt);
-    // 운석 멸종 이벤트
-    if (this.elapsed >= METEOR_WARN_TIME && !this.meteorWarned) {
+    // 운석 멸종 이벤트 (연구소 생존 업그레이드 반영)
+    const _labMB = (LAB_BUFFS && LAB_BUFFS.meteorBonus) || 0;
+    if (this.elapsed >= METEOR_WARN_TIME + _labMB && !this.meteorWarned) {
       this.meteorWarned = true;
       this.startMeteorWarning();
     }
-    if (this.elapsed >= METEOR_TIME && !this.meteorActive && this.bossPhase === 'idle') {
+    if (this.elapsed >= METEOR_TIME + _labMB && !this.meteorActive && this.bossPhase === 'idle') {
       return this.triggerMeteor();
     }
     if (!this.player.individuals.length) return this.endGame();
@@ -3664,7 +4369,7 @@ class ArenaScene extends Phaser.Scene {
     this._bossSpawnCount = this.player.individuals.length;
     this._bossSpawnTime  = this.elapsed;
     this.bossPhase = 'chase';
-    this.bossPhaseUntil = this.elapsed + (this.bossSlot === 'final' ? (METEOR_TIME - this.elapsed) : BOSS_RETREAT_TIME);
+    this.bossPhaseUntil = this.elapsed + (this.bossSlot === 'final' ? (METEOR_TIME + ((LAB_BUFFS&&LAB_BUFFS.meteorBonus)||0) - this.elapsed) : BOSS_RETREAT_TIME);
     document.getElementById('boss-hp').classList.add('show');
     this.showMessage(`${boss.ico} ${boss.name} 출현! 도망치며 번식해 빈도를 올리세요`, true);
     this.recordAlleleSnapshot();
@@ -3790,6 +4495,19 @@ resolveBoss(win, reason) {
     let score = slot === 'final' ? 3000 : 200;
     if (boss.hidden) score = 5000;
     this.bossBonus = (this.bossBonus || 0) + score;
+    // ── 연구소 재화 드롭 ──
+    if (slot === 'mid') {
+      const frags = 10 + Math.floor(Math.random() * 6);
+      const cur = labGetFrag();
+      localStorage.setItem('gpa_frag', cur + frags);
+      if (this.showToast) this.showToast(`🔷 파편 +${frags}`, 'ach');
+    }
+    if (slot === 'final' || boss.hidden) {
+      const ess = 1 + Math.floor(Math.random() * 2);
+      const cur = labGetEss();
+      localStorage.setItem('gpa_ess', cur + ess);
+      if (this.showToast) this.showToast(`💠 정수 +${ess}`, 'ach');
+    }
     this.showMessage(`🏆 ${boss.name} 처치! +${score}점`, true);
     if (this.showToast) this.showToast(`🏆 ${boss.name} 처치 +${score}`, 'ach');
     if (navigator.vibrate) navigator.vibrate([80,40,120]);
@@ -3990,7 +4708,7 @@ resolveBoss(win, reason) {
     const setText = (id, value) => { const el = document.getElementById(id); if (el) el.textContent = value; };
 
     // 상단 칩: 남은 시간 표시 추가
-    const remainMs = Math.max(0, METEOR_TIME - this.elapsed);
+    const remainMs = Math.max(0, METEOR_TIME + ((LAB_BUFFS&&LAB_BUFFS.meteorBonus)||0) - this.elapsed);
     const rm = Math.floor(remainMs / 60000), rs = Math.floor((remainMs % 60000) / 1000);
     setText('c-count', group.count);
     setText('c-food', Math.floor(group.food));
