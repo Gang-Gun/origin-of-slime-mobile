@@ -4382,6 +4382,9 @@ class ArenaScene extends Phaser.Scene {
     this.bossPhase = 'chase';
     this.bossPhaseUntil = this.elapsed + (this.bossSlot === 'final' ? (METEOR_TIME + ((LAB_BUFFS&&LAB_BUFFS.meteorBonus)||0) - this.elapsed) : BOSS_RETREAT_TIME);
     document.getElementById('boss-hp').classList.add('show');
+    const bb = document.getElementById('battle-banner');
+    bb.textContent = `${boss.ico} ${boss.name} 전투 중!`;
+    bb.style.display = 'block';
     this.showMessage(`${boss.ico} ${boss.name} 출현! 도망치며 번식해 빈도를 올리세요`, true);
     this.recordAlleleSnapshot();
     if (navigator.vibrate) navigator.vibrate(120);
@@ -4500,6 +4503,7 @@ resolveBoss(win, reason) {
   document.getElementById('boss-hp').classList.remove('show');
   document.getElementById('boss-banner').classList.remove('show');
   document.getElementById('boss-arrow').classList.remove('show');
+  document.getElementById('battle-banner').style.display = 'none';
   this.bossPhase = 'idle';
   this.recordAlleleSnapshot();
   if (win) {
