@@ -2057,9 +2057,9 @@ const BOSS_VISUAL = {
 
 // 10분 기준 보스 등장 시각(ms)과 슬롯
 const BOSS_SCHEDULE = [
-  { at:150000, slot:'mid',   hp:600  },  // 2:30
-  { at:330000, slot:'mid',   hp:600  },  // 5:30
-  { at:480000, slot:'final', hp:1500 },  // 8:00
+  { at:150000, slot:'mid',   hp:2500 },  // 2:30
+  { at:330000, slot:'mid',   hp:2500 },  // 5:30
+  { at:480000, slot:'final', hp:7000 },  // 8:00
 ];
 
 // ── 날씨 시스템 ──────────────────────────────────
@@ -4374,8 +4374,8 @@ class ArenaScene extends Phaser.Scene {
     const ang = Math.random()*Math.PI*2;
     const sx = this.player.x + Math.cos(ang)*900;
     const sy = this.player.y + Math.sin(ang)*900;
-    const sprite = this.add.image(sx, sy, this.createBossTexture(boss.id)).setOrigin(0.5).setDepth(20).setScale(5.0);
-    const hpMax = this._dueBossHp || 600;
+    const sprite = this.add.image(sx, sy, this.createBossTexture(boss.id)).setOrigin(0.5).setDepth(20).setScale(3.0);
+    const hpMax = this._dueBossHp || 2500;
     this.bossEntity = { x:sx, y:sy, hp:hpMax, hpMax, sprite, speed: 0.45, lastAttackAt: 0, phase: Math.random() * Math.PI * 2 };
     this._bossSpawnCount = this.player.individuals.length;
     this._bossSpawnTime  = this.elapsed;
@@ -4407,8 +4407,8 @@ class ArenaScene extends Phaser.Scene {
     b._prevHop = hop;
     if (!b._chargePlayed) {
       // s>0(공중): 세로 길게·가로 좁게 / s<0(지상): 가로 넓게·세로 낮게
-      b.sprite.scaleX = 5.0 * (1 - 0.18 * s);
-      b.sprite.scaleY = 5.0 * (1 + 0.18 * s);
+      b.sprite.scaleX = 3.0 * (1 - 0.18 * s);
+      b.sprite.scaleY = 3.0 * (1 + 0.18 * s);
     }
     b.sprite.setPosition(b.x, b.y - hop * 22);
     // HP 바 갱신
@@ -4450,9 +4450,9 @@ bossCombatTick(dt) {
     b.sprite.setTint(0xff4444);
     // 공격 직전: 가로 스쿼시(납작) → 공격 순간 세로 스트레치(솟구침)
     this.tweens.add({
-      targets: b.sprite, scaleX: 6.8, scaleY: 3.5, duration: 250, ease: 'Power2',
+      targets: b.sprite, scaleX: 4.1, scaleY: 2.1, duration: 250, ease: 'Power2',
       onComplete: () => {
-        this.tweens.add({ targets: b.sprite, scaleX: 3.8, scaleY: 7.2, duration: 100, yoyo: true, ease: 'Power3' });
+        this.tweens.add({ targets: b.sprite, scaleX: 2.3, scaleY: 4.3, duration: 100, yoyo: true, ease: 'Power3' });
       }
     });
   }
