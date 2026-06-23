@@ -4551,7 +4551,7 @@ bossCombatTick(dt) {
 
   const targets = allSlimes
     .sort((a, c) => Math.hypot(b.x - a.i.x, b.y - a.i.y) - Math.hypot(b.x - c.i.x, b.y - c.i.y))
-    .slice(0, 5);
+    .slice(0, 10);
 
   let killed = 0;
   for (const { i, safe } of targets) {
