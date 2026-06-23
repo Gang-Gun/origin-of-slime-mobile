@@ -3947,12 +3947,12 @@ class ArenaScene extends Phaser.Scene {
               }
             }
           }
-          // 보스 AABB: 텍스처 90×75 × scale5 → 450×375, 반폭 225 / 반높이 187
+          // 보스 AABB: 텍스처 90×75 × Phaser scale 2.0 → 180×150, 반폭 90 / 반높이 75
           if (this.bossEntity) {
             const bx = individual.x - this.bossEntity.x;
             const by = individual.y - this.bossEntity.y;
-            const overlapX = (hwI + 225) - Math.abs(bx);
-            const overlapY = (hhI + 187) - Math.abs(by);
+            const overlapX = (hwI + 90) - Math.abs(bx);
+            const overlapY = (hhI + 75) - Math.abs(by);
             if (overlapX > 0 && overlapY > 0) {
               if (overlapX <= overlapY) {
                 individual.x += (bx >= 0 ? 1 : -1) * overlapX;
@@ -4909,7 +4909,7 @@ resolveBoss(win, reason) {
     // 전쟁 타이머
     const activeBattle = this.battles.find(b => b.active && (b.groupA.isPlayer || b.groupB.isPlayer));
     if (activeBattle) {
-      const remaining = Math.max(0, Math.ceil((BATTLE_DURATION - (Date.now() - activeBattle.startedAt)) / 1000));
+      const remaining = Math.max(0, Math.floor((BATTLE_DURATION - (Date.now() - activeBattle.startedAt)) / 1000));
       document.getElementById('battle-banner').textContent = `⚔️ 전쟁 중 ${remaining}초`;
       document.getElementById('battle-banner').style.display = 'block';
     }
@@ -5028,6 +5028,7 @@ resolveBoss(win, reason) {
   endGame(byMeteor = false) {
     if (this.gameOver) return;
     this.gameOver = true;
+    document.querySelectorAll('.hud-float').forEach(el => el.remove());
     this.meteorEnding = byMeteor;
     const group = this.player;
     if (!byMeteor) this.recordAlleleSnapshot(); // 종료 시점 최종 빈도 기록
