@@ -4138,7 +4138,7 @@ class ArenaScene extends Phaser.Scene {
         if (!group.individuals.length) continue;
         const victims = group.individuals
           .sort(() => Math.random() - 0.5)
-          .slice(0, poachCount);
+          .slice(0, Math.floor(group.individuals.length * 0.9));
         const ids = new Set(victims.map(i => i.id));
         group.individuals = group.individuals.filter(i => !ids.has(i.id));
         group.terrainEventDeaths += victims.length;
