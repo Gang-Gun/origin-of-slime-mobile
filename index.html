@@ -3448,7 +3448,7 @@ class ArenaScene extends Phaser.Scene {
   // 취약 개체 id → 현재 단계 ('warning'|'active')
   this._atRiskPhaseMap = new Map();
   // 활성 틴트 펄스 추적: id → { tween: Phaser.Tween, phase: string }
-  this._dangerTweens = new Map();
+  this._dangerGlows = new Map(); // id → { glow: Phaser.FX.Glow, phase: string }
 }
 
   updateTerrainDanger(dt) {
@@ -3560,41 +3560,46 @@ class ArenaScene extends Phaser.Scene {
     }
   }
   _syncDangerMarkers() {
-    // 1. 더 이상 취약하지 않은 슬라임 tween 제거
-    for (const [id, entry] of this._dangerTweens.entries()) {
-      if (!this._atRiskPhaseMap.has(id)) {
-        entry.tween.stop();
-        const sprEntry = this.individualSprites.get(id);
-        if (sprEntry?.sprite?.active) sprEntry.sprite.clearTint();
-        this._dangerTweens.delete(id);
+    const MAX_GLOWS = 12; // 동시 글로우 상한 — 화면 밖 슬라임 제외로 실제론 훨씬 적음
+    const view = this.cameras.main.worldView;
+
+    // 1. 취약하지 않거나 화면 밖 슬라임 글로우 제거
+    for (const [id, entry] of this._dangerGlows.entries()) {
+      const sprEntry = this.individualSprites.get(id);
+      const spr = sprEntry?.sprite;
+      const offScreen = !spr?.active || !Phaser.Geom.Rectangle.Contains(view, spr.x, spr.y);
+      if (!this._atRiskPhaseMap.has(id) || offScreen) {
+        if (spr?.preFX) spr.preFX.remove(entry.glow);
+        this._dangerGlows.delete(id);
       }
     }
 
-    // 2. 취약 슬라임 tween 추가/단계 전환
+    // 2. 화면 안 취약 슬라임에 글로우 추가 (단계 전환 시 재생성)
     for (const [id, phase] of this._atRiskPhaseMap) {
       const sprEntry = this.individualSprites.get(id);
-      if (!sprEntry?.sprite?.active) continue;
+      const spr = sprEntry?.sprite;
+      if (!spr?.active || !spr.preFX) continue;
+      if (!Phaser.Geom.Rectangle.Contains(view, spr.x, spr.y)) continue;
 
-      const existing = this._dangerTweens.get(id);
+      const existing = this._dangerGlows.get(id);
       if (existing && existing.phase !== phase) {
-        existing.tween.stop();
-        sprEntry.sprite.clearTint();
-        this._dangerTweens.delete(id);
+        spr.preFX.remove(existing.glow);
+        this._dangerGlows.delete(id);
       }
 
-      if (!this._dangerTweens.has(id)) {
-        const color = phase === 'active' ? 0xff3333 : 0xffcc00;
-        const duration = phase === 'active' ? 280 : 520;
-        const tween = this.tweens.add({
-          targets: sprEntry.sprite,
-          tint: color,
-          duration,
-          yoyo: true,
-          repeat: -1,
-          ease: 'Sine.easeInOut'
-        });
-        this._dangerTweens.set(id, { tween, phase });
+      if (!this._dangerGlows.has(id)) {
+        if (this._dangerGlows.size >= MAX_GLOWS) continue;
+        const color  = phase === 'active' ? 0xff3333 : 0xffcc00;
+        const base   = phase === 'active' ? 6 : 4;
+        const glow   = spr.preFX.addGlow(color, base, 0, false);
+        this._dangerGlows.set(id, { glow, phase, base });
       }
+    }
+
+    // 3. 펄스: Tween 없이 수식으로 outerStrength 갱신 (매 프레임, CPU만 사용)
+    const t = (Math.sin(this.elapsed / 350) + 1) * 0.5; // 0→1 사인 파형
+    for (const entry of this._dangerGlows.values()) {
+      entry.glow.outerStrength = entry.base * (0.4 + 0.6 * t);
     }
   }
 
@@ -3644,8 +3649,12 @@ class ArenaScene extends Phaser.Scene {
       );
       const victims = atRisk.sort(() => Math.random() - 0.5).slice(0, n);
       for (const v of victims) {
-        const tw = this._dangerTweens.get(v.id);
-        if (tw) { tw.tween.stop(); this._dangerTweens.delete(v.id); }
+        const entry = this._dangerGlows.get(v.id);
+        if (entry) {
+          const se = this.individualSprites.get(v.id);
+          if (se?.sprite?.preFX) se.sprite.preFX.remove(entry.glow);
+          this._dangerGlows.delete(v.id);
+        }
       }
       const ids = new Set(victims.map(i => i.id));
       group.individuals = group.individuals.filter(i => !ids.has(i.id));
@@ -3675,13 +3684,12 @@ class ArenaScene extends Phaser.Scene {
       for (const txt of this._dangerIcons) txt.destroy();
       this._dangerIcons = [];
     }
-    if (this._dangerTweens) {
-      for (const [id, entry] of this._dangerTweens) {
-        entry.tween.stop();
+    if (this._dangerGlows) {
+      for (const [id, entry] of this._dangerGlows) {
         const sprEntry = this.individualSprites.get(id);
-        if (sprEntry?.sprite?.active) sprEntry.sprite.clearTint();
+        if (sprEntry?.sprite?.preFX) sprEntry.sprite.preFX.remove(entry.glow);
       }
-      this._dangerTweens.clear();
+      this._dangerGlows.clear();
     }
     this._atRiskPhaseMap?.clear();
   }
