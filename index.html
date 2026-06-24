@@ -322,7 +322,7 @@ canvas { display: block; image-rendering: pixelated; }
 }
 .action-btn:active:not(:disabled) { transform: translateY(3px); box-shadow: 0 2px 4px rgba(0,0,0,.14); }
 #breed-btn { background: linear-gradient(170deg, #84de7e, var(--leaf-dk)); }
-#flee-btn  { background: linear-gradient(170deg, #ff9483, var(--coral)); }
+#breed-btn.flee-mode { background: linear-gradient(170deg, #ff9483, var(--coral)); }
 .action-btn:disabled { background: rgba(180,168,200,.4); color: rgba(61,51,80,.4); box-shadow: none; border-color: rgba(255,255,255,.5); }
 
 /* ─── 일시정지 모달 ─── */
@@ -879,7 +879,7 @@ body { image-rendering: pixelated; }
 .big-btn, #breed-btn, .pause-resume { background: var(--px-green) !important; }
 .big-btn.sky { background: var(--px-blue) !important; }
 .big-btn.lilac { background: var(--px-purple) !important; }
-.big-btn.coral, #restart-btn, #flee-btn, .pause-home, #dex-close { background: var(--px-red) !important; }
+.big-btn.coral, #restart-btn, #breed-btn.flee-mode, .pause-home, #dex-close { background: var(--px-red) !important; }
 .pause-settings { background: var(--px-blue) !important; }
 #lb-submit-btn { background: var(--px-green) !important; }
 #lb-skip-btn { background: var(--px-parch2) !important; color: var(--px-ink) !important; text-shadow: none !important; }
@@ -1199,7 +1199,6 @@ body { image-rendering: pixelated; }
       <div class="meter"><div class="fill" id="surplus-fill"></div></div>
     </div>
     <button id="breed-btn" class="action-btn" type="button" disabled>🥚<br>번식</button>
-    <button id="flee-btn" class="action-btn" type="button" disabled>💨<br>도망</button>
   </div>
 
   <div id="battle-vignette"></div>
@@ -3116,8 +3115,7 @@ class ArenaScene extends Phaser.Scene {
     // 방향 전환 시 Phaser 카메라 뷰포트 자동 갱신
     this.scale.on('resize', this._onSceneResize, this);
     // pointerdown 사용: 멀티터치 중(조이스틱 유지) click 합성이 막혀도 즉시 동작
-    document.getElementById('breed-btn').addEventListener('pointerdown', e => { e.preventDefault(); this.handleBreed(); });
-    document.getElementById('flee-btn').addEventListener('pointerdown', e => { e.preventDefault(); this.handleFlee(); });
+    document.getElementById('breed-btn').addEventListener('pointerdown', e => { e.preventDefault(); this.handleAction(); });
     this.showMessage('🌱 슬라임 집단을 이끌고\n먹이를 모으세요!');
     // 튜토리얼 자동 시작 (첫 게임)
     if (!localStorage.getItem('gpa_tutorial_done')) {
@@ -3956,9 +3954,9 @@ class ArenaScene extends Phaser.Scene {
       down: Phaser.Input.Keyboard.KeyCodes.S,
       right: Phaser.Input.Keyboard.KeyCodes.D
     });
-    // 스페이스바 → 번식
+    // 스페이스바 → 전투 중 도망, 평시 번식
     this.input.keyboard.on('keydown-SPACE', () => {
-      if (!_paused && !this.gameOver) this.handleBreed();
+      if (!_paused && !this.gameOver) this.handleAction();
     });
   }
 
@@ -4008,6 +4006,20 @@ class ArenaScene extends Phaser.Scene {
       const factor = e.deltaY < 0 ? 1.1 : 0.9;
       cam().setZoom(clampZoom(cam().zoom * factor));
     }, { passive: false });
+
+    // ── 우클릭 → 목적지 이동 ──────────────────────────
+    this._clickTarget = null;
+    this._clickMarker = this.add.graphics().setDepth(7).setScrollFactor(1);
+    this.game.canvas.addEventListener('contextmenu', e => {
+      e.preventDefault();
+      if (_paused || this.gameOver) return;
+      const rect = this.game.canvas.getBoundingClientRect();
+      const sx = e.clientX - rect.left;
+      const sy = e.clientY - rect.top;
+      const world = cam().getWorldPoint(sx, sy);
+      this._clickTarget = { x: world.x, y: world.y };
+      this._drawClickMarker(world.x, world.y);
+    });
   }
 
   update(_time, dt) {
@@ -4087,6 +4099,25 @@ class ArenaScene extends Phaser.Scene {
     const keyY = (this.keys.down.isDown ? 1 : 0) - (this.keys.up.isDown ? 1 : 0);
     let dirX = this.joystick.dirX + keyX;
     let dirY = this.joystick.dirY + keyY;
+
+    // 우클릭 목적지 이동 (조이스틱/키보드 입력이 없을 때만)
+    if (this._clickTarget && Math.hypot(dirX, dirY) < 0.05) {
+      const tdx = this._clickTarget.x - this.player.x;
+      const tdy = this._clickTarget.y - this.player.y;
+      const dist = Math.hypot(tdx, tdy);
+      if (dist < speed + 4) {
+        this._clickTarget = null;
+        this._clickMarker?.clear();
+      } else {
+        dirX = tdx / dist;
+        dirY = tdy / dist;
+      }
+    } else if (this._clickTarget && Math.hypot(dirX, dirY) >= 0.05) {
+      // 조이스틱/키 입력 시 우클릭 목적지 취소
+      this._clickTarget = null;
+      this._clickMarker?.clear();
+    }
+
     const length = Math.hypot(dirX, dirY);
     if (length > 1) {
       dirX /= length;
@@ -4094,6 +4125,17 @@ class ArenaScene extends Phaser.Scene {
     }
     this.player.x = clamp(this.player.x + dirX * speed, 54, WORLD_W - 54);
     this.player.y = clamp(this.player.y + dirY * speed, 54, WORLD_H - 54);
+  }
+
+  _drawClickMarker(wx, wy) {
+    const g = this._clickMarker;
+    g.clear();
+    g.lineStyle(2, 0xffffff, 0.9);
+    g.strokeCircle(wx, wy, 14);
+    g.lineStyle(2, 0xffffff, 0.6);
+    g.strokeCircle(wx, wy, 6);
+    // 1.2초 후 자동 소거
+    this.time.delayedCall(1200, () => { if (this._clickMarker) this._clickMarker.clear(); });
   }
 
   moveIndividuals(dt) {
@@ -4524,6 +4566,17 @@ class ArenaScene extends Phaser.Scene {
 
   handleFlee() {
     this.tryFleeBattle();
+  }
+
+  _isInBattle() {
+    if (this.player.state === 'battle') return true;
+    if (this.bossEntity && Math.hypot(this.bossEntity.x - this.player.x, this.bossEntity.y - this.player.y) <= BOSS_RANGE) return true;
+    return false;
+  }
+
+  handleAction() {
+    if (this._isInBattle()) this.handleFlee();
+    else this.handleBreed();
   }
 
   drawJoystick() {
@@ -5191,8 +5244,17 @@ resolveBoss(win, reason) {
     foodFill.style.background = group.food >= need ? '#22c55e' : '#ef4444';
     const surplusPct = surplusDisplay > 0 ? clamp(surplusDisplay / Math.max(need, 1) * 100, 0, 100) : 0;
     document.getElementById('surplus-fill').style.width = `${surplusPct}%`;
-    document.getElementById('breed-btn').disabled = !canBreed;
-    document.getElementById('flee-btn').disabled = group.state !== 'battle';
+    const actionBtn = document.getElementById('breed-btn');
+    const inBattle = this._isInBattle();
+    if (inBattle) {
+      actionBtn.innerHTML = '💨<br>도망';
+      actionBtn.classList.add('flee-mode');
+      actionBtn.disabled = false;
+    } else {
+      actionBtn.innerHTML = '🥚<br>번식';
+      actionBtn.classList.remove('flee-mode');
+      actionBtn.disabled = !canBreed;
+    }
 
     // 전쟁 타이머
     const activeBattle = this.battles.find(b => b.active && (b.groupA.isPlayer || b.groupB.isPlayer));
@@ -5316,6 +5378,8 @@ resolveBoss(win, reason) {
   endGame(byMeteor = false) {
     if (this.gameOver) return;
     this.gameOver = true;
+    this._clickTarget = null;
+    this._clickMarker?.clear();
     this._clearAllDangerVisuals();
     document.querySelectorAll('.hud-float').forEach(el => el.remove());
     this.meteorEnding = byMeteor;
