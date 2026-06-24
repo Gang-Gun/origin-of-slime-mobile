@@ -3493,32 +3493,34 @@ class ArenaScene extends Phaser.Scene {
     }
   }
   _syncDangerMarkers() {
-    const live = new Set();
-
-    for (const ind of this._atRiskIds) {
-      live.add(ind);
-    }
-
-    // 기존 마커 중 더 이상 필요 없는 것 제거
-    for (const [id, txt] of this._dangerMarkers.entries()) {
-      if (!live.has(id)) {
-        txt.destroy();
-        this._dangerMarkers.delete(id);
+    // 1. 더 이상 취약하지 않은 슬라임 글로우 제거
+    for (const [id, entry] of this._dangerGlows.entries()) {
+      if (!this._atRiskPhaseMap.has(id)) {
+        const sprEntry = this.individualSprites.get(id);
+        if (sprEntry?.sprite?.preFX) sprEntry.sprite.preFX.remove(entry.glow);
+        this._dangerGlows.delete(id);
       }
     }
 
-    // 취약 개체 마커 생성/위치 갱신
-    for (const id of live) {
-      const entry = this.individualSprites.get(id);
-      if (!entry) continue;
-      if (!this._dangerMarkers.has(id)) {
-        const txt = this.add.text(0, 0, '⚠️', { fontSize: '12px' })
-          .setOrigin(0.5, 1).setDepth(18).setScrollFactor(1);
-        this._dangerMarkers.set(id, txt);
+    // 2. 취약 슬라임 글로우 추가/단계 변경
+    for (const [id, phase] of this._atRiskPhaseMap) {
+      const sprEntry = this.individualSprites.get(id);
+      if (!sprEntry?.sprite?.preFX) continue;
+
+      const existing = this._dangerGlows.get(id);
+
+      if (existing && existing.phase !== phase) {
+        // 단계 전환: 기존 글로우 제거 후 재생성
+        sprEntry.sprite.preFX.remove(existing.glow);
+        this._dangerGlows.delete(id);
       }
-      const txt = this._dangerMarkers.get(id);
-      txt.x = entry.sprite.x;
-      txt.y = entry.sprite.y - 22 * entry.baseScale;
+
+      if (!this._dangerGlows.has(id)) {
+        const color = phase === 'active' ? 0xff3333 : 0xffcc00;
+        const strength = phase === 'active' ? 6 : 4;
+        const glow = sprEntry.sprite.preFX.addGlow(color, strength, 0, false);
+        this._dangerGlows.set(id, { glow, phase });
+      }
     }
   }
 
