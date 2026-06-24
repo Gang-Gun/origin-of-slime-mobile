@@ -3599,11 +3599,14 @@ class ArenaScene extends Phaser.Scene {
       for (const txt of this._dangerIcons) txt.destroy();
       this._dangerIcons = [];
     }
-    if (this._dangerMarkers) {
-      for (const txt of this._dangerMarkers.values()) txt.destroy();
-      this._dangerMarkers.clear();
+    if (this._dangerGlows) {
+      for (const [id, entry] of this._dangerGlows) {
+        const sprEntry = this.individualSprites.get(id);
+        if (sprEntry?.sprite?.preFX) sprEntry.sprite.preFX.remove(entry.glow);
+      }
+      this._dangerGlows.clear();
     }
-    this._atRiskIds?.clear();
+    this._atRiskPhaseMap?.clear();
   }
 
   terrainAt(x, y) {
