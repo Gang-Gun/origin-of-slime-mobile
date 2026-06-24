@@ -4582,9 +4582,10 @@ class ArenaScene extends Phaser.Scene {
       const dx = this.player.x - this.bossEntity.x;
       const dy = this.player.y - this.bossEntity.y;
       const dist = Math.hypot(dx, dy) || 1;
-      const fleeRange = BOSS_RANGE + ESCAPE_DISTANCE;
+      const fleeRange = BOSS_RANGE + 600; // MAX_JUMP(360)보다 멀리
       this.player.x = clamp(this.bossEntity.x + dx / dist * fleeRange, 54, WORLD_W - 54);
       this.player.y = clamp(this.bossEntity.y + dy / dist * fleeRange, 54, WORLD_H - 54);
+      this._bossFleeGraceUntil = this.elapsed + 2500; // 2.5초 전투 유예
       this.showMessage('보스에게서 도망쳤습니다. 식량 일부를 잃었습니다.');
     }
   }
@@ -4701,7 +4702,7 @@ class ArenaScene extends Phaser.Scene {
         // 발사!
         b.moveState = 'jump';
         b.jumpStart  = { x: b.x, y: b.y };
-        const MAX_JUMP = 630; // 3.5× body (scale 2.0 × 90px texture)
+        const MAX_JUMP = 360; // 느린 보스: 플레이어가 도망치면 따라잡기 어려움
         const _pdx = this.player.x - b.jumpStart.x;
         const _pdy = this.player.y - b.jumpStart.y;
         const _pd  = Math.hypot(_pdx, _pdy);
@@ -4767,7 +4768,8 @@ class ArenaScene extends Phaser.Scene {
     // 공격범위 안일 때만 도태/반격 + 배너 토글
     const dist = Math.hypot(b.x - this.player.x, b.y - this.player.y);
     const _bb = document.getElementById('battle-banner');
-    if (dist <= BOSS_RANGE) {
+    const inGrace = this._bossFleeGraceUntil && this.elapsed < this._bossFleeGraceUntil;
+    if (dist <= BOSS_RANGE && !inGrace) {
       _bb.textContent = `${this.activeBoss.ico} ${this.activeBoss.name} 전투 중!`;
       _bb.style.display = 'block';
       this.bossCombatTick(dt);
