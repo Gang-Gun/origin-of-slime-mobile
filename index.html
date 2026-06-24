@@ -3407,15 +3407,15 @@ class ArenaScene extends Phaser.Scene {
     };
   });
 
-  // ⚠️ 마커 관리 Map (individual.id → Phaser.Text)
-  this._dangerMarkers = new Map();
-  // 현재 위험/경고 중인 지형의 취약 개체 id Set
-  this._atRiskIds = new Set();
+  // 취약 개체 id → 현재 단계 ('warning'|'active')
+  this._atRiskPhaseMap = new Map();
+  // 활성 글로우 추적: id → { glow: Phaser.FX.Glow, phase: string }
+  this._dangerGlows = new Map();
 }
 
   updateTerrainDanger(dt) {
     const now = this.elapsed;
-    this._atRiskIds.clear();
+    this._atRiskPhaseMap.clear();
 
     for (const id of Object.keys(TERRAIN_EVENTS)) {
       const t = TERRAIN[id];
@@ -3451,7 +3451,7 @@ class ArenaScene extends Phaser.Scene {
         for (const group of this.groups) {
           if (this.terrainAt(group.x, group.y).id !== id) continue;
           for (const ind of group.individuals) {
-            if (d.event.predicate(ind)) this._atRiskIds.add(ind.id);
+            if (d.event.predicate(ind)) this._atRiskPhaseMap.set(ind.id, d.phase);
           }
         }
       }
