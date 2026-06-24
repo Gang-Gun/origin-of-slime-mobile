@@ -2049,7 +2049,7 @@ const BOSS_ROSTER = [
     reqText:'5항목 중 4가지 충족', refuge:null, refugeText:'균형 성장(전투·기동·생존·저항·사회 중 4↑)',
     safe:(i)=> {
       const checks = [
-        getGenotypeLabel(i,'color')==='RR' || i.stats.attack  >= 10,  // 전투력
+        (getGenotypeLabel(i,'color')==='RR' || getGenotypeLabel(i,'color')==='BB') || i.stats.attack >= 10,  // 전투력(색 순종)
         i.hasDominant('speed')             || i.stats.speed   >= 100, // 기동력
         i.hasDominant('armor')             || i.stats.hp      >= 110, // 생존력
         i.hasDominant('poison')            || i.stats.defense >= 8,   // 저항력
