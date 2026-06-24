@@ -3897,6 +3897,7 @@ class ArenaScene extends Phaser.Scene {
     this.input.on('pointerdown', pointer => {
       const event = pointer.event;
       if (_paused) return;
+      if (event && event.button === 2) return; // 우클릭은 조이스틱 제외
       if (event && event.target && event.target.closest && event.target.closest('#hud button, #bottom-bar, #stats, #top-left, #terrain-badge')) return;
       const { x: clientX, y: clientY } = this.getPointerClientPosition(pointer);
       Object.assign(this.joystick, { active: true, pointerId: pointer.id, baseX: clientX, baseY: clientY, knobX: 0, knobY: 0, dirX: 0, dirY: 0 });
