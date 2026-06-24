@@ -1990,10 +1990,11 @@ const MAX_RECRUIT_PER_BATTLE = 3;
 const BREED_COST = 10;
 const SURVIVAL_INTERVAL = 10000;
 const FOOD_INTERVAL = 6500;
-const DANGER_WARN_MS    = 5000;   // 경고 단계 5초
-const DANGER_ACTIVE_MS  = 8000;   // 위험 단계 8초
-const DANGER_CD_MIN     = 15000;  // 쿨타임 최소 15초
-const DANGER_CD_MAX     = 25000;  // 쿨타임 최대 25초
+const DANGER_WARN_MS    = 7000;   // 경고 단계 7초 (설명 읽을 시간)
+const DANGER_ACTIVE_MS  = 15000;  // 위험 단계 15초 (점진적 도태)
+const DANGER_KILL_INTERVAL = 2500; // 도태 간격: 2.5초마다 1명
+const DANGER_CD_MIN     = 20000;  // 쿨타임 최소 20초
+const DANGER_CD_MAX     = 35000;  // 쿨타임 최대 35초
 const METEOR_TIME = 600000;   // 10분 후 운석 멸종
 const METEOR_WARN_TIME = 585000; // 9분 45초 경고 시작
 const BATTLE_DISTANCE = 155;
@@ -3402,6 +3403,8 @@ class ArenaScene extends Phaser.Scene {
       phase: 'cooldown',
       until: this.elapsed + DANGER_CD_MIN + offset,
       event: null,
+      lastKillAt: 0,
+      freqBefore: null,
     };
   });
 
@@ -3421,27 +3424,51 @@ class ArenaScene extends Phaser.Scene {
       const d = t._danger;
 
       if (d.phase === 'cooldown' && now >= d.until) {
-        // 사이클 시작: 이벤트 선택 후 경고 단계
+        // 사이클 시작: 이벤트 선택 → 경고 단계 + 설명 표시
         d.event = choose(TERRAIN_EVENTS[id]);
         d.phase = 'warning';
         d.until = now + DANGER_WARN_MS;
+        d.lastKillAt = 0;
+        d.freqBefore = null;
         if (navigator.vibrate) navigator.vibrate(40);
+        // 이벤트 예고 알림
+        const onTerrain = this.terrainAt(this.player.x, this.player.y).id === id;
+        if (this.showToast) this.showToast(`⚠️ ${t.ico} ${d.event.name}`, 'ach');
+        if (onTerrain) this.showMessage(`${t.ico} ${d.event.name}\n${d.event.message}`);
+
       } else if (d.phase === 'warning' && now >= d.until) {
-        // 식량 이벤트는 경고 단계에서 즉시 처리 후 쿨타임
         if (!d.event.predicate) {
+          // 식량 이벤트: 경고 종료 시 즉시 처리
           this._applyDangerEvent(t);
           d.phase = 'cooldown';
           d.until = now + DANGER_CD_MIN + Math.random() * (DANGER_CD_MAX - DANGER_CD_MIN);
           d.event = null;
         } else {
+          // 도태 이벤트: 점진적 도태 시작
           d.phase = 'active';
           d.until = now + DANGER_ACTIVE_MS;
+          d.lastKillAt = now;
+          d.freqBefore = this.player.individuals.length ? this.player.geneFrequency() : null;
+          this._killOneTick(t);
         }
-      } else if (d.phase === 'active' && now >= d.until) {
-        this._applyDangerEvent(t);
-        d.phase = 'cooldown';
-        d.until = now + DANGER_CD_MIN + Math.random() * (DANGER_CD_MAX - DANGER_CD_MIN);
-        d.event = null;
+
+      } else if (d.phase === 'active') {
+        // 점진적 도태 틱
+        if (now - d.lastKillAt >= DANGER_KILL_INTERVAL) {
+          d.lastKillAt = now;
+          this._killOneTick(t);
+        }
+        // 활성 단계 종료
+        if (now >= d.until) {
+          if (d.freqBefore && this.player.individuals.length) {
+            this.recordAlleleSnapshot();
+            this.showAlleleChangeCard(t, d.freqBefore, this.player.geneFrequency());
+          }
+          d.phase = 'cooldown';
+          d.until = now + DANGER_CD_MIN + Math.random() * (DANGER_CD_MAX - DANGER_CD_MIN);
+          d.event = null;
+          d.freqBefore = null;
+        }
       }
 
       // 경고/위험 단계: 취약 개체 id 수집
@@ -3529,61 +3556,60 @@ class ArenaScene extends Phaser.Scene {
     }
   }
 
+  // 식량 이벤트 전용 (predicate 도태는 _killOneTick으로 분리)
   _applyDangerEvent(terrain) {
     const event = terrain._danger.event;
-    if (!event) return;
+    if (!event || event.predicate) return;
 
     const t = terrain;
     this.terrainEventCount[t.id] = (this.terrainEventCount[t.id] || 0) + 1;
 
-    const freqBefore = this.player.individuals.length ? this.player.geneFrequency() : null;
-
-    let playerDeaths = 0;
-
     for (const group of this.groups) {
       if (this.terrainAt(group.x, group.y).id !== t.id) continue;
 
-      if (event.predicate) {
-        const atRisk = group.individuals.filter(i => event.predicate(i));
-        if (atRisk.length) {
-          const rate = event.killRate ?? 0.60;
-          const n = Math.max(1, Math.round(atRisk.length * rate));
-          const victims = atRisk.sort(() => Math.random() - 0.5).slice(0, n);
-          const ids = new Set(victims.map(i => i.id));
-          group.individuals = group.individuals.filter(i => !ids.has(i.id));
-          group.terrainEventDeaths += victims.length;
-          if (group.isPlayer) {
-            playerDeaths += victims.length;
-            this.burst(group.x, group.y, 0xff4444, 8, 60);
-          }
-        }
-      } else if (event.foodDelta !== undefined) {
+      if (event.foodDelta !== undefined) {
         const before = group.food;
         group.food = clamp(group.food + event.foodDelta, 0, FOOD_CAP);
         if (group.isPlayer && this.showToast) {
           const delta = Math.round(group.food - before);
           const sign = delta >= 0 ? '+' : '';
-          this.showToast(`${t.ico} ${sign}${delta} 🍎`, 'ach');
+          this.showToast(`${t.ico} ${event.name} ${sign}${delta} 🍎`, 'ach');
         }
       } else if (event.foodRatio !== undefined) {
         const before = group.food;
         group.food = Math.floor(group.food * event.foodRatio);
         if (group.isPlayer && this.showToast) {
           const pct = Math.round((1 - event.foodRatio) * 100);
-          this.showToast(`${t.ico} −${pct}% 🍎`, 'ach');
+          this.showToast(`${t.ico} ${event.name} −${pct}% 🍎`, 'ach');
         }
       }
     }
-
-    // 도태 토스트 (플레이어 집단이 해당 지형에 있었고 사망 발생 시)
-    if (event.predicate && playerDeaths > 0 && this.showToast) {
-      this.showToast(`${t.ico} ${event.name} ×${playerDeaths} 💀`, 'ach');
-    }
-
     this.recordAlleleSnapshot();
+  }
 
-    if (freqBefore && this.player.individuals.length) {
-      this.showAlleleChangeCard(t, freqBefore, this.player.geneFrequency());
+  // 점진적 도태: 활성 단계마다 1명씩 제거
+  _killOneTick(terrain) {
+    const event = terrain._danger.event;
+    if (!event?.predicate) return;
+    const t = terrain;
+    this.terrainEventCount[t.id] = (this.terrainEventCount[t.id] || 0) + 1;
+
+    for (const group of this.groups) {
+      if (this.terrainAt(group.x, group.y).id !== t.id) continue;
+      const atRisk = group.individuals.filter(i => event.predicate(i));
+      if (!atRisk.length) continue;
+
+      const victim = atRisk[Math.floor(Math.random() * atRisk.length)];
+      // 죽는 슬라임 tween 정리
+      const tw = this._dangerTweens.get(victim.id);
+      if (tw) { tw.tween.stop(); this._dangerTweens.delete(victim.id); }
+      group.individuals = group.individuals.filter(i => i.id !== victim.id);
+      group.terrainEventDeaths = (group.terrainEventDeaths || 0) + 1;
+
+      if (group.isPlayer) {
+        this.burst(group.x, group.y, 0xff4444, 5, 50);
+        if (this.showToast) this.showToast(`${t.ico} ${event.name} 💀`, 'ach');
+      }
     }
   }
 
