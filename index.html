@@ -3413,6 +3413,68 @@ class ArenaScene extends Phaser.Scene {
   this._atRiskIds = new Set();
 }
 
+  updateTerrainDanger(dt) {
+    const now = this.elapsed;
+    this._atRiskIds.clear();
+
+    for (const id of Object.keys(TERRAIN_EVENTS)) {
+      const t = TERRAIN[id];
+      if (!t || !t._danger) continue;
+      const d = t._danger;
+
+      if (d.phase === 'cooldown' && now >= d.until) {
+        // 사이클 시작: 이벤트 선택 후 경고 단계
+        d.event = choose(TERRAIN_EVENTS[id]);
+        d.phase = 'warning';
+        d.until = now + DANGER_WARN_MS;
+        if (navigator.vibrate) navigator.vibrate(40);
+      } else if (d.phase === 'warning' && now >= d.until) {
+        // 식량 이벤트는 경고 단계에서 즉시 처리 후 쿨타임
+        if (!d.event.predicate) {
+          this._applyDangerEvent(t);
+          d.phase = 'cooldown';
+          d.until = now + DANGER_CD_MIN + Math.random() * (DANGER_CD_MAX - DANGER_CD_MIN);
+          d.event = null;
+        } else {
+          d.phase = 'active';
+          d.until = now + DANGER_ACTIVE_MS;
+        }
+      } else if (d.phase === 'active' && now >= d.until) {
+        this._applyDangerEvent(t);
+        d.phase = 'cooldown';
+        d.until = now + DANGER_CD_MIN + Math.random() * (DANGER_CD_MAX - DANGER_CD_MIN);
+        d.event = null;
+      }
+
+      // 경고/위험 단계: 취약 개체 id 수집
+      if ((d.phase === 'warning' || d.phase === 'active') && d.event?.predicate) {
+        for (const group of this.groups) {
+          if (this.terrainAt(group.x, group.y).id !== id) continue;
+          for (const ind of group.individuals) {
+            if (d.event.predicate(ind)) this._atRiskIds.add(ind.id);
+          }
+        }
+      }
+    }
+
+    this._drawDangerOverlay();
+    this._syncDangerMarkers();
+  }
+
+  _drawDangerOverlay() { /* Task 4에서 구현 */ }
+  _syncDangerMarkers() { /* Task 5에서 구현 */ }
+
+  _applyDangerEvent(terrain) { /* Task 6에서 구현 */ }
+
+  _forceDanger(terrainId) {
+    const t = TERRAIN[terrainId];
+    if (!t || !t._danger) return 'unknown terrain';
+    t._danger.event = choose(TERRAIN_EVENTS[terrainId]);
+    t._danger.phase = 'warning';
+    t._danger.until = this.elapsed + DANGER_WARN_MS;
+    return `forced ${terrainId} → warning`;
+  }
+
   terrainAt(x, y) {
     const tileX = clamp(Math.floor(x / TILE), 0, this.terrainGrid[0].length - 1);
     const tileY = clamp(Math.floor(y / TILE), 0, this.terrainGrid.length - 1);
@@ -3859,6 +3921,7 @@ class ArenaScene extends Phaser.Scene {
       this.lastBattleCheckAt = now;
       this.checkBattles();
     }
+    this.updateTerrainDanger(dt);
     if (now - this.lastWeatherAt >= WEATHER_INTERVAL) {
       this.lastWeatherAt = now;
       this.changeWeather();
