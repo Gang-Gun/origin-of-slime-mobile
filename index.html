@@ -2044,9 +2044,20 @@ const BOSS_ROSTER = [
     safe:i=> (getGenotypeLabel(i,'color')==='RR'&&i.hasDominant('poison')) || i.stats.defense>=10 },
   { id:'siren',  name:'심연 세이렌', ico:'🌊', reqText:'푸른몸+매력(B·C) / 매력16↑',      refuge:'desert',  refugeText:'🏜️ 사막',
     safe:i=> (getGenotypeLabel(i,'color')==='BB'&&i.hasDominant('charm')) || i.stats.charm>=16 },
-  // 히든 — 다양성 요구 (유전자·스탯 대체 없음)
-  { id:'primordial', name:'태초의 포식자', ico:'🌈', hidden:true, reqText:'유전적 다양성', refuge:null, refugeText:'균형 유지(한 형질 몰빵 금지)',
-    safe:(i,g)=> g.calcDiversity() >= DIVERSITY_REQ },
+  // 최종 — 5항목 중 4가지 충족 (균형 성장 강제)
+  { id:'primordial', name:'태초의 포식자', ico:'🌈', hidden:true,
+    reqText:'5항목 중 4가지 충족', refuge:null, refugeText:'균형 성장(전투·기동·생존·저항·사회 중 4↑)',
+    safe:(i)=> {
+      const checks = [
+        getGenotypeLabel(i,'color')==='RR' || i.stats.attack  >= 10,  // 전투력
+        i.hasDominant('speed')             || i.stats.speed   >= 100, // 기동력
+        i.hasDominant('armor')             || i.stats.hp      >= 110, // 생존력
+        i.hasDominant('poison')            || i.stats.defense >= 8,   // 저항력
+        i.hasDominant('charm')             || i.stats.charm   >= 12,  // 사회력
+      ];
+      return checks.filter(Boolean).length >= 4;
+    }
+  },
 ];
 function bossById(id){ return BOSS_ROSTER.find(b=>b.id===id); }
 
