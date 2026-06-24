@@ -4961,6 +4961,96 @@ resolveBoss(win, reason) {
     setTimeout(() => el.remove(), 3700);
   }
 
+  showAlleleChangeCard(terrain, before, after) {
+    // 기존 카드 즉시 제거
+    document.getElementById('allele-change-card')?.remove();
+
+    const GENE_META = {
+      color:  { ico: '🔴', col: '#ef5555' },
+      speed:  { ico: '⚡', col: '#22c55e' },
+      poison: { ico: '☠️', col: '#a78bfa' },
+      armor:  { ico: '🛡️', col: '#60a5fa' },
+      charm:  { ico: '💗', col: '#f472b6' },
+    };
+
+    const changed = Object.keys(GENE_META).filter(
+      k => Math.abs((after[k] || 0) - (before[k] || 0)) >= 2
+    );
+    if (!changed.length) return;
+
+    const isPredicate = !!terrain._danger?.event?.predicate;
+    const label = isPredicate ? '도태 후' : '식량 변화 후';
+
+    const card = document.createElement('div');
+    card.id = 'allele-change-card';
+    card.style.cssText = [
+      'position:fixed', 'top:80px', 'right:12px', 'z-index:9999',
+      'background:rgba(10,10,20,0.93)', 'border:1px solid rgba(255,255,255,0.12)',
+      'border-radius:12px', 'padding:12px 16px', 'min-width:180px',
+      'font-family:inherit', 'pointer-events:none', 'transition:opacity 0.4s',
+    ].join(';');
+
+    const header = document.createElement('div');
+    header.style.cssText = 'font-size:11px;color:#888;margin-bottom:8px;letter-spacing:0.5px;';
+    header.textContent = `${terrain.ico} ${label}`;
+    card.appendChild(header);
+
+    const targets = [];
+    for (const key of changed) {
+      const meta = GENE_META[key];
+      const b = Math.round(before[key] || 0);
+      const a = Math.round(after[key] || 0);
+      const delta = a - b;
+
+      const row = document.createElement('div');
+      row.style.cssText = 'display:flex;align-items:center;gap:8px;margin-bottom:5px;font-size:13px;';
+
+      const ico = document.createElement('span');
+      ico.textContent = meta.ico;
+
+      const beforeVal = document.createElement('span');
+      beforeVal.style.color = '#888';
+      beforeVal.textContent = `${b}%`;
+
+      const arrow = document.createElement('span');
+      arrow.style.cssText = 'color:#555;font-size:11px;';
+      arrow.textContent = '→';
+
+      const afterVal = document.createElement('span');
+      afterVal.style.cssText = `font-weight:bold;color:${delta > 0 ? meta.col : '#aaa'};`;
+      afterVal.textContent = `${b}%`;
+
+      const badge = document.createElement('span');
+      badge.style.cssText = `background:rgba(128,128,128,0.15);color:${delta > 0 ? meta.col : '#888'};border-radius:4px;padding:0 5px;font-size:11px;`;
+      badge.textContent = delta > 0 ? `↑${delta}` : `↓${Math.abs(delta)}`;
+
+      row.appendChild(ico); row.appendChild(beforeVal);
+      row.appendChild(arrow); row.appendChild(afterVal); row.appendChild(badge);
+      card.appendChild(row);
+      targets.push({ el: afterVal, from: b, to: a });
+    }
+
+    document.body.appendChild(card);
+
+    const duration = 600;
+    const startTime = performance.now();
+    function tick(now) {
+      const p = Math.min((now - startTime) / duration, 1);
+      for (const { el, from, to } of targets) {
+        el.textContent = `${Math.round(from + (to - from) * p)}%`;
+      }
+      if (p < 1) {
+        requestAnimationFrame(tick);
+      } else {
+        setTimeout(() => {
+          card.style.opacity = '0';
+          setTimeout(() => card.remove(), 400);
+        }, 1500);
+      }
+    }
+    requestAnimationFrame(tick);
+  }
+
   // ── 날씨 변화 ──
   changeWeather() {
     const prev = this.weather;
