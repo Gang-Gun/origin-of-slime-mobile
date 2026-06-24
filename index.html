@@ -3516,7 +3516,35 @@ class ArenaScene extends Phaser.Scene {
       }
     }
   }
-  _syncDangerMarkers() { /* Task 5에서 구현 */ }
+  _syncDangerMarkers() {
+    const live = new Set();
+
+    for (const ind of this._atRiskIds) {
+      live.add(ind);
+    }
+
+    // 기존 마커 중 더 이상 필요 없는 것 제거
+    for (const [id, txt] of this._dangerMarkers.entries()) {
+      if (!live.has(id)) {
+        txt.destroy();
+        this._dangerMarkers.delete(id);
+      }
+    }
+
+    // 취약 개체 마커 생성/위치 갱신
+    for (const id of live) {
+      const entry = this.individualSprites.get(id);
+      if (!entry) continue;
+      if (!this._dangerMarkers.has(id)) {
+        const txt = this.add.text(0, 0, '⚠️', { fontSize: '12px' })
+          .setOrigin(0.5, 1).setDepth(18).setScrollFactor(1);
+        this._dangerMarkers.set(id, txt);
+      }
+      const txt = this._dangerMarkers.get(id);
+      txt.x = entry.sprite.x;
+      txt.y = entry.sprite.y - 22 * entry.baseScale;
+    }
+  }
 
   _applyDangerEvent(terrain) { /* Task 6에서 구현 */ }
 
