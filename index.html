@@ -3553,6 +3553,8 @@ class ArenaScene extends Phaser.Scene {
     const t = terrain;
     this.terrainEventCount[t.id] = (this.terrainEventCount[t.id] || 0) + 1;
 
+    const freqBefore = this.player.individuals.length ? this.player.geneFrequency() : null;
+
     let playerDeaths = 0;
 
     for (const group of this.groups) {
@@ -3596,6 +3598,10 @@ class ArenaScene extends Phaser.Scene {
     }
 
     this.recordAlleleSnapshot();
+
+    if (freqBefore && this.player.individuals.length) {
+      this.showAlleleChangeCard(t, freqBefore, this.player.geneFrequency());
+    }
   }
 
   _forceDanger(terrainId) {
