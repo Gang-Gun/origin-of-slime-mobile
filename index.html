@@ -3546,7 +3546,57 @@ class ArenaScene extends Phaser.Scene {
     }
   }
 
-  _applyDangerEvent(terrain) { /* Task 6에서 구현 */ }
+  _applyDangerEvent(terrain) {
+    const event = terrain._danger.event;
+    if (!event) return;
+
+    const t = terrain;
+    this.terrainEventCount[t.id] = (this.terrainEventCount[t.id] || 0) + 1;
+
+    let playerDeaths = 0;
+
+    for (const group of this.groups) {
+      if (this.terrainAt(group.x, group.y).id !== t.id) continue;
+
+      if (event.predicate) {
+        const atRisk = group.individuals.filter(i => event.predicate(i));
+        if (atRisk.length) {
+          const rate = event.killRate ?? 0.60;
+          const n = Math.max(1, Math.round(atRisk.length * rate));
+          const victims = atRisk.sort(() => Math.random() - 0.5).slice(0, n);
+          const ids = new Set(victims.map(i => i.id));
+          group.individuals = group.individuals.filter(i => !ids.has(i.id));
+          group.terrainEventDeaths += victims.length;
+          if (group.isPlayer) {
+            playerDeaths += victims.length;
+            this.burst(group.x, group.y, 0xff4444, 8, 60);
+          }
+        }
+      } else if (event.foodDelta !== undefined) {
+        const before = group.food;
+        group.food = clamp(group.food + event.foodDelta, 0, FOOD_CAP);
+        if (group.isPlayer && this.showToast) {
+          const delta = Math.round(group.food - before);
+          const sign = delta >= 0 ? '+' : '';
+          this.showToast(`${t.ico} ${sign}${delta} 🍎`, 'ach');
+        }
+      } else if (event.foodRatio !== undefined) {
+        const before = group.food;
+        group.food = Math.floor(group.food * event.foodRatio);
+        if (group.isPlayer && this.showToast) {
+          const pct = Math.round((1 - event.foodRatio) * 100);
+          this.showToast(`${t.ico} −${pct}% 🍎`, 'ach');
+        }
+      }
+    }
+
+    // 도태 토스트 (플레이어 집단이 해당 지형에 있었고 사망 발생 시)
+    if (event.predicate && playerDeaths > 0 && this.showToast) {
+      this.showToast(`${t.ico} ×${playerDeaths} 💀`, 'ach');
+    }
+
+    this.recordAlleleSnapshot();
+  }
 
   _forceDanger(terrainId) {
     const t = TERRAIN[terrainId];
