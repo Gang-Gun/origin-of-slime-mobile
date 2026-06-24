@@ -1991,7 +1991,10 @@ const MAX_RECRUIT_PER_BATTLE = 3;
 const BREED_COST = 10;
 const SURVIVAL_INTERVAL = 10000;
 const FOOD_INTERVAL = 6500;
-const TERRAIN_EVENT_INTERVAL = 10000;
+const DANGER_WARN_MS    = 5000;   // 경고 단계 5초
+const DANGER_ACTIVE_MS  = 8000;   // 위험 단계 8초
+const DANGER_CD_MIN     = 15000;  // 쿨타임 최소 15초
+const DANGER_CD_MAX     = 25000;  // 쿨타임 최대 25초
 const METEOR_TIME = 600000;   // 10분 후 운석 멸종
 const METEOR_WARN_TIME = 585000; // 9분 45초 경고 시작
 const BATTLE_DISTANCE = 155;
@@ -3056,7 +3059,6 @@ class ArenaScene extends Phaser.Scene {
     this.lastFoodAt = Date.now();
     this.lastSurvivalAt = Date.now();
     this.lastBattleCheckAt = Date.now();
-    this.lastTerrainEventAt = Date.now();
     this.lastAiSpawnAt = Date.now();
     this.gameOver = false;
     window._arenaScene = this; // 순위표 버튼에서 endScoreData 접근용
@@ -3818,10 +3820,6 @@ class ArenaScene extends Phaser.Scene {
       this.lastBattleCheckAt = now;
       this.checkBattles();
     }
-    if (now - this.lastTerrainEventAt >= TERRAIN_EVENT_INTERVAL) {
-      this.lastTerrainEventAt = now;
-      this.terrainEventTick();
-    }
     if (now - this.lastWeatherAt >= WEATHER_INTERVAL) {
       this.lastWeatherAt = now;
       this.changeWeather();
@@ -4130,36 +4128,6 @@ class ArenaScene extends Phaser.Scene {
 
 
 
-  terrainEventTick() {
-    // 1% 확률로 밀렵꾼 이벤트 (모든 지형, 전 집단 대상)
-    if (Math.random() < 0.01) {
-      let playerLoss = 0;
-      for (const group of this.groups) {
-        if (!group.individuals.length) continue;
-        const victims = group.individuals
-          .sort(() => Math.random() - 0.5)
-          .slice(0, Math.floor(group.individuals.length * 0.9));
-        const ids = new Set(victims.map(i => i.id));
-        group.individuals = group.individuals.filter(i => !ids.has(i.id));
-        group.terrainEventDeaths += victims.length;
-        if (group.isPlayer) playerLoss += victims.length;
-      }
-      if (playerLoss > 0)
-        this.showMessage(`🎯 밀렵꾼 출현!\n무작위로 ${playerLoss}마리를 잡아갔습니다.`, true);
-      return;
-    }
-
-    // 일반 지형 이벤트: 랜덤 최대 3개 지형에서 동시 발생
-    const occupied = new Set(this.groups.map(g => this.terrainAt(g.x, g.y).id));
-    const candidates = TERRAIN_LIST.filter(t => TERRAIN_EVENTS[t.id] && occupied.has(t.id));
-    if (!candidates.length) return;
-    const shuffled = [...candidates].sort(() => Math.random() - 0.5);
-    const picks = shuffled.slice(0, Math.min(3, shuffled.length));
-    for (const targetTerrain of picks) {
-      const event = choose(TERRAIN_EVENTS[targetTerrain.id]);
-      this.applyTerrainEvent(targetTerrain, event);
-    }
-  }
 
   applyTerrainEvent(targetTerrain, event) {
     // 지형별 이벤트 횟수 누적
@@ -4195,15 +4163,6 @@ class ArenaScene extends Phaser.Scene {
       }
     }
 
-    // 메시지: 플레이어가 해당 지형이면 항상 표시
-    if (playerAffected) {
-      if (event.predicate) {
-        const suffix = playerDeaths > 0 ? ` (${playerDeaths}마리 사망)` : ' (피해 없음 — 이 집단엔 해당 개체 없음)';
-        this.showMessage(`[${targetTerrain.name}] ${event.name}: ${event.message}${suffix}`, true);
-      } else {
-        this.showMessage(`[${targetTerrain.name}] ${event.name}: ${event.message}`, true);
-      }
-    }
     return totalDeaths;
   }
 
