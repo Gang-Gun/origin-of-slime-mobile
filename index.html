@@ -3513,11 +3513,10 @@ class ArenaScene extends Phaser.Scene {
         }
       }
 
-      // 경고/위험 단계: 취약 개체 id 수집
+      // 경고/위험 단계: 플레이어 집단의 취약 개체 id만 수집 (글로우는 내 개체만)
       if ((d.phase === 'warning' || d.phase === 'active') && d.event?.predicate) {
-        for (const group of this.groups) {
-          if (this.terrainAt(group.x, group.y).id !== id) continue;
-          for (const ind of group.individuals) {
+        if (this.terrainAt(this.player.x, this.player.y).id === id) {
+          for (const ind of this.player.individuals) {
             if (d.event.predicate(ind)) this._atRiskPhaseMap.set(ind.id, d.phase);
           }
         }
