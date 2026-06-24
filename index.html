@@ -3607,6 +3607,21 @@ class ArenaScene extends Phaser.Scene {
     return `forced ${terrainId} → warning`;
   }
 
+  _clearAllDangerVisuals() {
+    if (this._dangerGfx) {
+      this._dangerGfx.clear();
+    }
+    if (this._dangerIcons) {
+      for (const txt of this._dangerIcons) txt.destroy();
+      this._dangerIcons = [];
+    }
+    if (this._dangerMarkers) {
+      for (const txt of this._dangerMarkers.values()) txt.destroy();
+      this._dangerMarkers.clear();
+    }
+    this._atRiskIds?.clear();
+  }
+
   terrainAt(x, y) {
     const tileX = clamp(Math.floor(x / TILE), 0, this.terrainGrid[0].length - 1);
     const tileY = clamp(Math.floor(y / TILE), 0, this.terrainGrid.length - 1);
@@ -5224,6 +5239,7 @@ resolveBoss(win, reason) {
   endGame(byMeteor = false) {
     if (this.gameOver) return;
     this.gameOver = true;
+    this._clearAllDangerVisuals();
     document.querySelectorAll('.hud-float').forEach(el => el.remove());
     this.meteorEnding = byMeteor;
     const group = this.player;
