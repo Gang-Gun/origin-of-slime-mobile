@@ -3438,6 +3438,7 @@ class ArenaScene extends Phaser.Scene {
       event: null,
       lastKillAt: 0,
       freqBefore: null,
+      ticksLeft: 0,
     };
   });
 
@@ -3479,6 +3480,7 @@ class ArenaScene extends Phaser.Scene {
           d.freqBefore = this.player.individuals.length ? this.player.geneFrequency() : null;
           this.terrainEventCount[t.id] = (this.terrainEventCount[t.id] || 0) + 1;
           d.lastKillAt = now - DANGER_KILL_INTERVAL; // 즉시 첫 틱 실행되도록
+          d.ticksLeft = Math.round(DANGER_ACTIVE_MS / DANGER_KILL_INTERVAL); // 총 틱 수
         } else {
           // 식량 이벤트: 즉시 처리 후 3초 결과 표시
           d.until = now + DANGER_FOOD_ACTIVE_MS;
@@ -3490,6 +3492,7 @@ class ArenaScene extends Phaser.Scene {
         if (d.event?.predicate && now - d.lastKillAt >= DANGER_KILL_INTERVAL) {
           d.lastKillAt = now;
           this._killOneTick(t);
+          d.ticksLeft = Math.max(0, d.ticksLeft - 1);
         }
         // 활성 단계 종료
         if (now >= d.until) {
@@ -3636,10 +3639,9 @@ class ArenaScene extends Phaser.Scene {
       if (!atRisk.length) continue;
 
       // 그룹 규모에 비례: 10%, 최소 1명 / 최대 at-risk의 50%
-      const n = Math.min(
-        Math.max(1, Math.ceil(atRisk.length * 0.10)),
-        Math.ceil(atRisk.length * 0.50)
-      );
+      // 남은 틱 수로 나눠 끝까지 머물면 전멸 보장
+      const ticks = Math.max(1, t._danger.ticksLeft);
+      const n = Math.ceil(atRisk.length / ticks);
       const victims = atRisk.sort(() => Math.random() - 0.5).slice(0, n);
       for (const v of victims) {
         const entry = this._dangerGlows.get(v.id);
