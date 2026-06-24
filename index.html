@@ -3560,7 +3560,6 @@ class ArenaScene extends Phaser.Scene {
     }
   }
   _syncDangerMarkers() {
-    const MAX_GLOWS = 12; // 동시 글로우 상한 — 화면 밖 슬라임 제외로 실제론 훨씬 적음
     const view = this.cameras.main.worldView;
 
     // 1. 취약하지 않거나 화면 밖 슬라임 글로우 제거
@@ -3588,7 +3587,6 @@ class ArenaScene extends Phaser.Scene {
       }
 
       if (!this._dangerGlows.has(id)) {
-        if (this._dangerGlows.size >= MAX_GLOWS) continue;
         const color  = phase === 'active' ? 0xff3333 : 0xffcc00;
         const base   = phase === 'active' ? 6 : 4;
         const glow   = spr.preFX.addGlow(color, base, 0, false);
