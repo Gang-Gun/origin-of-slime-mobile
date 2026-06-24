@@ -3071,6 +3071,7 @@ class ArenaScene extends Phaser.Scene {
     this.terrainEventCount = {};
     // 보스 위협 상태
     this.bossSchedule = this.rollBossSchedule();
+    this.initTerrainDanger();
     this.bossPhase = 'idle';   // idle | warning | chase
     this.activeBoss = null;    // 현재 보스 정의
     this.bossEntity = null;    // { x, y, hp, hpMax, sprite, speed }
@@ -3373,6 +3374,44 @@ class ArenaScene extends Phaser.Scene {
       g.fillStyle(0xfff3b0, 1); g.fillCircle(0, -2, 1.8);
     }));
   }
+
+  initTerrainDanger() {
+  // 각 지형의 타일 픽셀 좌표 사전계산 (overlay 그리기용)
+  this._terrainTiles = {};
+  const rows = this.terrainGrid.length;
+  const cols = this.terrainGrid[0].length;
+  for (const t of TERRAIN_LIST) {
+    this._terrainTiles[t.id] = [];
+  }
+  for (let gy = 0; gy < rows; gy++) {
+    for (let gx = 0; gx < cols; gx++) {
+      const t = this.terrainGrid[gy][gx];
+      this._terrainTiles[t.id].push({ px: gx * TILE, py: gy * TILE });
+    }
+  }
+
+  // 위험 오버레이용 단일 Graphics (depth 5, 타일 레이어 위)
+  this._dangerGfx = this.add.graphics().setDepth(5).setScrollFactor(1);
+
+  // 지형별 독립 위험 상태 초기화 (TERRAIN_EVENTS 있는 지형만)
+  const terrainIds = Object.keys(TERRAIN_EVENTS);
+  terrainIds.forEach((id, idx) => {
+    const t = TERRAIN[id];
+    if (!t) return;
+    // 쿨타임을 지형마다 다르게 시작해서 동시 다발 방지
+    const offset = idx * 4000;
+    t._danger = {
+      phase: 'cooldown',
+      until: this.elapsed + DANGER_CD_MIN + offset,
+      event: null,
+    };
+  });
+
+  // ⚠️ 마커 관리 Map (individual.id → Phaser.Text)
+  this._dangerMarkers = new Map();
+  // 현재 위험/경고 중인 지형의 취약 개체 id Set
+  this._atRiskIds = new Set();
+}
 
   terrainAt(x, y) {
     const tileX = clamp(Math.floor(x / TILE), 0, this.terrainGrid[0].length - 1);
