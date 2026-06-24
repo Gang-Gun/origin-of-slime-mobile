@@ -1160,7 +1160,6 @@ body { image-rendering: pixelated; }
     <div class="chip"><span class="ico" id="terrain-ico">🌿</span><span id="terrain-name">초원</span></div>
     <div class="chip"><span class="ico">🐾</span><strong id="c-count">20</strong></div>
     <div class="chip"><span class="ico">🍓</span><strong id="c-food">30</strong></div>
-    <div class="chip"><span class="ico">🏆</span><strong id="c-win">0</strong></div>
     <div id="top-spacer"></div>
     <div class="chip timer"><span class="ico">⏳</span><strong id="c-gen">5:00</strong></div>
     <button id="pause-btn" type="button" onclick="togglePause()">⏸</button>
@@ -1170,7 +1169,6 @@ body { image-rendering: pixelated; }
   <div id="side-bar">
     <div id="env-badge">
       <span class="weather" id="weather-ico">☀️</span>
-      <span class="clock" id="clock-text">낮</span>
     </div>
     <button id="stats-toggle" type="button" onclick="toggleStatsPanel()">📊 현황</button>
     <button id="dex-toggle" type="button" onclick="openDex()">🔬 도감</button>
@@ -1195,8 +1193,6 @@ body { image-rendering: pixelated; }
     <div id="bars">
       <div class="bar-label"><span>🍓 식량</span><span><b id="b-food">30</b> · 필요 <b id="b-need">20</b></span></div>
       <div class="meter"><div class="fill" id="food-fill"></div></div>
-      <div class="bar-label"><span>✨ 잉여</span><span><b id="b-surplus">10</b></span></div>
-      <div class="meter"><div class="fill" id="surplus-fill"></div></div>
     </div>
     <button id="breed-btn" class="action-btn" type="button" disabled>🥚<br>번식</button>
   </div>
@@ -3468,9 +3464,9 @@ class ArenaScene extends Phaser.Scene {
         d.lastKillAt = 0;
         d.freqBefore = null;
         if (navigator.vibrate) navigator.vibrate(40);
-        // 경고 예고: 항상 토스트, 해당 지형에 있으면 중앙 메시지로 warning 텍스트 표시
-        if (this.showToast) this.showToast(`⚠️ ${t.ico} ${d.event.name}`, 'ach');
+        // 경고 예고: 현재 지형에서만 표시
         if (this.terrainAt(this.player.x, this.player.y).id === id) {
+          if (this.showToast) this.showToast(`⚠️ ${t.ico} ${d.event.name}`, 'ach');
           this.showMessage(d.event.warning);
         }
 
@@ -3659,7 +3655,6 @@ class ArenaScene extends Phaser.Scene {
 
       if (group.isPlayer && victims.length > 0) {
         this.burst(group.x, group.y, 0xff4444, Math.min(victims.length * 3, 15), 55);
-        if (this.showToast) this.showToast(`${t.ico} ${event.name} ×${victims.length} 💀`, 'ach');
       }
     }
   }
@@ -4452,7 +4447,7 @@ class ArenaScene extends Phaser.Scene {
         }
         if (result.deaths > 0) {
           Audio.sfxDeath();
-          this.showMessage(`💀 굶주림으로 ${result.deaths}마리가 죽었습니다.`);
+          if (this.showToast) this.showToast(`💀 굶주림 ×${result.deaths}`, 'ach');
         }
       }
     }
@@ -5209,10 +5204,6 @@ resolveBoss(win, reason) {
       Audio.sfxThunder();
       this.cameras.main.flash(300, 255, 255, 255);
       this.showMessage(`⛈️ 폭풍이 몰아칩니다!\n이동이 느려지고 식량이 줄어듭니다`);
-    } else if (next.id === 'rain') {
-      this.showMessage('🌧️ 비가 내립니다 — 식량이 풍성해집니다');
-    } else if (next.id === 'fog') {
-      this.showMessage('🌫️ 안개가 자욱합니다');
     }
   }
 
@@ -5231,7 +5222,6 @@ resolveBoss(win, reason) {
     if (isNight !== (this.dayPhase === 'night')) {
       this.dayPhase = isNight ? 'night' : 'day';
       document.getElementById('clock-text').textContent = isNight ? '밤' : '낮';
-      if (isNight) this.showMessage('🌙 밤이 찾아옵니다 — 위험이 도사립니다');
     }
 
     // 날씨 tint 오버레이
@@ -5313,7 +5303,6 @@ resolveBoss(win, reason) {
     const rm = Math.floor(remainMs / 60000), rs = Math.floor((remainMs % 60000) / 1000);
     setText('c-count', group.count);
     setText('c-food', Math.floor(group.food));
-    setText('c-win', group.wins);
     setText('c-gen', `${rm}:${String(rs).padStart(2,'0')}`); // 세대→남은시간
 
     // 현황 패널 (간소화)
@@ -5331,7 +5320,6 @@ resolveBoss(win, reason) {
     const surplusDisplay = Math.max(0, surplus);
     setText('b-food', Math.floor(group.food));
     setText('b-need', need.toFixed(0));
-    setText('b-surplus', surplusDisplay.toFixed(0));
     setText('food-cap-text', need.toFixed(0));
     setText('terrain-name', terrain.name);
     setText('terrain-ico', terrain.ico || '🌿');
@@ -5341,8 +5329,6 @@ resolveBoss(win, reason) {
     const foodFill = document.getElementById('food-fill');
     foodFill.style.width = `${clamp(group.food / Math.max(need, 1) * 100, 0, 100)}%`;
     foodFill.style.background = group.food >= need ? '#22c55e' : '#ef4444';
-    const surplusPct = surplusDisplay > 0 ? clamp(surplusDisplay / Math.max(need, 1) * 100, 0, 100) : 0;
-    document.getElementById('surplus-fill').style.width = `${surplusPct}%`;
     const actionBtn = document.getElementById('breed-btn');
     const inBattle = this._isInBattle();
     if (inBattle) {
