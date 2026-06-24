@@ -3461,7 +3461,61 @@ class ArenaScene extends Phaser.Scene {
     this._syncDangerMarkers();
   }
 
-  _drawDangerOverlay() { /* Task 4에서 구현 */ }
+  _drawDangerOverlay() {
+    const g = this._dangerGfx;
+    g.clear();
+
+    // 기존 아이콘 텍스트 제거
+    if (this._dangerIcons) {
+      for (const txt of this._dangerIcons) txt.destroy();
+    }
+    this._dangerIcons = [];
+
+    for (const id of Object.keys(TERRAIN_EVENTS)) {
+      const t = TERRAIN[id];
+      if (!t?._danger) continue;
+      const d = t._danger;
+      if (d.phase === 'cooldown') continue;
+
+      const tiles = this._terrainTiles[id] || [];
+      const isActive = d.phase === 'active';
+
+      // 펄스 알파: 경고=주황 깜빡, 위험=빨강 고정
+      let alpha, color;
+      if (isActive) {
+        color = 0xff2222;
+        alpha = 0.38;
+      } else {
+        // warning: sin 파 펄스 (경고)
+        const pulse = 0.20 + 0.15 * Math.sin(this.elapsed / 300);
+        color = 0xff8800;
+        alpha = pulse;
+      }
+
+      // 식량 이벤트는 다른 색
+      if (d.event && !d.event.predicate) {
+        color = d.event.foodDelta > 0 ? 0x44cc44 : 0xddaa00;
+        alpha = isActive ? 0.30 : 0.15 + 0.10 * Math.sin(this.elapsed / 300);
+      }
+
+      g.fillStyle(color, alpha);
+      for (const { px, py } of tiles) {
+        g.fillRect(px, py, TILE, TILE);
+      }
+
+      // 이벤트 아이콘: 타일 중심 근처 1개 (지형 중심 계산)
+      if (tiles.length > 0 && d.event) {
+        const mid = tiles[Math.floor(tiles.length / 2)];
+        const ico = this.add.text(
+          mid.px + TILE / 2,
+          mid.py + TILE / 2,
+          t.ico,
+          { fontSize: '36px' }
+        ).setOrigin(0.5).setDepth(6).setScrollFactor(1).setAlpha(0.85);
+        this._dangerIcons.push(ico);
+      }
+    }
+  }
   _syncDangerMarkers() { /* Task 5에서 구현 */ }
 
   _applyDangerEvent(terrain) { /* Task 6에서 구현 */ }
