@@ -4780,7 +4780,6 @@ class ArenaScene extends Phaser.Scene {
           markAchUnlocked(ach.id);
           this.showToast(`🏆 ${ach.name} +${ach.bonus}`, 'ach');
           Audio.sfxAchieve();
-          this.cameras.main.flash(200, 255, 240, 180);
         }
       } catch(e) { /* 안전하게 무시 */ }
     }
