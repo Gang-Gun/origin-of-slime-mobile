@@ -260,11 +260,28 @@ canvas { display: block; image-rendering: pixelated; }
   box-shadow: 0 3px 8px var(--shadow-sm), inset 0 1px 0 rgba(255,255,255,.95);
 }
 
+/* ─── 우측 버튼 (일시정지 아래) ─── */
+#right-btns {
+  position: absolute; top: 102px; right: 9px;
+  display: flex; flex-direction: column; gap: 5px;
+  pointer-events: auto;
+}
+#stats-toggle, #dex-toggle {
+  width: 44px; height: 44px;
+  font-family: 'Jua', sans-serif; font-size: 10px; color: var(--ink);
+  background: var(--glass); border: 2px solid var(--glass-bdr);
+  border-radius: 10px; backdrop-filter: blur(10px);
+  box-shadow: 0 3px 8px var(--shadow-sm), inset 0 1px 0 rgba(255,255,255,.95);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 1px; line-height: 1.2; transition: transform .08s;
+}
+#stats-toggle:active, #dex-toggle:active { transform: translateY(2px); }
+
 /* ─── 현황 패널 ─── */
 #stats {
-  position: absolute; bottom: 76px; left: 9px; right: 9px;
-  width: auto; max-width: 400px;
-  max-height: calc(100vh - 160px); overflow-y: auto; overflow-x: hidden;
+  position: absolute; top: 102px; right: 62px;
+  width: min(240px, calc(100vw - 80px));
+  max-height: calc(100vh - 180px); overflow-y: auto; overflow-x: hidden;
   padding: 14px 12px; font-size: 12.5px; line-height: 1.7;
   pointer-events: auto; display: none;
   scrollbar-width: thin; scrollbar-color: var(--lilac) transparent;
@@ -301,18 +318,15 @@ canvas { display: block; image-rendering: pixelated; }
 .fill { height:100%; width:0%; transition:width .3s cubic-bezier(.4,0,.2,1); border-radius:999px; }
 #food-fill    { background: linear-gradient(90deg, var(--leaf-lt), var(--leaf-dk)); }
 #surplus-fill { background: linear-gradient(90deg, #b8e4f6, var(--sky-dk)); }
-#action-btns { display: flex; gap: 6px; align-items: stretch; }
 .action-btn {
-  min-width: 54px; border: 2px solid rgba(255,255,255,.85); border-radius: 13px; color: #fff;
-  padding: 7px 9px; font-family: 'Jua', sans-serif; font-size: 12px; line-height: 1.3;
+  min-width: 64px; border: 2px solid rgba(255,255,255,.85); border-radius: 14px; color: #fff;
+  padding: 9px 12px; font-family: 'Jua', sans-serif; font-size: 13px; line-height: 1.3;
   box-shadow: 0 5px 12px rgba(0,0,0,.16); transition: transform .08s, box-shadow .08s;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
 }
 .action-btn:active:not(:disabled) { transform: translateY(3px); box-shadow: 0 2px 4px rgba(0,0,0,.14); }
 #breed-btn { background: linear-gradient(170deg, #84de7e, var(--leaf-dk)); }
 #breed-btn.flee-mode { background: linear-gradient(170deg, #ff9483, var(--coral)); }
-#stats-toggle { background: linear-gradient(170deg, #a5d8ff, var(--sky-dk)); }
-#dex-toggle   { background: linear-gradient(170deg, #d4b8f0, var(--lilac-dk)); }
 .action-btn:disabled { background: rgba(180,168,200,.4); color: rgba(61,51,80,.4); box-shadow: none; border-color: rgba(255,255,255,.5); }
 
 /* ─── 일시정지 모달 ─── */
@@ -787,31 +801,29 @@ canvas { display: block; image-rendering: pixelated; }
   .chip strong { font-size: 12px; }
   #env-badge { padding: 3px 7px; font-size: 15px; }
   #pause-btn { width: 36px; height: 36px; font-size: 15px; }
-  #stats { bottom: 70px; left: 7px; right: 7px; font-size: 11.5px; padding: 10px; max-height: 46vh; }
+  #right-btns { top: 98px; right: 7px; gap: 4px; }
+  #stats-toggle, #dex-toggle { width: 40px; height: 40px; font-size: 9px; }
+  #stats { top: 98px; right: 56px; font-size: 11.5px; padding: 10px; max-height: calc(100vh - 180px); width: min(220px, calc(100vw - 72px)); }
   #bottom-bar { padding: 7px 8px; gap: 6px; border-radius: 15px; left:7px; right:7px; bottom:7px; }
-  .action-btn { min-width: 46px; padding: 6px 7px; font-size: 11px; }
+  .action-btn { min-width: 56px; padding: 8px 10px; font-size: 12px; }
   #battle-banner { top: 100px; font-size: 12.5px; padding: 6px 14px; }
   .meter { height: 10px; }
 }
 
 /* ─── 가로 모드 (landscape mobile) ─── */
 @media (orientation: landscape) and (max-height: 500px) {
-  /* 상단 바: 초슬림 */
   #top-bar { padding: 5px 7px 0; gap: 4px; }
   .chip { padding: 4px 8px; font-size: 11px; gap: 3px; }
   .chip .ico { width: 18px; height: 18px; font-size: 11px; }
   #env-badge { font-size: 14px; padding: 3px 6px; }
   #pause-btn { width: 34px; height: 34px; font-size: 14px; }
 
-  /* 현황 패널: 우측 세로 패널 위에 떠오름 */
-  #stats {
-    bottom: auto; top: 82px; left: auto; right: 100px;
-    width: min(210px, 42vw);
-    max-height: calc(100vh - 100px);
-    font-size: 11px; padding: 10px;
-  }
+  /* 우측 버튼: 하단 패널 왼쪽에 배치 */
+  #right-btns { top: 82px; right: 102px; flex-direction: column; gap: 4px; }
+  #stats-toggle, #dex-toggle { width: 38px; height: 38px; font-size: 9px; }
+  #stats { top: 82px; right: 148px; width: min(200px, 38vw); max-height: calc(100vh - 96px); font-size: 11px; padding: 10px; }
 
-  /* 하단 바 → 우측 세로 패널 */
+  /* 하단 바 → 우측 세로 패널 (번식 버튼만) */
   #bottom-bar {
     left: auto; right: 7px; bottom: 7px; top: 82px;
     width: 88px; flex-direction: column; align-items: stretch;
@@ -820,20 +832,12 @@ canvas { display: block; image-rendering: pixelated; }
   #bars { flex-direction: column; gap: 4px; }
   .bar-label { font-size: 10px; }
   .meter { height: 9px; }
-  #action-btns { flex-direction: column; gap: 5px; }
-  .action-btn { min-width: 0; width: 100%; padding: 7px 5px; font-size: 11px; border-radius: 10px; flex-direction: row; gap: 4px; }
+  .action-btn { min-width: 0; width: 100%; padding: 10px 5px; font-size: 12px; border-radius: 10px; flex-direction: row; gap: 4px; }
 
-  /* 전투 배너 */
   #battle-banner { top: 82px; font-size: 12px; padding: 5px 12px; }
-
-  /* 이벤트 메시지: 중앙 */
   #event-message { top: 55%; font-size: 13px; padding: 12px 16px; width: min(280px, 52vw); }
   #event-message.tutorial-mode { top: 74%; }
-
-  /* 도감·이벤트 시트: 가로모드에서 높이 제한 */
   #dex-sheet, #event-dex-sheet { max-height: 94vh; }
-
-  /* 순위표: 가로모드에서 작게 */
   #leaderboard-panel { width: 175px; font-size: 10px; top: 8px; left: 8px; padding: 8px 10px; }
   #leaderboard-panel .lb-list-wrap { max-height: 130px; }
 }
@@ -873,7 +877,7 @@ body { image-rendering: pixelated; }
 .panel, .chip, #env-badge, #stats, #bottom-bar, #pause-card, #options-card,
 #dex-sheet, #event-dex-sheet, #allele-graph-sheet, #event-message, .toast, .result-card,
 #leaderboard-panel, #score-submit-card, .dex-card, .evdex-terrain-body,
-#pause-btn, .dex-filter, .dex-tab, #lb-name-input,
+#stats-toggle, #dex-toggle, #pause-btn, .dex-filter, .dex-tab, #lb-name-input,
 .evdex-terrain, #dex-mutation-panel, #dex-event-panel {
   background: var(--px-parch) !important;
   border: 3px solid var(--px-out) !important;
@@ -930,8 +934,9 @@ body { image-rendering: pixelated; }
 .big-btn.lilac { background: var(--px-purple) !important; }
 .big-btn.coral, #restart-btn, #breed-btn.flee-mode, .pause-home, #dex-close { background: var(--px-red) !important; }
 .pause-settings { background: var(--px-blue) !important; }
-#stats-toggle { background: var(--px-blue) !important; color: #fff !important; }
-#dex-toggle   { background: var(--px-purple) !important; color: #fff !important; }
+/* stats-toggle / dex-toggle: 양피지 패널 스타일 (공통 패널 목록 적용) */
+#stats-toggle { color: var(--px-blue-d) !important; text-shadow: none !important; }
+#dex-toggle   { color: var(--px-purple-d) !important; text-shadow: none !important; }
 #lb-submit-btn { background: var(--px-green) !important; }
 #lb-skip-btn { background: var(--px-parch2) !important; color: var(--px-ink) !important; text-shadow: none !important; }
 .action-btn:disabled { background: var(--px-parch2) !important; color: rgba(74,47,23,.45) !important; box-shadow: inset 0 0 0 2px rgba(150,105,55,.3) !important; text-shadow: none !important; }
@@ -1406,6 +1411,12 @@ body { image-rendering: pixelated; }
     <div id="game-progress-time">0:00 / 10:00</div>
   </div>
 
+  <!-- 우측 버튼: 일시정지 바로 아래 -->
+  <div id="right-btns">
+    <button id="stats-toggle" type="button" onclick="toggleStatsPanel()">📊<br>현황</button>
+    <button id="dex-toggle" type="button" onclick="openDex()">🔬<br>도감</button>
+  </div>
+
   <section id="stats" class="panel">
     <h2>🐾 집단 현황 <span onclick="toggleStatsPanel()" style="margin-left:auto;cursor:pointer;color:var(--coral)">✕</span></h2>
     <div class="row"><span class="label">개체 수</span><strong id="s-count">20</strong></div>
@@ -1426,11 +1437,7 @@ body { image-rendering: pixelated; }
       <div class="bar-label"><span>🍓 식량</span><span><b id="b-food">30</b> · 필요 <b id="b-need">20</b></span></div>
       <div class="meter"><div class="fill" id="food-fill"></div></div>
     </div>
-    <div id="action-btns">
-      <button id="breed-btn" class="action-btn" type="button" disabled>🥚<br>번식</button>
-      <button id="stats-toggle" class="action-btn" type="button" onclick="toggleStatsPanel()">📊<br>현황</button>
-      <button id="dex-toggle" class="action-btn" type="button" onclick="openDex()">🔬<br>도감</button>
-    </div>
+    <button id="breed-btn" class="action-btn" type="button" disabled>🥚<br>번식</button>
   </div>
 
   <div id="battle-vignette"></div>
@@ -6679,8 +6686,8 @@ const Tutorial = (() => {
     {
       ico: '📊',
       title: '현황 & 유전자 보기',
-      desc: '하단 📊 현황 버튼을 탭하면\n능력치·유전자 대립유전자 빈도를 볼 수 있어요.\n🔬 도감에서 돌연변이 효과도 확인하세요!',
-      target: '#action-btns',
+      desc: '우측 📊 현황 버튼을 탭하면\n능력치·유전자 대립유전자 빈도를 볼 수 있어요.\n🔬 도감에서 돌연변이 효과도 확인하세요!',
+      target: '#right-btns',
       cond: (scene) => document.getElementById('hud')?.classList.contains('stats-open'),
       condLabel: '📊 현황 버튼을 탭해보세요',
       nextLabel: '알겠어요! →',
