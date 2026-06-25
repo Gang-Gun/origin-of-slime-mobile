@@ -2303,9 +2303,9 @@ const BOSS_ROSTER = [
     safe:i=> (getGenotypeLabel(i,'color')==='RR'||(i.mutations||[]).includes('regeneration')) && (isHomozygous(i,'poison')||(i.mutations||[]).includes('poison_gland')) },
   { id:'siren',  name:'심연 세이렌', ico:'🌊', reqText:'푸른몸(BB)+매력(CC) / 빠른 다리+지배 페로몬', refuge:'desert', refugeText:'🏜️ 사막',
     safe:i=> (getGenotypeLabel(i,'color')==='BB'||(i.mutations||[]).includes('fast_legs')) && (isHomozygous(i,'charm')||(i.mutations||[]).includes('pheromone')||(i.mutations||[]).includes('bright_pattern')) },
-  // 히든 — 황금 슬라임 (유전자 3종 이상 90% 고정 시 최종 슬롯 대체)
+  // 히든 — 황금 슬라임 (유전자 3종 이상이 100% 완전 고정된 적 있으면 최종 슬롯 대체)
   { id:'golden', name:'황금 슬라임', ico:'✨', hidden:true,
-    spawnText:'유전자 5종 중 3종 이상이 90% 이상 고정된 런에서 최종 보스 대체',
+    spawnText:'유전자 5종 중 3종 이상이 100% 완전 고정된 런에서 최종 보스 대체(동시 충족 불필요)',
     reqText:'BB/RR + 속도(SS·빠른 다리) + 갑옷(AA·단단한 껍질) + 독성(PP·독성 분비) + 매력(CC·지배 페로몬)',
     refuge:'plain', refugeText:'🌿 초원 · 전 유전자 동형접합 또는 관련 돌연변이 유지',
     safe: i => {
@@ -2349,6 +2349,7 @@ const BOSS_VISUAL = {
   plague:     { shape:'draconic',    pal:{d:0x5a1a1a,m:0xa83a2a,l:0xe0604a,a:0x6fcf4a}, parts:['wings','lavaCracks','poisonDrips'], eyes:2, eyeCol:0xffd23f },
   siren:      { shape:'tentacled',   pal:{d:0x1a3a5a,m:0x2f6f9a,l:0x6fb0d8,a:0xaef0ff}, parts:['tentacles','lure'],          eyes:2, eyeCol:0xaef0ff },
   primordial: { shape:'amorphous',   pal:{d:0x2a2030,m:0x7a4aa0,l:0xffffff,a:0xffffff}, parts:['prism','multiEyes'],         eyes:5, eyeCol:0xffffff, prism:true },
+  golden:     { shape:'amorphous',   pal:{d:0x7a5a10,m:0xe0b020,l:0xfff0a0,a:0xffffff}, parts:['prism','multiEyes'],         eyes:5, eyeCol:0xfff6c0, prism:true },
 };
 
 // 10분 기준 보스 등장 시각(ms)과 슬롯
@@ -4148,7 +4149,7 @@ class ArenaScene extends Phaser.Scene {
   createBossTexture(bossId) {
   const key = `boss_${bossId}`;
   if (this.textures.exists(key)) return key;
-  const v = BOSS_VISUAL[bossId];
+  const v = BOSS_VISUAL[bossId] || BOSS_VISUAL.primordial; // 비주얼 미정의 보스 방어 (검은화면 방지)
   const S = 5, W = 16, Hh = 13, PAD = 1;
   const TW = (W + PAD*2) * S, TH = (Hh + PAD*2) * S;
   const g = this.make.graphics({ add: false });
@@ -5356,14 +5357,15 @@ resolveBoss(win, reason) {
     if (Audio.sfxMeteor) Audio.sfxMeteor();
   }
 
-  // 유전자 3종 이상 90% 이상 고정 시 황금 슬라임 조건 달성
+  // 유전자 3종 이상이 각각 한 번이라도 100% 완전 고정되면 황금 슬라임 조건 달성
+  // (동시에 충족할 필요 없음 — 게임 중 누적 기록)
   _checkGoldenCondition() {
     if (this._goldenConditionMet) return;
     if (!this.player.individuals.length) return;
     const freq = this.player.geneFrequency();
     for (const g of ['color','speed','poison','armor','charm']) {
       const v = freq[g] || 0;
-      if (v >= 90 || (g === 'color' && v <= 10)) this._genesMaxedEver.add(g);
+      if (v >= 100 || (g === 'color' && v <= 0)) this._genesMaxedEver.add(g);
     }
     if (this._genesMaxedEver.size >= 3) {
       this._goldenConditionMet = true;
