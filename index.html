@@ -538,8 +538,13 @@ canvas { display: block; image-rendering: pixelated; }
 @keyframes msgPop { 0%{transform:translate(-50%,-50%) scale(.75);opacity:0} 100%{transform:translate(-50%,-50%) scale(1);opacity:1} }
 /* 튜토리얼 활성 시: 메시지를 하단으로 내려 슬라임 가림 방지 */
 #event-message.tutorial-mode { top: 80%; }
-/* 보스 등장 중: 상단 보스 배너·HP바와 겹치지 않게 아래로 */
-#event-message.boss-mode { top: 36%; }
+/* 보스 등장 중: 화면 중앙·상단 보스 UI를 가리지 않게 왼쪽으로 정렬 */
+#event-message.boss-mode {
+  top: 30%; left: 12px; transform: none; transform-origin: left center;
+  width: min(280px, 56vw); text-align: left; line-height: 1.5;
+}
+#event-message.boss-mode.show { animation: msgPopLeft .35s cubic-bezier(.34,1.56,.64,1); }
+@keyframes msgPopLeft { 0%{transform:scale(.8);opacity:0} 100%{transform:scale(1);opacity:1} }
 
 /* ─── 결과 화면 ─── */
 #result {
@@ -846,7 +851,7 @@ canvas { display: block; image-rendering: pixelated; }
   #battle-banner { top: 82px; font-size: 12px; padding: 5px 12px; }
   #event-message { top: 55%; font-size: 13px; padding: 12px 16px; width: min(280px, 52vw); }
   #event-message.tutorial-mode { top: 74%; }
-  #event-message.boss-mode { top: 55%; }
+  #event-message.boss-mode { top: 40%; left: 8px; width: min(220px, 56vw); }
   #dex-sheet, #event-dex-sheet { max-height: 82vh; }
   #leaderboard-panel { width: 175px; font-size: 10px; top: 8px; left: 8px; padding: 8px 10px; }
   #leaderboard-panel .lb-list-wrap { max-height: 130px; }
