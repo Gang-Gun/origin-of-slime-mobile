@@ -3906,18 +3906,7 @@ class ArenaScene extends Phaser.Scene {
       if (d.phase === 'cooldown') continue;
 
       const tiles = this._terrainTiles[id] || [];
-
-      // 이벤트 아이콘: 타일 중심 근처 1개
-      if (tiles.length > 0 && d.event) {
-        const mid = tiles[Math.floor(tiles.length / 2)];
-        const ico = this.add.text(
-          mid.px + TILE / 2,
-          mid.py + TILE / 2,
-          t.ico,
-          { fontSize: '36px' }
-        ).setOrigin(0.5).setDepth(6).setScrollFactor(1).setAlpha(0.85);
-        this._dangerIcons.push(ico);
-      }
+      void tiles;
     }
   }
   _syncDangerMarkers() {
