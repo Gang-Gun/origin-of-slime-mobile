@@ -1276,27 +1276,29 @@ body { image-rendering: pixelated; }
   box-shadow: inset 0 3px 0 rgba(0,0,0,.22), inset 0 -1px 0 rgba(255,255,255,.18) !important;
 }
 
-/* 채움: 픽셀 세그먼트 + 상단 하이라이트 */
+/* 채움: 기본 양피지 색 */
 #game-progress-fill {
   border-radius: 0 !important;
   background:
     repeating-linear-gradient(
       90deg,
       transparent 0px, transparent 13px,
+      rgba(0,0,0,.08) 13px, rgba(0,0,0,.08) 15px
+    ),
+    linear-gradient(180deg, rgba(255,255,255,.28) 0%, rgba(255,255,255,.0) 52%),
+    linear-gradient(90deg, #d4a84b 0%, #c89030 50%, #b07020 100%) !important;
+  transition: width .5s linear, background .4s ease !important;
+}
+/* 보스 경고 중: 붉은 계열로 전환 */
+#game-progress-fill.boss-warn {
+  background:
+    repeating-linear-gradient(
+      90deg,
+      transparent 0px, transparent 13px,
       rgba(0,0,0,.10) 13px, rgba(0,0,0,.10) 15px
     ),
-    linear-gradient(
-      180deg,
-      rgba(255,255,255,.24) 0%, rgba(255,255,255,.0) 52%
-    ),
-    linear-gradient(90deg,
-      #3a9e38 0%,
-      #82b830 28%,
-      #c8a020 54%,
-      #c85a28 76%,
-      #9a2a1c 100%
-    ) !important;
-  transition: width .5s linear !important;
+    linear-gradient(180deg, rgba(255,255,255,.22) 0%, rgba(255,255,255,.0) 52%),
+    linear-gradient(90deg, #c84030 0%, #9c2018 60%, #6e1008 100%) !important;
 }
 
 /* 보스 마커: 아이콘 + 트랙에 닿는 수직 틱 */
@@ -5730,7 +5732,10 @@ resolveBoss(win, reason) {
     const pct = Math.min(1, this.elapsed / total);
 
     const fill = document.getElementById('game-progress-fill');
-    if (fill) fill.style.width = (pct * 100).toFixed(2) + '%';
+    if (fill) {
+      fill.style.width = (pct * 100).toFixed(2) + '%';
+      fill.classList.toggle('boss-warn', this.bossPhase === 'warning' || this.bossPhase === 'chase');
+    }
 
     const em = Math.floor(this.elapsed / 60000);
     const es = Math.floor((this.elapsed % 60000) / 1000);
