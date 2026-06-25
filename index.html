@@ -4544,45 +4544,33 @@ class ArenaScene extends Phaser.Scene {
             individual.y += dy / distance * step;
           }
         } else {
-          const inBossCombat = this.bossEntity && this.activeBoss && this.bossPhase === 'chase';
-
-          if (inBossCombat) {
-            // 보스전: 보스 경계까지 접근 (일반 집단전과 동일한 방식)
-            const bx = this.bossEntity.x - individual.x;
-            const by = this.bossEntity.y - individual.y;
-            const bd = Math.hypot(bx, by) || 1;
-            const EDGE = 230;
-            if (bd > EDGE) {
-              const step = Math.min(bd - EDGE, (individual.stats.speed / 80) * baseSpeed);
-              individual.x += bx / bd * step;
-              individual.y += by / bd * step;
-            }
-            // 안전 개체만 보스를 공격 — 일반 전투와 동일한 공식 (terrainBonus + defense)
-            const now = Date.now();
-            if (!individual.lastAttackAt || now - individual.lastAttackAt >= ATTACK_COOLDOWN) {
-              individual.lastAttackAt = now;
-              if (this.activeBoss.safe(individual, group)) {
+          // 일반 이동: 집단 중심 + 랜덤 오프셋 (보스전 중에도 동일)
+          const targetX = group.x + individual.offsetX;
+          const targetY = group.y + individual.offsetY;
+          const dx = targetX - individual.x;
+          const dy = targetY - individual.y;
+          const distance = Math.hypot(dx, dy) || 1;
+          if (distance > 5) {
+            const step = Math.min(distance, (individual.stats.speed / 80) * baseSpeed * 1.35);
+            individual.x += dx / distance * step;
+            individual.y += dy / distance * step;
+          }
+          if (Math.random() < .01) {
+            individual.offsetX = (Math.random() - .5) * FOLLOW_RADIUS * 2;
+            individual.offsetY = (Math.random() - .5) * FOLLOW_RADIUS * 2;
+          }
+          // 보스 사거리 안 안전 개체: 일반 전투 쿨다운으로 보스 공격
+          if (this.bossEntity && this.bossPhase === 'chase' && this.activeBoss) {
+            const bDist = Math.hypot(this.bossEntity.x - individual.x, this.bossEntity.y - individual.y);
+            if (bDist <= BOSS_RANGE + 120 && this.activeBoss.safe(individual, group)) {
+              const now = Date.now();
+              if (!individual.lastAttackAt || now - individual.lastAttackAt >= ATTACK_COOLDOWN) {
+                individual.lastAttackAt = now;
                 const terrain = this.terrainAt(group.x, group.y);
                 const bonus = Battle.calcTerrainBattleBonus(group, terrain);
                 const dmg = Math.max(1, individual.stats.attack * bonus - BOSS_DEFENSE);
                 this.bossEntity.hp = Math.max(0, this.bossEntity.hp - dmg);
               }
-            }
-          } else {
-            // 일반 이동: 집단 중심 + 랜덤 오프셋
-            const targetX = group.x + individual.offsetX;
-            const targetY = group.y + individual.offsetY;
-            const dx = targetX - individual.x;
-            const dy = targetY - individual.y;
-            const distance = Math.hypot(dx, dy) || 1;
-            if (distance > 5) {
-              const step = Math.min(distance, (individual.stats.speed / 80) * baseSpeed * 1.35);
-              individual.x += dx / distance * step;
-              individual.y += dy / distance * step;
-            }
-            if (Math.random() < .01) {
-              individual.offsetX = (Math.random() - .5) * FOLLOW_RADIUS * 2;
-              individual.offsetY = (Math.random() - .5) * FOLLOW_RADIUS * 2;
             }
           }
 
@@ -5078,12 +5066,19 @@ class ArenaScene extends Phaser.Scene {
         b.moveState = 'jump';
         b.jumpStart  = { x: b.x, y: b.y };
         const MAX_JUMP = 360; // 느린 보스: 플레이어가 도망치면 따라잡기 어려움
-        const _pdx = this.player.x - b.jumpStart.x;
-        const _pdy = this.player.y - b.jumpStart.y;
+        // 가장 가까운 개체군 추적 (플레이어·AI 모두)
+        const _allG = [this.player, ...this.aiGroups].filter(g => g.individuals.length > 0);
+        let _tg = this.player, _td = Infinity;
+        for (const g of _allG) {
+          const d = Math.hypot(g.x - b.jumpStart.x, g.y - b.jumpStart.y);
+          if (d < _td) { _td = d; _tg = g; }
+        }
+        const _pdx = _tg.x - b.jumpStart.x;
+        const _pdy = _tg.y - b.jumpStart.y;
         const _pd  = Math.hypot(_pdx, _pdy);
         b.jumpTarget = _pd > MAX_JUMP
           ? { x: b.jumpStart.x + _pdx/_pd*MAX_JUMP, y: b.jumpStart.y + _pdy/_pd*MAX_JUMP }
-          : { x: this.player.x, y: this.player.y };
+          : { x: _tg.x, y: _tg.y };
         const jd = Math.min(_pd, MAX_JUMP);
         b.jumpDuration = Math.max(700, Math.min(1500, jd * 1.1));
         b.jumpHeight   = 120 + jd * 0.12;
@@ -5141,7 +5136,8 @@ class ArenaScene extends Phaser.Scene {
     document.getElementById('boss-hp-fill').style.width = pct + '%';
     document.getElementById('boss-hp-label').textContent = `${this.activeBoss.ico} ${this.activeBoss.name}  ${Math.ceil(b.hp)}/${b.hpMax}`;
     // 개체 중 한 마리라도 보스 사거리 안에 있으면 전투 활성
-    const anyNear = this.player.individuals.some(i => Math.hypot(b.x - i.x, b.y - i.y) <= BOSS_RANGE + 120);
+    const anyNear = [this.player, ...this.aiGroups].some(g =>
+      g.individuals.some(i => Math.hypot(b.x - i.x, b.y - i.y) <= BOSS_RANGE + 120));
     const _bb = document.getElementById('battle-banner');
     const inGrace = this._bossFleeGraceUntil && this.elapsed < this._bossFleeGraceUntil;
     if (anyNear && !inGrace) {
