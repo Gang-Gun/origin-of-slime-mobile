@@ -516,6 +516,21 @@ canvas { display: block; image-rendering: pixelated; }
   color:#fff; font-family:'Jua',sans-serif; font-size:14px; text-align:center; max-width:90vw;
   box-shadow:0 4px 14px rgba(0,0,0,.35); pointer-events:none; line-height:1.4; }
 #boss-banner.show { display:block; }
+#boss-collapse-btn {
+  position:absolute; top:4px; right:6px;
+  background:rgba(0,0,0,.2); border:none; border-radius:4px;
+  font-size:12px; color:#fff; cursor:pointer; padding:0 5px; line-height:18px;
+  font-family:sans-serif;
+}
+#boss-banner.boss-collapsed {
+  width:40px !important; min-height:40px; padding:0 !important;
+  overflow:hidden; cursor:pointer; border-radius:50% !important;
+  display:flex !important; align-items:center; justify-content:center;
+  left:12px; transform:none;
+}
+#boss-banner.boss-collapsed #boss-banner-text { display:none; }
+#boss-banner.boss-collapsed #boss-collapse-btn { display:none; }
+#boss-banner.boss-collapsed::after { content:'⚔️'; font-size:20px; }
 #boss-hp { position:fixed; top:158px; left:50%; transform:translateX(-50%); z-index:26;
   display:none; width:min(300px,80vw); height:16px; border-radius:999px;
   background:rgba(0,0,0,.4); overflow:hidden; }
@@ -692,7 +707,7 @@ canvas { display: block; image-rendering: pixelated; }
 }
 .dex-filter.active { background:var(--leaf-dk); border-color:var(--leaf-dk); color:#fff; box-shadow:0 3px 8px rgba(61,138,58,.3); }
 #dex-list { flex:1; min-height:0; overflow-y:auto; padding:6px 12px 18px; display:flex; flex-direction:column; gap:7px; }
-#dex-mutation-panel, #dex-event-panel { flex:1; min-height:0; display:flex; flex-direction:column; overflow:hidden; }
+#dex-mutation-panel, #dex-event-panel { flex:1; min-height:0; display:flex; flex-direction:column; overflow:visible; }
 #dex-tabs { display:flex; gap:6px; overflow-x:auto; scrollbar-width:none; padding-bottom:8px; }
 #dex-tabs::-webkit-scrollbar { display:none; }
 .dex-tab { font-family:'Jua',sans-serif; font-size:14px; padding:7px 16px; border-radius:999px; border:2px solid var(--ink-faint); background:rgba(255,252,245,.7); color:var(--ink-soft); cursor:pointer; transition:.12s; white-space:nowrap; }
@@ -1209,6 +1224,7 @@ body { image-rendering: pixelated; }
   font-size: 13px !important;
 }
 #boss-banner b { color: var(--px-out) !important; }
+#boss-banner.boss-collapsed { border-radius:50% !important; left:12px !important; transform:none !important; }
 
 /* ── 보스 HP 바 ── */
 #boss-hp {
@@ -1476,7 +1492,7 @@ body { image-rendering: pixelated; }
   <div id="toast-mut" class="toast-stack"></div>
   <div id="toast-ach" class="toast-stack"></div>
   <div id="event-message"><span id="evt-text"></span><button id="evt-collapse-btn" aria-label="접기">−</button></div>
-  <div id="boss-banner"></div>
+  <div id="boss-banner"><span id="boss-banner-text"></span><button id="boss-collapse-btn" onclick="toggleBossBanner()">−</button></div>
   <div id="boss-arrow"></div>
   <div id="boss-hp"><div id="boss-hp-fill"></div><span id="boss-hp-label"></span></div>
 </div>
@@ -3879,12 +3895,12 @@ class ArenaScene extends Phaser.Scene {
         el.style.display = 'block';
         if (textChanged) { el.classList.remove('show'); void el.offsetWidth; el.classList.add('show'); }
         clearTimeout(this.messageTimer);
-        // 보스 중이면 지형 메시지도 접기 적용
+        // 보스 중이면 보스 배너를 자동 접기
         const _ba = this.bossPhase === 'warning' || this.bossPhase === 'chase';
-        el.classList.toggle('boss-mode', _ba);
         if (_ba) {
-          clearTimeout(this._evtCollapseTimer);
-          this._evtCollapseTimer = setTimeout(() => el.classList.add('evt-collapsed'), 2500);
+          const _bb = document.getElementById('boss-banner');
+          clearTimeout(this._bossCollapseTimer);
+          this._bossCollapseTimer = setTimeout(() => _bb.classList.add('boss-collapsed'), 800);
         }
       }
       if (_dv) _dv.className = (_pd.phase === 'active' && _pd.event?.predicate) ? 'danger-active' : 'danger-warning';
@@ -3895,6 +3911,9 @@ class ArenaScene extends Phaser.Scene {
       _dEl.style.display = 'none';
       _dEl.classList.remove('evt-collapsed');
       if (_dv) _dv.className = '';
+      // 지형이벤트 종료 → 보스 배너 복원
+      clearTimeout(this._bossCollapseTimer);
+      document.getElementById('boss-banner').classList.remove('boss-collapsed');
     }
   }
 
@@ -5072,7 +5091,7 @@ class ArenaScene extends Phaser.Scene {
     const g = this.player, n = g.individuals.length || 1;
     const ready = Math.round(g.individuals.filter(i => boss.safe(i, g)).length / n * 100);
     const banner = document.getElementById('boss-banner');
-    banner.innerHTML = `${boss.ico} <b>${boss.name}</b> ${remain}초 후 출현!<br>요구: <b>${boss.reqText}</b><br>대비도 <b>${ready}%</b>`;
+    document.getElementById('boss-banner-text').innerHTML = `${boss.ico} <b>${boss.name}</b> ${remain}초 후 출현!<br>요구: <b>${boss.reqText}</b><br>대비도 <b>${ready}%</b>`;
     if (this.elapsed >= this.bossPhaseUntil) this.spawnBoss();
   }
 
@@ -5406,7 +5425,7 @@ resolveBoss(win, reason) {
     this.bossSlot = slot;
     this.bossPhaseUntil = this.elapsed + BOSS_WARN_TIME;
     const banner = document.getElementById('boss-banner');
-    banner.innerHTML = `${boss.ico} <b>${boss.name}</b> 접근!<br>요구: <b>${boss.reqText}</b>`;
+    document.getElementById('boss-banner-text').innerHTML = `${boss.ico} <b>${boss.name}</b> 접근!<br>요구: <b>${boss.reqText}</b>`;
     banner.classList.add('show');
     this.showMessage(`${boss.ico} ${boss.name} 접근! ${boss.reqText} 없는 개체는 도태됩니다`, true);
     if (navigator.vibrate) navigator.vibrate([60,40,60]);
@@ -5461,19 +5480,10 @@ resolveBoss(win, reason) {
     element.classList.remove('show', 'evt-collapsed'); void element.offsetWidth; element.classList.add('show');
     // 튜토리얼 활성 시 슬라임 가리지 않도록 하단 배치
     const tutActive = document.getElementById('tutorial-overlay')?.classList.contains('active');
-    // 보스 등장(예고·추격) 중엔 상단 보스 배너·HP바와 겹치지 않게 아래로
-    const bossActive = this.bossPhase === 'warning' || this.bossPhase === 'chase';
-    element.classList.toggle('boss-mode', bossActive);
-    element.classList.toggle('tutorial-mode', !!tutActive && !bossActive);
+    element.classList.remove('boss-mode', 'evt-collapsed');
+    element.classList.toggle('tutorial-mode', !!tutActive);
     clearTimeout(this.messageTimer);
-    clearTimeout(this._evtCollapseTimer);
-    if (bossActive) {
-      // 보스 중: 2.5초 후 접어서 pill로 유지 (숨기지 않음)
-      this._evtCollapseTimer = setTimeout(() => element.classList.add('evt-collapsed'), 2500);
-    } else {
-      element.classList.remove('evt-collapsed');
-      this.messageTimer = setTimeout(() => { element.style.display = 'none'; }, 2800);
-    }
+    this.messageTimer = setTimeout(() => { element.style.display = 'none'; }, 2800);
   }
 
   // 도전과제 등 토스트 알림
@@ -6615,7 +6625,7 @@ function switchDexTab(tab, btn) {
   evPanel.style.display  = 'none';
   if (achPanel)  achPanel.style.display  = 'none';
   if (bossPanel) bossPanel.style.display = 'none';
-  const flex = 'flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden';
+  const flex = 'flex:1;min-height:0;display:flex;flex-direction:column;overflow:visible';
   if (tab === 'achieve') {
     if (achPanel) achPanel.style.cssText = flex;
     renderAchieveDex();
@@ -6635,6 +6645,10 @@ function setDexFilter(filter, btn) {
   document.querySelectorAll('#dex-filters .dex-filter').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   renderDex();
+}
+function toggleBossBanner() {
+  const bb = document.getElementById('boss-banner');
+  bb.classList.toggle('boss-collapsed');
 }
 function openOptionsModal() { document.getElementById('options-modal').classList.add('open'); }
 function closeOptionsModal() { document.getElementById('options-modal').classList.remove('open'); }
