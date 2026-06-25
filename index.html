@@ -5026,7 +5026,7 @@ class ArenaScene extends Phaser.Scene {
     const shadow = this.add.ellipse(sx, sy + 10, 90, 28, 0x000000, 0.35).setDepth(18);
     const hpMax = this._dueBossHp || 2500;
     this.bossEntity = { x:sx, y:sy, hp:hpMax, hpMax, sprite, shadow, lastAttackAt: 0,
-      moveState:'charge', chargeTimer:0, chargeDuration: 900 + Math.random()*400,
+      moveState:'charge', chargeTimer:0, chargeDuration: 1200 + Math.random()*400,
       jumpStart:null, jumpTarget:null, jumpProgress:0, jumpDuration:0, jumpHeight:160 };
     this._bossSpawnCount = this.player.individuals.length;
     this._bossSpawnTime  = this.elapsed;
@@ -5065,7 +5065,7 @@ class ArenaScene extends Phaser.Scene {
         // 발사!
         b.moveState = 'jump';
         b.jumpStart  = { x: b.x, y: b.y };
-        const MAX_JUMP = 360; // 느린 보스: 플레이어가 도망치면 따라잡기 어려움
+        const MAX_JUMP = 250; // 느린 보스: 플레이어가 도망치면 따라잡기 어려움
         // 가장 가까운 개체군 추적 (플레이어·AI 모두)
         const _allG = [this.player, ...this.aiGroups].filter(g => g.individuals.length > 0);
         let _tg = this.player, _td = Infinity;
@@ -5126,7 +5126,7 @@ class ArenaScene extends Phaser.Scene {
         }
         b.moveState      = 'charge';
         b.chargeTimer    = 0;
-        b.chargeDuration = 800 + Math.random() * 600;
+        b.chargeDuration = 1200 + Math.random() * 700;
         if (b.shadow) { b.shadow.setScale(1); b.shadow.setAlpha(0.35); b.shadow.setPosition(b.x, b.y + 10); }
       }
     }
@@ -5374,8 +5374,10 @@ resolveBoss(win, reason) {
   // 1번: 단일 조건 보스 / 2번: 복합(2개) 조건 보스 / 3번: 최종 보스
   // 황금 슬라임은 런타임에 조건 달성 시 최종 슬롯을 대체함
   rollBossSchedule() {
-    const single    = BOSS_ROSTER.filter(b => !b.hidden && !b.final && !b.reqText.includes('·'));
-    const dual      = BOSS_ROSTER.filter(b => !b.hidden && !b.final &&  b.reqText.includes('·'));
+    // 복합(2조건) 보스는 reqText에 유전자 결합 마커 '+'가 있음 (예: '갑옷(AA)+속도(SS)')
+    // 단일(1조건) 보스는 '+'가 없음 → 첫 보스=단일, 둘째 보스=복합 보장
+    const single    = BOSS_ROSTER.filter(b => !b.hidden && !b.final && !b.reqText.includes('+'));
+    const dual      = BOSS_ROSTER.filter(b => !b.hidden && !b.final &&  b.reqText.includes('+'));
     const finalBoss = BOSS_ROSTER.find(b => b.final);
     const pick1 = single[Math.floor(Math.random() * single.length)];
     const pick2 = dual[Math.floor(Math.random() * dual.length)];
