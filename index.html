@@ -603,7 +603,7 @@ canvas { display: block; image-rendering: pixelated; }
   box-shadow:0 -16px 40px rgba(20,14,36,.25), inset 0 1px 0 rgba(255,255,255,.95);
   backdrop-filter:blur(14px); animation:slideUp .32s cubic-bezier(.34,1.56,.64,1);
 }
-#event-dex-list { flex:1; min-height:0; overflow-y:auto; padding:6px 12px 24px; display:flex; flex-direction:column; gap:6px; }
+#event-dex-list { flex:1; min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch; touch-action:pan-y; padding:6px 12px 24px; display:flex; flex-direction:column; gap:6px; }
 .evdex-terrain {
   border-radius:16px; overflow:hidden;
   border:1.5px solid rgba(255,255,255,.6);
@@ -6297,84 +6297,77 @@ const EVENT_DEX_DATA = [
     id:'plain', label:'초원', ico:'🌿',
     bg:'linear-gradient(135deg,#6ec46a,#3d8a3a)',
     events:[
-      { name:'메뚜기 떼 습격',   type:'food',  criterion:'식량 50% 감소',                       desc:'메뚜기 떼가 밀밭을 습격합니다.' },
-      { name:'들불',             type:'death', criterion:'속도<68인 개체 사망(60%)',              desc:'들불이 번져 느린 개체가 피하지 못합니다.' },
-      { name:'야생 동물 습격',   type:'death', criterion:'갑옷·매력 둘 다 없는 개체 사망(60%)',  desc:'두 가지 유전자가 모두 없으면 위험합니다.' },
-      { name:'전염병 창궐',      type:'death', criterion:'번식력>1.3인 개체 사망(60%)',           desc:'번식력 강한 개체 사이에서 빠르게 퍼집니다.' },
-      { name:'붉은 달',          type:'death', criterion:'BB(파란색) 개체 사망(60%)',             desc:'붉은 달빛 아래 파란색이 포식자에게 발각됩니다.' },
+      { name:'메뚜기 떼 습격',   type:'food',  criterion:'식량 50% 즉시 감소',                          desc:'메뚜기 떼가 밀밭을 휩쓸어 식량이 절반으로 줄어듭니다.' },
+      { name:'들불',             type:'death', criterion:'속도 68 미만 개체 → 15초간 점진 사망',         desc:'빠르지 않으면 번지는 불길을 피하지 못합니다. 갑옷(A_) 보유 시 속도 -8 주의.' },
+      { name:'야생 동물 습격',   type:'death', criterion:'갑옷(A_) AND 매력(C_) 모두 없는 개체 → 점진 사망', desc:'둘 중 하나라도 있으면 살아남습니다.' },
+      { name:'전염병 창궐',      type:'death', criterion:'번식력 1.3 초과 개체 → 15초간 점진 사망',      desc:'매력(C_) 또는 높은번식력 돌연변이로 번식력이 높으면 위험합니다.' },
+      { name:'붉은 달',          type:'death', criterion:'BB(파란색) 개체 → 15초간 점진 사망',           desc:'붉은 달빛 아래 파란색이 포식자에게 발각됩니다.' },
     ]
   },
   {
     id:'forest', label:'숲', ico:'🌳',
     bg:'linear-gradient(135deg,#3d8a3a,#1a5c1a)',
     events:[
-      { name:'열매 풍년',        type:'food',  criterion:'식량 +55',                              desc:'열매가 풍성하게 열립니다.' },
-      { name:'위장 포식자',      type:'death', criterion:'RR(붉은색) 개체 사망(60%)',              desc:'숲 속 위장 포식자가 눈에 띄는 붉은색을 노립니다.' },
-      { name:'나무 쓰러짐',      type:'death', criterion:'속도<72인 개체 사망(60%)',               desc:'폭풍에 거목이 쓰러집니다.' },
-      { name:'기생충 감염',      type:'death', criterion:'갑옷(A_) 없는 개체 사망(60%)',           desc:'갑옷이 없으면 기생충을 막지 못합니다.' },
-      { name:'야간 포식자',      type:'death', criterion:'매력(C_) 없는 개체 사망(60%)',           desc:'매력 없이 무리를 이탈하면 위험합니다.' },
+      { name:'위장 포식자 출현',  type:'death', criterion:'RR(붉은색) 개체 → 15초간 점진 사망',          desc:'숲 속 위장 포식자가 눈에 띄는 붉은색을 골라 잡습니다.' },
+      { name:'나무 쓰러짐',       type:'death', criterion:'속도 72 미만 개체 → 15초간 점진 사망',         desc:'폭풍에 거목이 쓰러집니다. 갑옷(A_) 보유 시 속도 -8 주의.' },
+      { name:'열매 풍년',         type:'food',  criterion:'식량 +55 즉시',                                desc:'숲에 열매가 풍성하게 익어 식량이 크게 늘어납니다.' },
+      { name:'기생충 감염',        type:'death', criterion:'갑옷(A_) 없는 개체 → 15초간 점진 사망',        desc:'갑옷이 없으면 기생충을 막지 못합니다.' },
+      { name:'야간 포식자',        type:'death', criterion:'매력(C_) 없는 개체 → 15초간 점진 사망',        desc:'매력이 없어 무리를 이탈한 개체가 표적이 됩니다.' },
     ]
   },
   {
     id:'desert', label:'사막', ico:'🏜️',
     bg:'linear-gradient(135deg,#e8b84b,#b87d1a)',
     events:[
-      { name:'오아시스 발견',    type:'food',  criterion:'식량 +40',                              desc:'귀한 오아시스를 발견합니다.' },
-      { name:'신기루',           type:'food',  criterion:'식량 30% 감소',                         desc:'신기루를 쫓아가다 지칩니다.' },
-      { name:'극심한 폭염',      type:'death', criterion:'먹이요구≥1.35인 개체 사망(60%)',         desc:'대사량이 높으면 탈수가 빠릅니다. 속도유전자(S) 보유 시 먹이요구 1.3으로 경계 근처.' },
-      { name:'독전갈 습격',      type:'death', criterion:'독성(P_) 없는 개체 사망(60%)',           desc:'독성 유전자가 없으면 독에 쓰러집니다.' },
-      { name:'열사병',           type:'death', criterion:'갑옷(A_) 있는 개체 사망(60%)',           desc:'사막에서 갑옷은 오히려 열을 가둡니다.' },
+      { name:'극심한 폭염',       type:'death', criterion:'식량요구량 1.35 이상 개체 → 15초간 점진 사망',  desc:'대사량이 높으면 탈수가 빠릅니다. 속도(S_) 유전자는 식량요구 +0.3 추가.' },
+      { name:'오아시스 발견',      type:'food',  criterion:'식량 +40 즉시',                                desc:'귀한 오아시스를 발견해 식량을 획득합니다.' },
+      { name:'독전갈 습격',        type:'death', criterion:'독성(P_) 없는 개체 → 15초간 점진 사망',         desc:'독성 유전자가 없으면 독에 쓰러집니다.' },
+      { name:'열사병',             type:'death', criterion:'갑옷(A_) 있는 개체 → 15초간 점진 사망',         desc:'사막에서 갑옷은 오히려 열을 가두어 치명적입니다.' },
+      { name:'신기루',             type:'food',  criterion:'식량 30% 즉시 감소',                           desc:'신기루를 쫓다 지쳐 식량을 낭비합니다.' },
     ]
   },
   {
     id:'volcano', label:'화산지대', ico:'🌋',
     bg:'linear-gradient(135deg,#e85c3a,#9b2010)',
     events:[
-      { name:'화산 폭발',        type:'death', criterion:'RR 아닌 모든 개체 사망(75%)',             desc:'오직 붉은색(RR) 개체만 열기를 버팁니다.' },
-      { name:'독가스 분출',      type:'death', criterion:'독성(P_) 없는 개체 사망(75%)',             desc:'독성 유전자가 없으면 가스에 쓰러집니다.' },
-      { name:'마그마 흐름',      type:'death', criterion:'속도<70인 개체 사망(75%)',                 desc:'마그마를 피하려면 빠른 발이 필요합니다. 갑옷유전자(A) 속도 72로 안전.' },
-      { name:'용암 분수',        type:'death', criterion:'매력(C_) 없는 개체 사망(75%)',             desc:'무리 밖에 있던 개체가 덮칩니다.' },
-      { name:'화산재 폭풍',      type:'death', criterion:'갑옷(A_) 없는 개체 사망(75%)',             desc:'짙은 화산재에 갑옷이 없으면 질식합니다.' },
+      { name:'화산 폭발',         type:'death', criterion:'RR(붉은색) 아닌 모든 개체 → 15초간 점진 사망', desc:'오직 붉은색(RR) 개체만 극한 열기를 버팁니다.' },
+      { name:'독가스 분출',        type:'death', criterion:'독성(P_) 없는 개체 → 15초간 점진 사망',         desc:'독성 유전자가 없으면 가스에 쓰러집니다.' },
+      { name:'마그마 흐름',        type:'death', criterion:'속도 70 미만 개체 → 15초간 점진 사망',           desc:'마그마를 피하려면 빠른 발이 필요합니다. 갑옷(A_) 보유 시 속도 -8 주의.' },
+      { name:'용암 분수',          type:'death', criterion:'매력(C_) 없는 개체 → 15초간 점진 사망',          desc:'무리 밖에 있던 개체가 용암 분수에 덮칩니다.' },
+      { name:'화산재 폭풍',        type:'death', criterion:'갑옷(A_) 없는 개체 → 15초간 점진 사망',          desc:'짙은 화산재에 갑옷이 없으면 질식합니다.' },
     ]
   },
   {
     id:'snow', label:'눈밭', ico:'❄️',
     bg:'linear-gradient(135deg,#8ecfe8,#4a9ec0)',
     events:[
-      { name:'먹이 고갈',        type:'food',  criterion:'식량 40% 감소',                         desc:'눈이 모든 것을 뒤덮습니다.' },
-      { name:'눈보라',           type:'death', criterion:'갑옷(A_) 없는 개체 사망(60%)',           desc:'갑옷이 없으면 동사합니다.' },
-      { name:'혹한 동상',        type:'death', criterion:'현재HP가 최대HP의 55% 미만인 개체 사망(60%)', desc:'체력이 낮으면 혹한을 버티지 못합니다.' },
-      { name:'극야 생존',        type:'death', criterion:'BB 아닌 모든 개체 사망(60%)',            desc:'흰 눈밭에서 파란색(BB)만 위장이 됩니다.' },
-      { name:'눈사태',           type:'death', criterion:'갑옷(A_) 있는 개체 사망(60%)',           desc:'무거운 갑옷이 눈사태에서 발목을 잡습니다.' },
+      { name:'눈보라',             type:'death', criterion:'갑옷(A_) 없는 개체 → 15초간 점진 사망',          desc:'갑옷이 없으면 혹한을 버티지 못하고 동사합니다.' },
+      { name:'혹한 동상',          type:'death', criterion:'현재 HP < 최대 HP×55% 개체 → 15초간 점진 사망', desc:'체력이 낮은 상태일수록 동상에 취약합니다.' },
+      { name:'먹이 고갈',          type:'food',  criterion:'식량 40% 즉시 감소',                            desc:'눈이 모든 것을 뒤덮어 식량이 급감합니다.' },
+      { name:'극야 생존',          type:'death', criterion:'RR(붉은색) 개체 → 15초간 점진 사망',             desc:'흰 눈밭에서 붉은색이 포식자에게 쉽게 발각됩니다.' },
+      { name:'눈사태',             type:'death', criterion:'갑옷(A_) 있는 개체 → 15초간 점진 사망',          desc:'무거운 갑옷이 눈사태에서 발목을 잡습니다.' },
     ]
   },
   {
     id:'river', label:'강가', ico:'💧',
     bg:'linear-gradient(135deg,#4ab8d8,#1a6a98)',
     events:[
-      { name:'물고기 풍년',      type:'food',  criterion:'식량 +60',                              desc:'강에 물고기가 넘칩니다.' },
-      { name:'갑작스런 홍수',    type:'death', criterion:'속도<70인 개체 사망(60%)',               desc:'빠르지 않으면 떠내려갑니다. 갑옷유전자(A) 속도 72로 안전.' },
-      { name:'강 독소 유입',     type:'death', criterion:'독성(P_) 없는 개체 사망(60%)',           desc:'상류 독소가 흘러들어옵니다.' },
-      { name:'급류',             type:'death', criterion:'갑옷(A_) 있는 개체 사망(60%)',           desc:'갑옷이 무거워 급류에 가라앉습니다.' },
-      { name:'강변 포식자',      type:'death', criterion:'매력(C_) 없는 개체 사망(60%)',           desc:'혼자 이탈한 개체가 위험에 처합니다.' },
+      { name:'갑작스런 홍수',      type:'death', criterion:'속도 70 미만 개체 → 15초간 점진 사망',           desc:'빠르지 않으면 강물에 떠내려갑니다. 갑옷(A_) 보유 시 속도 -8 주의.' },
+      { name:'강 독소 유입',       type:'death', criterion:'독성(P_) 없는 개체 → 15초간 점진 사망',          desc:'상류에서 유입된 독소에 중독됩니다.' },
+      { name:'물고기 풍년',        type:'food',  criterion:'식량 +60 즉시',                                 desc:'강에 물고기가 넘쳐 풍성한 식량을 얻습니다.' },
+      { name:'급류',               type:'death', criterion:'갑옷(A_) 있는 개체 → 15초간 점진 사망',          desc:'무거운 갑옷이 급류에서 가라앉게 만듭니다.' },
+      { name:'강변 포식자',        type:'death', criterion:'매력(C_) 없는 개체 → 15초간 점진 사망',          desc:'무리를 이탈한 개체가 강변 포식자의 표적이 됩니다.' },
     ]
   },
   {
     id:'swamp', label:'독성 늪', ico:'🐸',
     bg:'linear-gradient(135deg,#7ab84a,#3a6e1a)',
     events:[
-      { name:'썩은 열매',        type:'food',  criterion:'식량 35% 감소',                         desc:'늪의 썩은 열매에 중독됩니다.' },
-      { name:'독성 폭발 확산',   type:'death', criterion:'독성(P_) 없는 개체 전멸(70%)',            desc:'독성 유전자 없는 개체가 모두 사라집니다.' },
-      { name:'늪 수렁',          type:'death', criterion:'속도<62인 개체 사망(70%)',                desc:'깊어진 늪에 느린 개체가 빠집니다.' },
-      { name:'독거미',           type:'death', criterion:'매력(C_) 없는 개체 사망(70%)',            desc:'무리를 이탈한 개체가 독거미에 물립니다.' },
-      { name:'늪 안개',          type:'death', criterion:'독성없음 AND 속도<65 동시 해당(70%)',      desc:'두 조건 모두 해당하는 개체만 사망합니다.' },
-    ]
-  },
-  {
-    id:'poach', label:'밀렵꾼', ico:'🎯',
-    bg:'linear-gradient(135deg,#888,#444)',
-    events:[
-      { name:'밀렵꾼 출현',      type:'poach', criterion:'집단 개체의 90% 무작위 제거',  desc:'전 지형에서 1% 확률로 발동(10초마다). 유전자 무관.' },
+      { name:'독성 폭발 확산',     type:'death', criterion:'독성(P_) 없는 개체 → 15초간 점진 사망',          desc:'늪의 독성이 폭발적으로 강해져 독성 유전자가 없으면 살아남기 어렵습니다.' },
+      { name:'늪 수렁',            type:'death', criterion:'속도 62 미만 개체 → 15초간 점진 사망',            desc:'깊어진 수렁에 느린 개체가 빠져나오지 못합니다.' },
+      { name:'썩은 열매',          type:'food',  criterion:'식량 35% 즉시 감소',                            desc:'썩은 열매를 먹어 식량이 오염됩니다.' },
+      { name:'독거미',             type:'death', criterion:'매력(C_) 없는 개체 → 15초간 점진 사망',          desc:'무리를 이탈한 개체가 독거미에 물립니다.' },
+      { name:'늪 안개',            type:'death', criterion:'독성(P_) 없음 AND 속도 65 미만 → 동시 해당 시 점진 사망', desc:'두 조건을 동시에 만족하는 개체만 위험합니다.' },
     ]
   },
 ];
@@ -6389,10 +6382,10 @@ function renderEventDex() {
 
   list.innerHTML = filtered.map(terrain => `
     <div class="evdex-terrain">
-      <div class="evdex-terrain-header" style="background:${terrain.bg}">
+      <div class="evdex-terrain-header" style="background:${terrain.bg};cursor:pointer" onclick="filterEventByTerrain('${terrain.id}')">
         <span style="font-size:22px">${terrain.ico}</span>
         <span>${terrain.label}</span>
-        <span style="margin-left:auto;font-size:12px;opacity:.8">${terrain.events.length}개 이벤트</span>
+        <span style="margin-left:auto;font-size:12px;opacity:.8">${_eventFilter==='all' ? '▶ 상세보기' : terrain.events.length+'개 이벤트'}</span>
       </div>
       <div class="evdex-terrain-body">
         ${terrain.events.map(ev => `
@@ -6400,7 +6393,7 @@ function renderEventDex() {
             <div class="evdex-name">${ev.name}</div>
             <div class="evdex-desc">${ev.desc}</div>
             <span class="evdex-criterion ${ev.type}">
-              ${ev.type==='death' ? '💀 사망 조건' : ev.type==='food' ? '🌾 식량 변화' : '🎯 무작위'}
+              ${ev.type==='death' ? '💀 사망 조건' : '🌾 식량 변화'}
               · ${ev.criterion}
             </span>
           </div>`).join('')}
@@ -6420,6 +6413,15 @@ function setEventFilter(filter, btn) {
   document.querySelectorAll('#event-dex-filters .dex-filter').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   renderEventDex();
+}
+function filterEventByTerrain(id) {
+  _eventFilter = id;
+  document.querySelectorAll('#event-dex-filters .dex-filter').forEach(b => {
+    const onclick = b.getAttribute('onclick') || '';
+    b.classList.toggle('active', onclick.includes("'" + id + "'") || (id === 'all' && onclick.includes("'all'")));
+  });
+  renderEventDex();
+  document.getElementById('event-dex-list').scrollTop = 0;
 }
 
 // ── 보스 도감 저장소 ──────────────────────────────────────
