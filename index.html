@@ -545,6 +545,23 @@ canvas { display: block; image-rendering: pixelated; }
 }
 #event-message.boss-mode.show { animation: msgPopLeft .35s cubic-bezier(.34,1.56,.64,1); }
 @keyframes msgPopLeft { 0%{transform:scale(.8);opacity:0} 100%{transform:scale(1);opacity:1} }
+/* 접기 버튼 (보스 모드 전용) */
+#evt-collapse-btn {
+  display: none; position: absolute; top: 5px; right: 7px;
+  background: rgba(0,0,0,.1); border: none; border-radius: 5px;
+  font-size: 12px; color: #666; cursor: pointer; padding: 0 6px; line-height: 18px;
+  font-family: sans-serif;
+}
+#event-message.boss-mode #evt-collapse-btn { display: block; }
+/* 접힌 상태: 왼쪽 고정 원형 아이콘으로 축소 */
+#event-message.boss-mode.evt-collapsed {
+  width: 40px !important; min-height: 40px; padding: 0 !important;
+  overflow: hidden; cursor: pointer; border-radius: 50% !important;
+  display: flex !important; align-items: center; justify-content: center;
+}
+#event-message.boss-mode.evt-collapsed #evt-text { display: none; }
+#event-message.boss-mode.evt-collapsed #evt-collapse-btn { display: none; }
+#event-message.boss-mode.evt-collapsed::after { content: '📋'; font-size: 20px; }
 
 /* ─── 결과 화면 ─── */
 #result {
@@ -1458,7 +1475,7 @@ body { image-rendering: pixelated; }
   <div id="battle-banner">⚔️ 전쟁 중</div>
   <div id="toast-mut" class="toast-stack"></div>
   <div id="toast-ach" class="toast-stack"></div>
-  <div id="event-message"></div>
+  <div id="event-message"><span id="evt-text"></span><button id="evt-collapse-btn" aria-label="접기">−</button></div>
   <div id="boss-banner"></div>
   <div id="boss-arrow"></div>
   <div id="boss-hp"><div id="boss-hp-fill"></div><span id="boss-hp-label"></span></div>
@@ -3456,6 +3473,20 @@ class ArenaScene extends Phaser.Scene {
     this.scale.on('resize', this._onSceneResize, this);
     // pointerdown 사용: 멀티터치 중(조이스틱 유지) click 합성이 막혀도 즉시 동작
     document.getElementById('breed-btn').addEventListener('pointerdown', e => { e.preventDefault(); this.handleAction(); });
+    // 이벤트 메시지 접기/펼치기 (보스 모드)
+    const _evtEl = document.getElementById('event-message');
+    _evtEl.addEventListener('click', () => {
+      if (_evtEl.classList.contains('boss-mode') && _evtEl.classList.contains('evt-collapsed')) {
+        _evtEl.classList.remove('evt-collapsed');
+        clearTimeout(this._evtCollapseTimer);
+        this._evtCollapseTimer = setTimeout(() => _evtEl.classList.add('evt-collapsed'), 4000);
+      }
+    });
+    document.getElementById('evt-collapse-btn').addEventListener('click', e => {
+      e.stopPropagation();
+      document.getElementById('event-message').classList.add('evt-collapsed');
+      clearTimeout(this._evtCollapseTimer);
+    });
     this.showMessage('🌱 슬라임 집단을 이끌고\n먹이를 모으세요!');
     // 튜토리얼 자동 시작 (첫 게임)
     if (!localStorage.getItem('gpa_tutorial_done')) {
@@ -3838,19 +3869,31 @@ class ArenaScene extends Phaser.Scene {
       this._dangerMsgText = _newText;
       this._showingDangerMsg = true;
       const el = document.getElementById('event-message');
+      const _evtText = document.getElementById('evt-text');
+      const _curText = _evtText ? _evtText.textContent : el.textContent;
       // 다른 showMessage가 숨겼거나 텍스트가 달라진 경우 복원
-      if (el.style.display === 'none' || el.textContent !== _newText) {
-        const textChanged = el.textContent !== _newText;
-        el.textContent = _newText;
+      if (el.style.display === 'none' || _curText !== _newText) {
+        const textChanged = _curText !== _newText;
+        if (_evtText) _evtText.textContent = _newText; else el.textContent = _newText;
+        el.classList.remove('evt-collapsed');
         el.style.display = 'block';
         if (textChanged) { el.classList.remove('show'); void el.offsetWidth; el.classList.add('show'); }
         clearTimeout(this.messageTimer);
+        // 보스 중이면 지형 메시지도 접기 적용
+        const _ba = this.bossPhase === 'warning' || this.bossPhase === 'chase';
+        el.classList.toggle('boss-mode', _ba);
+        if (_ba) {
+          clearTimeout(this._evtCollapseTimer);
+          this._evtCollapseTimer = setTimeout(() => el.classList.add('evt-collapsed'), 2500);
+        }
       }
       if (_dv) _dv.className = (_pd.phase === 'active' && _pd.event?.predicate) ? 'danger-active' : 'danger-warning';
     } else if (this._showingDangerMsg) {
       this._showingDangerMsg = false;
       this._dangerMsgText = null;
-      document.getElementById('event-message').style.display = 'none';
+      const _dEl = document.getElementById('event-message');
+      _dEl.style.display = 'none';
+      _dEl.classList.remove('evt-collapsed');
       if (_dv) _dv.className = '';
     }
   }
@@ -4451,6 +4494,11 @@ class ArenaScene extends Phaser.Scene {
     this.syncSprites();
     this.drawHealthBars();
     this.collectFood();
+    // 튜토리얼 중 번식 단계 항상 가능하도록 식량 최솟값 보장
+    if (this.tutorialActive && this.player) {
+      const _minFood = this.player._foodNeed() + 30;
+      if (this.player.food < _minFood) this.player.food = _minFood;
+    }
     // 튜토리얼 중엔 굶주림·지형 피해·전쟁·도태 등 사망 시스템 정지 (설명 읽다 굶어 죽는 것 방지)
     const _lethal = !this.tutorialActive;
     if (_lethal) this.applyTerrainDamage(dt);
@@ -5407,9 +5455,10 @@ resolveBoss(win, reason) {
       }
     }
     const element = document.getElementById('event-message');
-    element.textContent = text;
+    const evtText = document.getElementById('evt-text');
+    if (evtText) evtText.textContent = text; else element.textContent = text;
     element.style.display = 'block';
-    element.classList.remove('show'); void element.offsetWidth; element.classList.add('show');
+    element.classList.remove('show', 'evt-collapsed'); void element.offsetWidth; element.classList.add('show');
     // 튜토리얼 활성 시 슬라임 가리지 않도록 하단 배치
     const tutActive = document.getElementById('tutorial-overlay')?.classList.contains('active');
     // 보스 등장(예고·추격) 중엔 상단 보스 배너·HP바와 겹치지 않게 아래로
@@ -5417,7 +5466,14 @@ resolveBoss(win, reason) {
     element.classList.toggle('boss-mode', bossActive);
     element.classList.toggle('tutorial-mode', !!tutActive && !bossActive);
     clearTimeout(this.messageTimer);
-    this.messageTimer = setTimeout(() => { element.style.display = 'none'; }, 2800);
+    clearTimeout(this._evtCollapseTimer);
+    if (bossActive) {
+      // 보스 중: 2.5초 후 접어서 pill로 유지 (숨기지 않음)
+      this._evtCollapseTimer = setTimeout(() => element.classList.add('evt-collapsed'), 2500);
+    } else {
+      element.classList.remove('evt-collapsed');
+      this.messageTimer = setTimeout(() => { element.style.display = 'none'; }, 2800);
+    }
   }
 
   // 도전과제 등 토스트 알림
