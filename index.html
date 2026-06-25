@@ -1296,6 +1296,90 @@ body { image-rendering: pixelated; }
     transition: height .3s cubic-bezier(.4,0,.2,1) !important;
   }
 }
+
+/* ════════════════════════════════════════════
+   진행 바 디자인 개선
+   ════════════════════════════════════════════ */
+
+/* 전체 띠: 양피지 배경 + 픽셀 위아래 테두리 */
+#game-progress-wrap {
+  background: rgba(244,227,186,.92) !important;
+  border-top: 3px solid var(--px-out) !important;
+  border-bottom: 3px solid var(--px-out) !important;
+  box-shadow: 0 4px 0 rgba(25,15,7,.18) !important;
+  padding: 3px 10px 5px !important;
+  gap: 8px !important;
+}
+
+/* 바 영역: 마커 공간 확보 */
+#game-progress-bar-area { padding-top: 16px !important; }
+#game-progress-markers  { height: 16px !important; overflow: visible !important; }
+
+/* 트랙: 두껍고 오목한 홈 */
+#game-progress-track {
+  height: 11px !important;
+  background: rgba(90,55,20,.22) !important;
+  border: 2px solid var(--px-out) !important;
+  border-radius: 2px !important;
+  box-shadow: inset 0 3px 0 rgba(0,0,0,.22), inset 0 -1px 0 rgba(255,255,255,.18) !important;
+}
+
+/* 채움: 픽셀 세그먼트 + 상단 하이라이트 */
+#game-progress-fill {
+  border-radius: 0 !important;
+  background:
+    repeating-linear-gradient(
+      90deg,
+      transparent 0px, transparent 13px,
+      rgba(0,0,0,.12) 13px, rgba(0,0,0,.12) 15px
+    ),
+    linear-gradient(
+      180deg,
+      rgba(255,255,255,.22) 0%, rgba(255,255,255,.0) 55%
+    ),
+    linear-gradient(90deg, var(--px-green) 0%, var(--px-gold) 60%, var(--px-red) 100%) !important;
+  transition: width .5s linear !important;
+}
+
+/* 보스 마커: 아이콘 + 트랙에 닿는 수직 틱 */
+.pbm {
+  font-size: 14px !important;
+  filter: drop-shadow(1px 1px 0 rgba(25,15,7,.8)) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+}
+.pbm::after {
+  content: '';
+  display: block;
+  width: 2px;
+  height: 5px;
+  background: var(--px-out);
+  opacity: .75;
+  margin-top: 0px;
+}
+
+/* 시간 표시: 어두운 LCD 패널 */
+#game-progress-time {
+  background: var(--px-out) !important;
+  color: var(--px-parch) !important;
+  padding: 2px 6px !important;
+  border-radius: 3px !important;
+  font-size: 10px !important;
+  min-width: 58px !important;
+  text-align: center !important;
+  text-shadow: none !important;
+  box-shadow: 2px 2px 0 rgba(25,15,7,.35) !important;
+  letter-spacing: .5px !important;
+}
+
+/* 가로 모드 축소 */
+@media (orientation: landscape) and (max-height: 500px) {
+  #game-progress-track { height: 8px !important; }
+  #game-progress-markers { height: 13px !important; }
+  #game-progress-bar-area { padding-top: 13px !important; }
+  #game-progress-time { font-size: 9px !important; min-width: 52px !important; padding: 1px 4px !important; }
+}
 </style>
   <!-- Firebase SDK (순위표용) -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
