@@ -3409,6 +3409,7 @@ class ArenaScene extends Phaser.Scene {
     const _pm = document.getElementById('game-progress-markers');
     if (_pm) _pm.querySelectorAll('.pbm[id]').forEach(el => el.remove());
     this.initTerrainDanger();
+    this.tutorialActive = false; // 튜토리얼 진행 중 — 사망 시스템 일시 정지
     this.bossPhase = 'idle';   // idle | warning | chase
     this.bossInCombat = false; // 보스가 실제 교전 사거리 안에 있는지 (도망/번식 버튼 토글용)
     this.activeBoss = null;    // 현재 보스 정의
@@ -4421,8 +4422,8 @@ class ArenaScene extends Phaser.Scene {
       this.recordAlleleSnapshot();
       this._checkGoldenCondition();
     }
-    // 보스 스케줄 체크
-    if (this.bossPhase === 'idle') {
+    // 보스 스케줄 체크 (튜토리얼 중엔 보스 등장 보류 — 읽는 동안 사망 방지)
+    if (!this.tutorialActive && this.bossPhase === 'idle') {
       const due = this.bossSchedule.find(s => !s.fired && this.elapsed >= s.at);
       if (due) {
         due.fired = true;
@@ -4450,20 +4451,22 @@ class ArenaScene extends Phaser.Scene {
     this.syncSprites();
     this.drawHealthBars();
     this.collectFood();
-    this.applyTerrainDamage(dt);
+    // 튜토리얼 중엔 굶주림·지형 피해·전쟁·도태 등 사망 시스템 정지 (설명 읽다 굶어 죽는 것 방지)
+    const _lethal = !this.tutorialActive;
+    if (_lethal) this.applyTerrainDamage(dt);
     if (now - this.lastFoodAt >= FOOD_INTERVAL) {
       this.lastFoodAt = now;
       if (this.foods.length < 350) for (let i = 0; i < 15; i += 1) this.spawnFood();
     }
-    if (now - this.lastSurvivalAt >= SURVIVAL_INTERVAL) {
+    if (_lethal && now - this.lastSurvivalAt >= SURVIVAL_INTERVAL) {
       this.lastSurvivalAt = now;
       this.survivalTick();
     }
-    if (now - this.lastBattleCheckAt >= 550) {
+    if (_lethal && now - this.lastBattleCheckAt >= 550) {
       this.lastBattleCheckAt = now;
       this.checkBattles();
     }
-    this.updateTerrainDanger(dt);
+    if (_lethal) this.updateTerrainDanger(dt);
     if (now - this.lastWeatherAt >= WEATHER_INTERVAL) {
       this.lastWeatherAt = now;
       this.changeWeather();
@@ -6384,7 +6387,7 @@ function renderBossDex() {
     ? `<span style="font-size:10px;padding:1px 6px;border-radius:99px;background:rgba(251,191,36,.18);color:#fbbf24;font-weight:800">✨ 히든</span>`
     : b.final
     ? `<span style="font-size:10px;padding:1px 6px;border-radius:99px;background:rgba(99,102,241,.18);color:#818cf8;font-weight:800">🌈 최종</span>`
-    : `<span style="font-size:10px;padding:1px 6px;border-radius:99px;background:rgba(148,163,184,.15);color:var(--ink-soft);font-weight:800">${b.reqText.includes('·') ? '복합' : '일반'}</span>`;
+    : `<span style="font-size:10px;padding:1px 6px;border-radius:99px;background:rgba(148,163,184,.15);color:var(--ink-soft);font-weight:800">${b.reqText.includes('+') ? '복합' : '일반'}</span>`;
 
   list.innerHTML =
     `<div style="text-align:center;padding:6px 0 4px;font-size:12px;color:var(--ink-soft)">처치 ${found} / ${BOSS_ROSTER.length}</div>` +
@@ -6737,6 +6740,24 @@ const Tutorial = (() => {
       nextLabel: '알겠어요! →',
     },
     {
+      ico: '👹',
+      title: '거대 보스의 습격',
+      desc: '일정 시간마다 거대 보스가 출현해 당신 집단만 노려요!\n가까우면 💨 도망 버튼으로 피하고, 멀면 🥚 번식하세요.\n보스의 안전조건(특정 유전자·돌연변이)을 갖춘 개체만 살아남아요.',
+      target: null,
+      noMask: true,
+      cond: null,
+      nextLabel: '대비할게요! →',
+    },
+    {
+      ico: '⚔️',
+      title: '보스 도감 활용',
+      desc: '🔬 도감의 ⚔️ 보스 탭에서 각 보스의 안전조건을 미리 확인하세요.\n1번은 단일 조건, 2번은 복합 조건, 마지막은 최종 보스예요.\n유전자 3종을 100% 고정하면 ✨ 황금 슬라임이 나타나요!',
+      target: null,
+      noMask: true,
+      cond: null,
+      nextLabel: '알겠어요! →',
+    },
+    {
       ico: '☄️',
       title: '10분 뒤 운석이 떨어져요!',
       desc: '9분 45초 후 경고 시작,\n10분이 되면 운석이 떨어져 전체 멸종!\n그 전까지 집단을 키우고 도전과제를 달성하세요 🏆',
@@ -6914,6 +6935,7 @@ const Tutorial = (() => {
   return {
     start(sceneRef) {
       scene = sceneRef;
+      scene.tutorialActive = true; // 사망 시스템 정지 (완료/건너뛰기 시 리로드로 자연 해제)
       show(0);
     },
     next() {
