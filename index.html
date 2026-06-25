@@ -3744,10 +3744,7 @@ class ArenaScene extends Phaser.Scene {
         d.lastKillAt = 0;
         d.freqBefore = null;
         if (navigator.vibrate) navigator.vibrate(40);
-        // 경고 예고: 현재 지형에서만 표시
-        if (this.terrainAt(this.player.x, this.player.y).id === id) {
-          if (this.showToast) this.showToast(`⚠️ ${t.ico} ${d.event.name}`, 'ach');
-        }
+        // 경고 예고: event-message로 표시됨 (토스트 생략)
 
       } else if (d.phase === 'warning' && now >= d.until) {
         // 경고 종료 → 활성 단계: 모든 이벤트 타입이 active를 거침
@@ -3775,9 +3772,7 @@ class ArenaScene extends Phaser.Scene {
         // 활성 단계 종료
         if (now >= d.until) {
           // 결과 토스트: 해당 지형에 있을 때만
-          if (this.terrainAt(this.player.x, this.player.y).id === id && d.event?.message) {
-            if (this.showToast) this.showToast(`${t.ico} ${d.event.name} 종료`, 'ach');
-          }
+          // 이벤트 종료: event-message 사라짐으로 충분 (토스트 생략)
           if (d.freqBefore && this.player.individuals.length) {
             this.recordAlleleSnapshot();
           }
@@ -3903,19 +3898,9 @@ class ArenaScene extends Phaser.Scene {
     for (const group of this.groups) {
       if (this.terrainAt(group.x, group.y).id !== t.id) continue;
       if (event.foodDelta !== undefined) {
-        const before = group.food;
         group.food = clamp(group.food + event.foodDelta, 0, FOOD_CAP);
-        if (group.isPlayer && this.showToast) {
-          const delta = Math.round(group.food - before);
-          this.showToast(`${t.ico} ${delta >= 0 ? '+' : ''}${delta} 🍎`, 'ach');
-        }
       } else if (event.foodRatio !== undefined) {
-        const before = group.food;
         group.food = Math.floor(group.food * event.foodRatio);
-        if (group.isPlayer && this.showToast) {
-          const pct = Math.round((1 - event.foodRatio) * 100);
-          this.showToast(`${t.ico} −${pct}% 🍎`, 'ach');
-        }
       }
     }
     this.recordAlleleSnapshot();
