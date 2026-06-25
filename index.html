@@ -538,6 +538,8 @@ canvas { display: block; image-rendering: pixelated; }
 @keyframes msgPop { 0%{transform:translate(-50%,-50%) scale(.75);opacity:0} 100%{transform:translate(-50%,-50%) scale(1);opacity:1} }
 /* 튜토리얼 활성 시: 메시지를 하단으로 내려 슬라임 가림 방지 */
 #event-message.tutorial-mode { top: 80%; }
+/* 보스 등장 중: 상단 보스 배너·HP바와 겹치지 않게 아래로 */
+#event-message.boss-mode { top: 36%; }
 
 /* ─── 결과 화면 ─── */
 #result {
@@ -844,6 +846,7 @@ canvas { display: block; image-rendering: pixelated; }
   #battle-banner { top: 82px; font-size: 12px; padding: 5px 12px; }
   #event-message { top: 55%; font-size: 13px; padding: 12px 16px; width: min(280px, 52vw); }
   #event-message.tutorial-mode { top: 74%; }
+  #event-message.boss-mode { top: 55%; }
   #dex-sheet, #event-dex-sheet { max-height: 82vh; }
   #leaderboard-panel { width: 175px; font-size: 10px; top: 8px; left: 8px; padding: 8px 10px; }
   #leaderboard-panel .lb-list-wrap { max-height: 130px; }
@@ -3401,6 +3404,7 @@ class ArenaScene extends Phaser.Scene {
     if (_pm) _pm.querySelectorAll('.pbm[id]').forEach(el => el.remove());
     this.initTerrainDanger();
     this.bossPhase = 'idle';   // idle | warning | chase
+    this.bossInCombat = false; // 보스가 실제 교전 사거리 안에 있는지 (도망/번식 버튼 토글용)
     this.activeBoss = null;    // 현재 보스 정의
     this.bossEntity = null;    // { x, y, hp, hpMax, sprite, speed }
     this.bossSlot = null;      // 'mid' | 'final'
@@ -4955,7 +4959,8 @@ class ArenaScene extends Phaser.Scene {
 
   _isInBattle() {
     if (this.player.state === 'battle') return true;
-    if (this.bossPhase === 'chase') return true;
+    // 보스 chase 중이라도 실제 교전 사거리 안일 때만 전투로 간주 → 멀면 번식 가능
+    if (this.bossPhase === 'chase' && this.bossInCombat) return true;
     return false;
   }
 
@@ -5140,6 +5145,9 @@ class ArenaScene extends Phaser.Scene {
       g.individuals.some(i => Math.hypot(b.x - i.x, b.y - i.y) <= BOSS_RANGE + 120));
     const _bb = document.getElementById('battle-banner');
     const inGrace = this._bossFleeGraceUntil && this.elapsed < this._bossFleeGraceUntil;
+    // 플레이어 개체가 보스 사거리 안에 있고 회피 유예가 아닐 때만 도망 버튼 활성 (멀면 번식 가능)
+    const playerNear = this.player.individuals.some(i => Math.hypot(b.x - i.x, b.y - i.y) <= BOSS_RANGE + 120);
+    this.bossInCombat = playerNear && !inGrace;
     if (anyNear && !inGrace) {
       _bb.textContent = `${this.activeBoss.ico} ${this.activeBoss.name} 전투 중!`;
       _bb.style.display = 'block';
@@ -5235,6 +5243,7 @@ resolveBoss(win, reason) {
   document.getElementById('boss-arrow').classList.remove('show');
   document.getElementById('battle-banner').style.display = 'none';
   this.bossPhase = 'idle';
+  this.bossInCombat = false;
   this.recordAlleleSnapshot();
   if (win) {
     let score = slot === 'final' ? 3000 : 200;
@@ -5402,7 +5411,10 @@ resolveBoss(win, reason) {
     element.classList.remove('show'); void element.offsetWidth; element.classList.add('show');
     // 튜토리얼 활성 시 슬라임 가리지 않도록 하단 배치
     const tutActive = document.getElementById('tutorial-overlay')?.classList.contains('active');
-    element.classList.toggle('tutorial-mode', !!tutActive);
+    // 보스 등장(예고·추격) 중엔 상단 보스 배너·HP바와 겹치지 않게 아래로
+    const bossActive = this.bossPhase === 'warning' || this.bossPhase === 'chase';
+    element.classList.toggle('boss-mode', bossActive);
+    element.classList.toggle('tutorial-mode', !!tutActive && !bossActive);
     clearTimeout(this.messageTimer);
     this.messageTimer = setTimeout(() => { element.style.display = 'none'; }, 2800);
   }
