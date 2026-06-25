@@ -253,7 +253,7 @@ canvas { display: block; image-rendering: pixelated; }
 
 /* ─── 우측 사이드바 ─── */
 #side-bar {
-  position: absolute; top: 57px; right: 9px;
+  position: absolute; top: 102px; right: 9px;
   display: flex; flex-direction: column; align-items: flex-end; gap: 5px;
   pointer-events: auto;
 }
@@ -278,8 +278,8 @@ canvas { display: block; image-rendering: pixelated; }
 
 /* ─── 현황 패널 ─── */
 #stats {
-  position: absolute; top: 128px; right: 9px; width: min(256px, calc(100vw - 18px));
-  max-height: calc(100vh - 200px); overflow-y: auto; overflow-x: hidden;
+  position: absolute; top: 174px; right: 9px; width: min(256px, calc(100vw - 18px));
+  max-height: calc(100vh - 246px); overflow-y: auto; overflow-x: hidden;
   padding: 14px 12px; font-size: 12.5px; line-height: 1.7;
   pointer-events: auto; display: none;
   scrollbar-width: thin; scrollbar-color: var(--lilac) transparent;
@@ -448,7 +448,7 @@ canvas { display: block; image-rendering: pixelated; }
 
 /* ─── 전투 배너 ─── */
 #battle-banner {
-  position: absolute; top: 58px; left: 50%; transform: translateX(-50%); display: none;
+  position: absolute; top: 102px; left: 50%; transform: translateX(-50%); display: none;
   padding: 7px 20px; font-family:'Jua',sans-serif; font-size:15px; color:#fff; white-space:nowrap;
   background: linear-gradient(170deg, #ff9483, var(--coral));
   border: 2px solid rgba(255,255,255,.85); border-radius: 999px;
@@ -507,12 +507,12 @@ canvas { display: block; image-rendering: pixelated; }
   100% { opacity: 0; transform: translateY(-22px); }
 }
 
-#boss-banner { position:fixed; top:64px; left:50%; transform:translateX(-50%); z-index:26;
+#boss-banner { position:fixed; top:102px; left:50%; transform:translateX(-50%); z-index:26;
   display:none; padding:10px 16px; border-radius:12px; background:rgba(120,20,20,.92);
   color:#fff; font-family:'Jua',sans-serif; font-size:14px; text-align:center; max-width:90vw;
   box-shadow:0 4px 14px rgba(0,0,0,.35); pointer-events:none; line-height:1.4; }
 #boss-banner.show { display:block; }
-#boss-hp { position:fixed; top:108px; left:50%; transform:translateX(-50%); z-index:26;
+#boss-hp { position:fixed; top:158px; left:50%; transform:translateX(-50%); z-index:26;
   display:none; width:min(300px,80vw); height:16px; border-radius:999px;
   background:rgba(0,0,0,.4); overflow:hidden; }
 #boss-hp.show { display:block; }
@@ -799,13 +799,13 @@ canvas { display: block; image-rendering: pixelated; }
   .chip .ico { width: 18px; height: 18px; font-size: 12px; }
   .chip strong { font-size: 12px; }
   #pause-btn { width: 36px; height: 36px; font-size: 15px; }
-  #side-bar { top: 50px; right: 7px; gap: 4px; }
+  #side-bar { top: 100px; right: 7px; gap: 4px; }
   #env-badge { padding: 4px 9px; font-size: 11px; }
   #stats-toggle, #dex-toggle { font-size: 11px; padding: 5px 11px; }
-  #stats { top: 114px; right: 7px; font-size: 11.5px; padding: 10px; max-height: 46vh; }
+  #stats { top: 162px; right: 7px; font-size: 11.5px; padding: 10px; max-height: 46vh; }
   #bottom-bar { padding: 8px 9px; gap: 7px; border-radius: 17px; left:7px; right:7px; bottom:7px; }
   .action-btn { min-width: 58px; padding: 8px; font-size: 13px; }
-  #battle-banner { top: 50px; font-size: 12.5px; padding: 6px 14px; }
+  #battle-banner { top: 100px; font-size: 12.5px; padding: 6px 14px; }
   .meter { height: 10px; }
 }
 
@@ -820,22 +820,22 @@ canvas { display: block; image-rendering: pixelated; }
   /* 사이드바: 우측 하단 바를 피해 왼쪽에 가로 배치 */
   #side-bar {
     flex-direction: row; align-items: center;
-    top: 42px; left: 7px; right: auto; gap: 5px;
+    top: 82px; left: 7px; right: auto; gap: 5px;
   }
   #env-badge { font-size: 10px; padding: 3px 8px; }
   #stats-toggle, #dex-toggle { font-size: 10px; padding: 4px 9px; }
 
   /* 현황 패널: 사이드바 아래 왼쪽 (우측 바와 겹치지 않도록) */
   #stats {
-    top: 76px; left: 7px; right: auto;
+    top: 118px; left: 7px; right: auto;
     width: min(210px, 42vw);
-    max-height: calc(100vh - 88px);
+    max-height: calc(100vh - 130px);
     font-size: 11px; padding: 10px;
   }
 
   /* 하단 바 → 우측 세로 패널 */
   #bottom-bar {
-    left: auto; right: 7px; bottom: 7px; top: 42px;
+    left: auto; right: 7px; bottom: 7px; top: 82px;
     width: 82px; flex-direction: column; align-items: stretch;
     gap: 7px; padding: 9px 8px; border-radius: 18px;
   }
@@ -845,7 +845,7 @@ canvas { display: block; image-rendering: pixelated; }
   .action-btn { min-width: 0; width: 100%; padding: 8px 6px; font-size: 12px; border-radius: 12px; }
 
   /* 전투 배너 */
-  #battle-banner { top: 42px; font-size: 12px; padding: 5px 12px; }
+  #battle-banner { top: 82px; font-size: 12px; padding: 5px 12px; }
 
   /* 이벤트 메시지: 중앙 */
   #event-message { top: 55%; font-size: 13px; padding: 12px 16px; width: min(280px, 52vw); }
@@ -1254,9 +1254,9 @@ body { image-rendering: pixelated; }
 @media (orientation: landscape) and (max-height: 500px) {
   #game-progress-wrap { top: 44px !important; }
   #game-progress-bar-area { padding-top: 8px !important; }
-  #battle-banner { top: 68px !important; }
-  #boss-banner { top: 70px !important; }
-  #boss-hp { top: 118px !important; }
+  #battle-banner { top: 82px !important; }
+  #boss-banner { top: 82px !important; }
+  #boss-hp { top: 138px !important; }
 }
 
 /* ════════════════════════════════════════════
