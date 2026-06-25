@@ -5071,13 +5071,8 @@ class ArenaScene extends Phaser.Scene {
         b.moveState = 'jump';
         b.jumpStart  = { x: b.x, y: b.y };
         const MAX_JUMP = 250; // 느린 보스: 플레이어가 도망치면 따라잡기 어려움
-        // 가장 가까운 개체군 추적 (플레이어·AI 모두)
-        const _allG = [this.player, ...this.aiGroups].filter(g => g.individuals.length > 0);
-        let _tg = this.player, _td = Infinity;
-        for (const g of _allG) {
-          const d = Math.hypot(g.x - b.jumpStart.x, g.y - b.jumpStart.y);
-          if (d < _td) { _td = d; _tg = g; }
-        }
+        // 오직 플레이어 집단만 추적
+        const _tg = this.player;
         const _pdx = _tg.x - b.jumpStart.x;
         const _pdy = _tg.y - b.jumpStart.y;
         const _pd  = Math.hypot(_pdx, _pdy);
@@ -5140,15 +5135,12 @@ class ArenaScene extends Phaser.Scene {
     const pct = Math.max(0, b.hp / b.hpMax * 100);
     document.getElementById('boss-hp-fill').style.width = pct + '%';
     document.getElementById('boss-hp-label').textContent = `${this.activeBoss.ico} ${this.activeBoss.name}  ${Math.ceil(b.hp)}/${b.hpMax}`;
-    // 개체 중 한 마리라도 보스 사거리 안에 있으면 전투 활성
-    const anyNear = [this.player, ...this.aiGroups].some(g =>
-      g.individuals.some(i => Math.hypot(b.x - i.x, b.y - i.y) <= BOSS_RANGE + 120));
     const _bb = document.getElementById('battle-banner');
     const inGrace = this._bossFleeGraceUntil && this.elapsed < this._bossFleeGraceUntil;
-    // 플레이어 개체가 보스 사거리 안에 있고 회피 유예가 아닐 때만 도망 버튼 활성 (멀면 번식 가능)
+    // 보스는 플레이어만 상대 — 플레이어 개체가 사거리 안이고 회피 유예가 아닐 때만 전투 활성 (멀면 번식 가능)
     const playerNear = this.player.individuals.some(i => Math.hypot(b.x - i.x, b.y - i.y) <= BOSS_RANGE + 120);
     this.bossInCombat = playerNear && !inGrace;
-    if (anyNear && !inGrace) {
+    if (playerNear && !inGrace) {
       _bb.textContent = `${this.activeBoss.ico} ${this.activeBoss.name} 전투 중!`;
       _bb.style.display = 'block';
       this.bossCombatTick(dt);
@@ -5192,13 +5184,12 @@ bossCombatTick(dt) {
   b._chargePlayed = false;
   b.sprite.clearTint();
 
-  // 범위 내 모든 개체를 가까운 순으로 최대 10마리 공격
+  // 보스는 오직 플레이어 집단만 공격 (AI 집단은 무시)
+  // 범위 내 플레이어 개체를 가까운 순으로 최대 10마리 공격
   // 불안전 개체: 즉사 / 안전 개체: takeHit(BOSS_ATK_STAT) — 일반 전투와 동일한 공식
-  const allSlimes = [this.player, ...this.aiGroups]
-    .filter(g => g.individuals.length > 0)
-    .flatMap(g => g.individuals
-      .filter(i => Math.hypot(b.x - i.x, b.y - i.y) <= BOSS_RANGE + 120)
-      .map(i => ({ i, g, safe: boss.safe(i, g) })));
+  const allSlimes = (this.player.individuals.length > 0 ? this.player.individuals : [])
+    .filter(i => Math.hypot(b.x - i.x, b.y - i.y) <= BOSS_RANGE + 120)
+    .map(i => ({ i, g: this.player, safe: boss.safe(i, this.player) }));
   if (!allSlimes.length) return;
 
   const targets = allSlimes
