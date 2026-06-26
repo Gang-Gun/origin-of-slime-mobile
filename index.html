@@ -926,7 +926,7 @@ body { image-rendering: pixelated; }
 /* ── 공통 패널(양피지 + 픽셀 테두리, blur 제거) ── */
 .panel, .chip, #env-badge, #stats, #bottom-bar, #pause-card, #options-card,
 #dex-sheet, #event-dex-sheet, #allele-graph-sheet, #event-message, .toast, .result-card,
-#leaderboard-panel, #score-submit-card, .dex-card, .evdex-terrain-body,
+#leaderboard-panel, #stats-corner-btn, #score-submit-card, .dex-card, .evdex-terrain-body,
 #stats-toggle, #dex-toggle, #pause-btn, .dex-filter, .dex-tab, #lb-name-input,
 .evdex-terrain, #dex-mutation-panel, #dex-event-panel {
   background: var(--px-parch) !important;
@@ -1417,7 +1417,7 @@ body { image-rendering: pixelated; }
   </defs>
 </svg>
 <!-- 순위표 패널 (타이틀 화면 위에 표시, fixed) -->
-<button id="stats-corner-btn" onclick="openStatsModal()" class="big-btn sky" style="display:none;position:fixed;top:16px;right:16px;z-index:45;padding:8px 14px;font-size:13px;white-space:nowrap">📊 기록</button>
+<button id="stats-corner-btn" onclick="openStatsModal()" style="display:none;position:fixed;top:16px;right:16px;z-index:45;padding:8px 14px;font-size:13px;font-weight:800;white-space:nowrap;cursor:pointer">📊 기록</button>
 <div id="leaderboard-panel" class="collapsed">
   <div class="lb-title" onclick="toggleLeaderboard()">
     <span class="lb-title-text">🏆 명예의 전당</span>
