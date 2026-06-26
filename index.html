@@ -1431,8 +1431,16 @@ body { image-rendering: pixelated; }
   <div id="title-menu">
     <button id="start-btn" class="big-btn" type="button" onclick="openDiffSelect()">🌱 게임 시작</button>
     <button type="button" class="big-btn sky" onclick="openDex()">📖 도감</button>
+    <button type="button" class="big-btn sky" onclick="openStatsModal()">📊 기록</button>
     <button type="button" class="big-btn lilac" onclick="openLab()">🌳 계통수</button>
     <button type="button" class="big-btn lilac" onclick="openOptionsModal()">⚙️ 옵션</button>
+  </div>
+</div>
+<div id="stats-modal" style="display:none;position:fixed;inset:0;z-index:90;background:rgba(20,14,36,.7);backdrop-filter:blur(8px);align-items:center;justify-content:center">
+  <div style="background:var(--glass);border:3px solid var(--glass-bdr);border-radius:24px;padding:24px 20px;width:min(320px,88vw);display:flex;flex-direction:column;gap:10px">
+    <h2 style="font-family:'Jua',sans-serif;font-size:18px;color:var(--coral);text-align:center;margin:0">📊 누적 기록</h2>
+    <div id="stats-modal-content"></div>
+    <button class="big-btn" style="background:#888;margin-top:4px" onclick="closeStatsModal()">✕ 닫기</button>
   </div>
 </div>
 
@@ -1486,6 +1494,7 @@ body { image-rendering: pixelated; }
     <div class="row"><span class="label">채집 / 매력</span><strong><span id="s-gather">5</span> / <span id="s-charm">5</span></strong></div>
     <h2>🧬 유전자 비율</h2>
     <div id="s-genes"></div>
+    <div id="s-bonus-inds"></div>
   </section>
 
   <div id="bottom-bar">
@@ -1496,6 +1505,12 @@ body { image-rendering: pixelated; }
     <button id="breed-btn" class="action-btn" type="button" disabled>🥚<br>번식</button>
   </div>
 
+  <div id="near-extinct-overlay" style="position:fixed;inset:0;pointer-events:none;z-index:11;background:transparent"></div>
+  <div id="recruit-toast" style="display:none;position:fixed;bottom:120px;left:50%;transform:translateX(-50%);z-index:30;background:rgba(30,20,50,.92);border:2px solid #818cf8;border-radius:14px;padding:10px 16px;text-align:center;font-family:'Jua',sans-serif">
+    <div id="recruit-msg" style="color:#fff;font-size:14px;margin-bottom:8px"></div>
+    <button onclick="doRecruit()" style="background:#818cf8;color:#fff;border:none;border-radius:8px;padding:6px 16px;font-family:'Jua',sans-serif;font-size:13px;cursor:pointer;margin-right:6px">영입</button>
+    <button onclick="dismissRecruit()" style="background:#555;color:#fff;border:none;border-radius:8px;padding:6px 12px;font-family:'Jua',sans-serif;font-size:13px;cursor:pointer">거절</button>
+  </div>
   <div id="battle-vignette"></div>
   <div id="danger-vignette"></div>
   <div id="battle-banner">⚔️ 전쟁 중</div>
@@ -1640,6 +1655,9 @@ body { image-rendering: pixelated; }
 <div id="pause-modal">
   <div id="pause-card">
     <h2>⏸ 일시정지</h2>
+    <div id="pause-avg-stats" style="display:none;font-size:12px;color:var(--ink-soft);text-align:center;padding:4px 0 8px;border-bottom:1px solid var(--ink-faint);margin-bottom:4px">
+      평균: ❤️<span id="avg-hp">-</span> ⚔️<span id="avg-atk">-</span> 🛡️<span id="avg-def">-</span> ⚡<span id="avg-spd">-</span>
+    </div>
     <button class="pause-btn pause-resume" onclick="togglePause()">▶ 게임 계속</button>
     <button class="pause-btn pause-settings" onclick="toggleSettings()">⚙️ 설정</button>
     <div id="settings-panel">
@@ -3539,6 +3557,11 @@ class ArenaScene extends Phaser.Scene {
       bossNoLossKill: false,  // 개체 손실 없이 보스 처치
       bossQuickKill: false,   // 60초 이내 보스 처치
     };
+    // Feature 1: 유전자 완전 고정 추적
+    this._fixedGenes = new Set();
+    this._lastFixCheck = 0;
+    // Feature 2: 멸종 직전 플래그
+    this._nearExtinct = false;
 
     // 날씨/낮밤 시스템
     this.weather = WEATHERS.sunny;
@@ -4575,6 +4598,39 @@ class ArenaScene extends Phaser.Scene {
       this.recordAlleleSnapshot();
       this._checkGoldenCondition();
     }
+    // Feature 1: 유전자 완전 고정 체크 (5초마다)
+    if (this.elapsed - this._lastFixCheck > 5000 && this.player.individuals.length > 0) {
+      this._lastFixCheck = this.elapsed;
+      const geneNames = { color:'몸색', speed:'속도', poison:'독성', armor:'갑옷', charm:'매력' };
+      const freq = this.player.geneFrequency();
+      for (const gene of Object.keys(geneNames)) {
+        const pct = freq[gene] || 0;
+        // 완전 고정: 100% 우성 또는 0% 우성(=100% 열성)
+        const fixed = (pct >= 100 || pct <= 0);
+        if (fixed && !this._fixedGenes.has(gene)) {
+          this._fixedGenes.add(gene);
+          this.cameras.main.flash(400, 255, 255, 100);
+          this.showMessage(`🧬 [${geneNames[gene]}] 완전 고정! 집단이 하나가 되었습니다`);
+        }
+      }
+    }
+    // Feature 2: 멸종 직전 긴장감 연출
+    {
+      const cnt = this.player.individuals.length;
+      const nowNear = cnt > 0 && cnt <= 3;
+      if (nowNear !== this._nearExtinct) {
+        this._nearExtinct = nowNear;
+        const cEl = document.getElementById('c-count');
+        const ov  = document.getElementById('near-extinct-overlay');
+        if (nowNear) {
+          if (cEl) { cEl.style.color = '#ef4444'; cEl.style.fontWeight = '900'; }
+          if (ov)  ov.style.background = 'radial-gradient(ellipse at center, transparent 60%, rgba(239,68,68,.35) 100%)';
+        } else {
+          if (cEl) { cEl.style.color = ''; cEl.style.fontWeight = ''; }
+          if (ov)  ov.style.background = 'transparent';
+        }
+      }
+    }
     // 보스 스케줄 체크 (튜토리얼 중엔 보스 등장 보류 — 읽는 동안 사망 방지)
     if (!this.tutorialActive && this.bossPhase === 'idle') {
       const due = this.bossSchedule.find(s => !s.fired && this.elapsed >= s.at);
@@ -5046,6 +5102,15 @@ class ArenaScene extends Phaser.Scene {
       if (won) { Audio.sfxWin(); this.burst(this.player.x, this.player.y, 0xffd97d, 16, 90); this.cameras.main.flash(180, 255, 240, 180); }
       else if (!draw) { Audio.sfxLose(); this.cameras.main.shake(300, 0.012); }
       if (pgRec > 0) Audio.sfxRecruit();
+      // Feature 3: 전쟁 승리 후 패배 집단 영입 옵션
+      if (won && !draw) {
+        const loserGroup = pgIsA ? battle.groupB : battle.groupA;
+        const survivors = loserGroup.individuals.filter(i => !i.dead);
+        if (survivors.length > 0) {
+          window._pendingRecruit = { group: loserGroup, count: survivors.length, scene: this };
+          showRecruit(loserGroup, survivors.length);
+        }
+      }
     }
   }
 
@@ -5908,6 +5973,22 @@ resolveBoss(win, reason) {
         return `<div class="${className}">${mutation ? mutation.name : id} ${percent.toFixed(0)}%</div>`;
       }).join('') || '<div class="label">아직 없음</div>';
     }
+    // Feature 5: 강화 개체(statBonus) 표시
+    const bonusIndsEl = document.getElementById('s-bonus-inds');
+    if (bonusIndsEl) {
+      const enhanced = group.individuals.filter(i => !i.dead && i.statBonus && (i.statBonus.hpMult > 1 || i.statBonus.attack > 0));
+      if (enhanced.length > 0) {
+        bonusIndsEl.innerHTML = `<h2 style="margin-top:6px">⚡ 강화 개체</h2>` + enhanced.slice(0, 5).map(ind => {
+          const hm = ind.statBonus.hpMult || 1;
+          const atk = ind.statBonus.attack || 0;
+          return `<div style="margin-top:4px;padding:3px 8px;background:rgba(129,140,248,.2);border-radius:8px;font-size:11px;color:#818cf8">
+            ⚡ 강화 개체 · HP ×${hm.toFixed(1)} · 공격 +${Math.round(atk)}
+          </div>`;
+        }).join('');
+      } else {
+        bonusIndsEl.innerHTML = '';
+      }
+    }
     this.updateProgressBar();
   }
 
@@ -6014,6 +6095,8 @@ resolveBoss(win, reason) {
   endGame(endingType = 'normal') {
     if (this.gameOver) return;
     this.gameOver = true;
+    // Feature 4: 누적 통계 업데이트 (endGame 진입 직후, endingType 정규화 전에 임시 저장)
+    this._endingTypeForStats = endingType;
     this._clickTarget = null;
     this._clickMarker?.clear();
     this._clearAllDangerVisuals();
@@ -6036,6 +6119,17 @@ resolveBoss(win, reason) {
       return sum + (ach ? ach.bonus : 0);
     }, 0);
     const score = Math.max(0, resultPopulation * 10 + Math.floor(group.food) * 5 + group.wins * 50 + group.recruited * 30 + Math.floor(this.elapsed / 10000) * 5 - group.starved * 10 + diversityBonus + achieveBonus + meteorDeathBonus + (this.bossBonus || 0));
+    // Feature 4: 누적 통계 저장
+    {
+      const s = loadStats();
+      s.totalGames = (s.totalGames || 0) + 1;
+      s.bestScore = Math.max(s.bestScore || 0, score);
+      s.totalBossKills = (s.totalBossKills || 0) + (this.achieveData.bossKills || 0);
+      s.totalPlayMs = (s.totalPlayMs || 0) + (this.elapsed || 0);
+      const et = this._endingTypeForStats || endingType;
+      if (et === 'primordial' || et === 'golden') s.totalWins = (s.totalWins || 0) + 1;
+      saveStats(s);
+    }
     // 순위표 등록용 데이터 임시 보관
     this._endScoreData = {
       score,
@@ -6876,6 +6970,18 @@ function togglePause() {
   // Phaser 씬 일시정지/재개
   const scene = game?.scene?.keys?.ArenaScene;
   if (scene) { _paused ? scene.scene.pause() : scene.scene.resume(); }
+  // Feature 6: 집단 평균 스탯 요약
+  if (_paused) {
+    const inds = scene?.player?.individuals?.filter(i => !i.dead) || [];
+    if (inds.length) {
+      const avg = k => Math.round(inds.reduce((s, i) => s + (i.stats[k] || 0), 0) / inds.length);
+      document.getElementById('avg-hp').textContent  = avg('hp');
+      document.getElementById('avg-atk').textContent = avg('attack');
+      document.getElementById('avg-def').textContent = avg('defense');
+      document.getElementById('avg-spd').textContent = avg('speed');
+      document.getElementById('pause-avg-stats').style.display = '';
+    }
+  }
 }
 
 function toggleSettings() {
@@ -7280,6 +7386,60 @@ const Tutorial = (() => {
 window.addEventListener('DOMContentLoaded', () => {
   initLeaderboard();
 });
+
+// ── Feature 4: 누적 통계 ────────────────────────────────────────────
+function loadStats() { try { return JSON.parse(localStorage.getItem('gpa_stats') || '{}'); } catch { return {}; } }
+function saveStats(s) { localStorage.setItem('gpa_stats', JSON.stringify(s)); }
+function openStatsModal() {
+  const s = loadStats();
+  const ms = s.totalPlayMs || 0;
+  const h = Math.floor(ms / 3600000), m = Math.floor((ms % 3600000) / 60000);
+  document.getElementById('stats-modal-content').innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:8px;font-family:'Jua',sans-serif">
+      <div style="display:flex;justify-content:space-between"><span>총 게임 수</span><strong>${s.totalGames || 0}회</strong></div>
+      <div style="display:flex;justify-content:space-between"><span>최종보스 처치</span><strong>${s.totalWins || 0}회</strong></div>
+      <div style="display:flex;justify-content:space-between"><span>최고 점수</span><strong>${(s.bestScore || 0).toLocaleString()}</strong></div>
+      <div style="display:flex;justify-content:space-between"><span>총 보스 처치</span><strong>${s.totalBossKills || 0}회</strong></div>
+      <div style="display:flex;justify-content:space-between"><span>총 플레이 시간</span><strong>${h}시간 ${m}분</strong></div>
+    </div>`;
+  document.getElementById('stats-modal').style.display = 'flex';
+}
+function closeStatsModal() { document.getElementById('stats-modal').style.display = 'none'; }
+
+// ── Feature 3: 전쟁 승리 영입 토스트 ────────────────────────────────
+let _recruitTimer = null;
+function showRecruit(loserGroup, survivorCount) {
+  const msg = document.getElementById('recruit-msg');
+  const toast = document.getElementById('recruit-toast');
+  if (!msg || !toast) return;
+  msg.textContent = `패배한 집단에 생존자 ${survivorCount}마리가 있습니다. 영입하시겠습니까?`;
+  toast.style.display = 'block';
+  if (_recruitTimer) clearTimeout(_recruitTimer);
+  _recruitTimer = setTimeout(() => dismissRecruit(), 10000);
+}
+function dismissRecruit() {
+  const toast = document.getElementById('recruit-toast');
+  if (toast) toast.style.display = 'none';
+  if (_recruitTimer) { clearTimeout(_recruitTimer); _recruitTimer = null; }
+  window._pendingRecruit = null;
+}
+function doRecruit() {
+  const pr = window._pendingRecruit;
+  if (!pr) return dismissRecruit();
+  const { group: loserGroup, scene } = pr;
+  if (!scene || !scene.player) return dismissRecruit();
+  const survivors = loserGroup.individuals.filter(i => !i.dead);
+  const toRecruit = survivors.slice(0, 2);
+  for (const ind of toRecruit) {
+    ind.groupId = scene.player.id;
+    scene.player.individuals.push(ind);
+    const idx = loserGroup.individuals.indexOf(ind);
+    if (idx !== -1) loserGroup.individuals.splice(idx, 1);
+  }
+  scene.ensureSprites(scene.player);
+  scene.showMessage(`🤝 ${toRecruit.length}마리를 영입했습니다!`);
+  dismissRecruit();
+}
 </script>
 <!-- 점수 등록 모달 -->
 <div id="score-submit-modal">
