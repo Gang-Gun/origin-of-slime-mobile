@@ -1584,6 +1584,10 @@ body { image-rendering: pixelated; }
   <div id="options-card">
     <h2>⚙️ 옵션</h2>
     <div class="setting-row">
+      <span>🎵 배경음</span>
+      <button class="toggle-btn on" id="options-bgm-toggle" onclick="toggleOptionsBgm(this)"></button>
+    </div>
+    <div class="setting-row">
       <span>🔊 효과음</span>
       <button class="toggle-btn on" id="options-sfx-toggle" onclick="toggleOptionsSfx(this)"></button>
     </div>
@@ -1675,6 +1679,10 @@ body { image-rendering: pixelated; }
     <button class="pause-btn pause-resume" onclick="togglePause()">▶ 게임 계속</button>
     <button class="pause-btn pause-settings" onclick="toggleSettings()">⚙️ 설정</button>
     <div id="settings-panel">
+      <div class="setting-row">
+        <span>🎵 배경음</span>
+        <button class="toggle-btn on" id="pause-bgm-toggle" onclick="togglePauseBgm(this)"></button>
+      </div>
       <div class="setting-row">
         <span>🔊 효과음</span>
         <button class="toggle-btn on" id="sfx-toggle" onclick="toggleSfxSetting(this)"></button>
@@ -3499,7 +3507,7 @@ class AudioManager {
     this._bgm.loop = true;
     this._bgm.volume = 0.45;
     this._bgm.muted = this.muted;
-    this._bgm.play().catch(() => {});
+    if (localStorage.getItem('gpa_bgm_off') !== '1') this._bgm.play().catch(() => {});
   }
   stopBgm() {
     if (!this._bgm) return;
@@ -7012,8 +7020,18 @@ function toggleBossBanner() {
 }
 function openOptionsModal() {
   document.getElementById('options-modal').classList.add('open');
+  const bgmBtn = document.getElementById('options-bgm-toggle');
+  if (bgmBtn) bgmBtn.classList.toggle('on', localStorage.getItem('gpa_bgm_off') !== '1');
   const mutBtn = document.getElementById('options-mutpick-toggle');
   if (mutBtn) mutBtn.classList.toggle('on', localStorage.getItem('gpa_mutpick_off') !== '1');
+}
+function toggleOptionsBgm(btn) {
+  btn.classList.toggle('on');
+  const off = !btn.classList.contains('on');
+  localStorage.setItem('gpa_bgm_off', off ? '1' : '0');
+  if (off) Audio.pauseBgm(); else Audio.resumeBgm();
+  const p = document.getElementById('pause-bgm-toggle');
+  if (p) p.classList.toggle('on', !off);
 }
 function closeOptionsModal() { document.getElementById('options-modal').classList.remove('open'); }
 function toggleOptionsMutPick(btn) {
@@ -7060,8 +7078,18 @@ function toggleSettings() {
   const unlocked = LAB_BUFFS?.gameSpeedUnlock > 0;
   if (sLabel) sLabel.textContent = unlocked ? '⚡ 게임 속도' : '⚡ 게임 속도 (계통수 가속 I 해금 필요)';
   refreshSpeedBtn();
+  const bgmBtn = document.getElementById('pause-bgm-toggle');
+  if (bgmBtn) bgmBtn.classList.toggle('on', localStorage.getItem('gpa_bgm_off') !== '1');
   const mutBtn = document.getElementById('pause-mutpick-toggle');
   if (mutBtn) mutBtn.classList.toggle('on', localStorage.getItem('gpa_mutpick_off') !== '1');
+}
+function togglePauseBgm(btn) {
+  btn.classList.toggle('on');
+  const off = !btn.classList.contains('on');
+  localStorage.setItem('gpa_bgm_off', off ? '1' : '0');
+  if (off) Audio.pauseBgm(); else Audio.resumeBgm();
+  const o = document.getElementById('options-bgm-toggle');
+  if (o) o.classList.toggle('on', !off);
 }
 function togglePauseMutPick(btn) {
   btn.classList.toggle('on');
