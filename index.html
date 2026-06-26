@@ -1657,7 +1657,9 @@ body { image-rendering: pixelated; }
       </div>
       <div class="setting-row" id="pause-speed-row">
         <span id="pause-speed-label">⚡ 게임 속도</span>
-        <button class="toggle-btn" id="pause-speed-toggle" onclick="toggleGameSpeed(this)"></button>
+        <button class="pause-btn pause-settings" id="pause-speed-toggle"
+          style="width:auto;padding:8px 14px;font-size:14px;min-width:60px"
+          onclick="cycleGameSpeed()">1×</button>
       </div>
       <div class="setting-row">
         <span>👁️ 색맹 모드</span>
@@ -4586,7 +4588,7 @@ class ArenaScene extends Phaser.Scene {
 
   update(_time, dt) {
     if (this.gameOver || this.meteorActive) return;
-    const _speedMult = (LAB_BUFFS?.gameSpeedUnlock && localStorage.getItem('gpa_speed_on')) ? LAB_BUFFS.gameSpeedUnlock : 1;
+    const _speedMult = (LAB_BUFFS?.gameSpeedUnlock > 0) ? (parseFloat(localStorage.getItem('gpa_speed_val') || '1')) : 1;
     const gameDt = dt * _speedMult;
     this.elapsed += gameDt;
     const now = Date.now();
@@ -6803,11 +6805,27 @@ function setDexFilter(filter, btn) {
   btn.classList.add('active');
   renderDex();
 }
-function toggleGameSpeed(btn) {
-  const on = btn.classList.toggle('on');
-  if (on) localStorage.setItem('gpa_speed_on', '1');
-  else localStorage.removeItem('gpa_speed_on');
+function cycleGameSpeed() {
+  const max = LAB_BUFFS?.gameSpeedUnlock || 0;
+  if (!max) return;
+  const cur = parseFloat(localStorage.getItem('gpa_speed_val') || '1');
+  const options = [1, ...(max >= 1.5 ? [1.5] : []), ...(max >= 2 ? [2] : [])];
+  const next = options[(options.indexOf(cur) + 1) % options.length];
+  localStorage.setItem('gpa_speed_val', String(next));
+  refreshSpeedBtn();
 }
+function refreshSpeedBtn() {
+  const btn = document.getElementById('pause-speed-toggle');
+  if (!btn) return;
+  const max = LAB_BUFFS?.gameSpeedUnlock || 0;
+  const cur = parseFloat(localStorage.getItem('gpa_speed_val') || '1');
+  btn.textContent = `${cur}×`;
+  btn.disabled = !max;
+  btn.style.opacity = max ? '' : '0.35';
+  btn.style.background = cur > 1 ? 'var(--coral)' : '';
+  btn.style.color = cur > 1 ? '#fff' : '';
+}
+function toggleGameSpeed(btn) { cycleGameSpeed(); } // 하위호환
 function refreshSpeedToggleRow() {
   const btn   = document.getElementById('speed-toggle');
   const label = document.getElementById('speed-toggle-label');
@@ -6817,7 +6835,7 @@ function refreshSpeedToggleRow() {
     label.textContent = `⚡ 게임 속도 (${LAB_BUFFS.gameSpeedUnlock}×)`;
     btn.disabled = false;
     btn.style.opacity = '';
-    btn.classList.toggle('on', !!localStorage.getItem('gpa_speed_on'));
+    refreshSpeedBtn();
   } else {
     label.textContent = '⚡ 게임 속도 (계통수 가속 I 해금 필요)';
     btn.disabled = true;
@@ -6875,19 +6893,9 @@ function toggleSettings() {
   document.getElementById('settings-panel').classList.toggle('open');
   // 속도 토글 상태 반영
   const sLabel = document.getElementById('pause-speed-label');
-  const sBtn   = document.getElementById('pause-speed-toggle');
   const unlocked = LAB_BUFFS?.gameSpeedUnlock > 0;
-  if (sLabel && sBtn) {
-    if (unlocked) {
-      sLabel.textContent = `⚡ 게임 속도 (${LAB_BUFFS.gameSpeedUnlock}×)`;
-      sBtn.disabled = false; sBtn.style.opacity = '';
-      sBtn.classList.toggle('on', !!localStorage.getItem('gpa_speed_on'));
-    } else {
-      sLabel.textContent = '⚡ 게임 속도 (계통수 가속 I 해금 필요)';
-      sBtn.disabled = true; sBtn.style.opacity = '0.35';
-      sBtn.classList.remove('on');
-    }
-  }
+  if (sLabel) sLabel.textContent = unlocked ? '⚡ 게임 속도' : '⚡ 게임 속도 (계통수 가속 I 해금 필요)';
+  refreshSpeedBtn();
   // 색맹 모드 상태 반영
   const cbBtn = document.getElementById('pause-colorblind-toggle');
   if (cbBtn) cbBtn.classList.toggle('on', COLORBLIND_MODE);
