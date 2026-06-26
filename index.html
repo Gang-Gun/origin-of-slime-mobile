@@ -6854,9 +6854,14 @@ function toggleColorblind(btn) {
   // 기존 creature 텍스처 전부 제거 후 스프라이트 재생성
   const scene = game?.scene?.keys?.ArenaScene;
   if (!scene) return;
-  Object.keys(scene.textures.list).filter(k => k.startsWith('creature_'))
-    .forEach(k => scene.textures.remove(k));
-  scene.rebuildIndividualSprites();
+  // 스프라이트 파괴 없이 텍스처만 교체 (검은 화면 방지)
+  for (const [id, data] of scene.individualSprites) {
+    let ind = null;
+    for (const g of scene.groups) { ind = g.individuals.find(i => i.id === id); if (ind) break; }
+    if (!ind) continue;
+    const key = scene.createCreatureTexture(ind);
+    data.sprite.setTexture(key);
+  }
 }
 function toggleBossBanner() {
   const bb = document.getElementById('boss-banner');
