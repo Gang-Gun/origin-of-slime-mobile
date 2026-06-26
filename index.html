@@ -1563,6 +1563,10 @@ body { image-rendering: pixelated; }
       <button class="pause-btn pause-settings fs-toggle-btn" style="width:auto;padding:8px 14px;font-size:13px"
         onclick="toggleFullscreen()">⛶ 전체화면으로</button>
     </div>
+    <div class="setting-row" style="border-top:1px solid var(--ink-faint);padding-top:12px;margin-top:4px" id="speed-toggle-row" style="display:none">
+      <span>⚡ 게임 속도 증가</span>
+      <button class="toggle-btn" id="speed-toggle" onclick="toggleGameSpeed(this)"></button>
+    </div>
     <div class="setting-row" style="border-top:1px solid var(--ink-faint);padding-top:12px;margin-top:4px">
       <span>👁️ 색맹 모드</span>
       <button class="toggle-btn${COLORBLIND_MODE ? ' on' : ''}" id="colorblind-toggle" onclick="toggleColorblind(this)"></button>
@@ -1944,6 +1948,9 @@ const LAB_NODE_DEFS = [
   { id:'pick2', t:'ess', parent:'pick1', ico:'🎲', name:'선택 II',   costType:'ess', costAmt:2,  effect:'2개 중 선택' },
   { id:'pick3', t:'ess', parent:'pick2', ico:'🎲', name:'선택 III',  costType:'ess', costAmt:5,  effect:'3개 중 선택' },
   { id:'pick4', t:'ess', parent:'pick3', ico:'🎲', name:'선택 IV',   costType:'ess', costAmt:10, effect:'4개 중 선택' },
+  // 게임 속도 계열
+  { id:'spd1', t:'ess', parent:'eroot', ico:'⚡', name:'가속 I',  costType:'ess', costAmt:2,  effect:'설정에서 1.5× 속도 토글 해금' },
+  { id:'spd2', t:'ess', parent:'spd1',  ico:'⚡', name:'가속 II', costType:'ess', costAmt:6,  effect:'설정에서 2× 속도 토글 해금' },
 ];
 
 // Build lookup map
@@ -1989,6 +1996,7 @@ function computeLabBuffs() {
     mutationChance: has('prob5')?1.0 : has('prob4')?0.75 : has('prob3')?0.50 : has('prob2')?0.30 : has('prob1')?0.15 : 0,
     mutationChoices: has('pick4')?4 : has('pick3')?3 : has('pick2')?2 : has('pick1')?1 : 0,
     maxPopBonus: (has('cap1')?10:0) + (has('cap2')?20:0) + (has('cap3')?35:0) + (has('cap4')?55:0) + (has('cap5')?80:0),
+    gameSpeedUnlock: has('spd2') ? 2 : has('spd1') ? 1.5 : 0, // 0=미해금, 1.5/2=해금된 최대 배율
   };
 }
 computeLabBuffs();
@@ -4506,7 +4514,9 @@ class ArenaScene extends Phaser.Scene {
 
   update(_time, dt) {
     if (this.gameOver || this.meteorActive) return;
-    this.elapsed += dt;
+    const _speedMult = (LAB_BUFFS?.gameSpeedUnlock && localStorage.getItem('gpa_speed_on')) ? LAB_BUFFS.gameSpeedUnlock : 1;
+    const gameDt = dt * _speedMult;
+    this.elapsed += gameDt;
     const now = Date.now();
     // 대립유전자 빈도 시계열 스냅샷 (1.5초마다)
     if (this.elapsed - this.lastAlleleSnapAt >= 1500) {
@@ -4539,7 +4549,7 @@ class ArenaScene extends Phaser.Scene {
     if (!this.player.individuals.length) return this.endGame();
     this.movePlayer(dt);
     for (const ai of this.aiGroups) ai.aiTick(dt);
-    this.moveIndividuals(dt);
+    this.moveIndividuals(gameDt);
     this.syncSprites();
     this.drawHealthBars();
     this.collectFood();
@@ -6676,6 +6686,24 @@ function setDexFilter(filter, btn) {
   btn.classList.add('active');
   renderDex();
 }
+function toggleGameSpeed(btn) {
+  const on = btn.classList.toggle('on');
+  if (on) localStorage.setItem('gpa_speed_on', '1');
+  else localStorage.removeItem('gpa_speed_on');
+}
+function refreshSpeedToggleRow() {
+  const row = document.getElementById('speed-toggle-row');
+  const btn  = document.getElementById('speed-toggle');
+  if (!row || !btn) return;
+  const unlocked = LAB_BUFFS?.gameSpeedUnlock > 0;
+  row.style.display = unlocked ? '' : 'none';
+  if (unlocked) {
+    const label = row.querySelector('span');
+    const mult = LAB_BUFFS.gameSpeedUnlock;
+    label.textContent = `⚡ 게임 속도 (${mult}×)`;
+    btn.classList.toggle('on', !!localStorage.getItem('gpa_speed_on'));
+  }
+}
 function toggleColorblind(btn) {
   COLORBLIND_MODE = !COLORBLIND_MODE;
   if (COLORBLIND_MODE) localStorage.setItem('gpa_colorblind','1');
@@ -6692,7 +6720,7 @@ function toggleBossBanner() {
   const bb = document.getElementById('boss-banner');
   bb.classList.toggle('boss-collapsed');
 }
-function openOptionsModal() { document.getElementById('options-modal').classList.add('open'); }
+function openOptionsModal() { document.getElementById('options-modal').classList.add('open'); refreshSpeedToggleRow(); }
 function closeOptionsModal() { document.getElementById('options-modal').classList.remove('open'); }
 function toggleOptionsSfx(btn) {
   btn.classList.toggle('on');
