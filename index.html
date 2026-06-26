@@ -1572,13 +1572,9 @@ body { image-rendering: pixelated; }
       <button class="pause-btn pause-settings fs-toggle-btn" style="width:auto;padding:8px 14px;font-size:13px"
         onclick="toggleFullscreen()">⛶ 전체화면으로</button>
     </div>
-    <div class="setting-row" style="border-top:1px solid var(--ink-faint);padding-top:12px;margin-top:4px" id="speed-toggle-row">
-      <span id="speed-toggle-label">⚡ 게임 속도</span>
-      <button class="toggle-btn" id="speed-toggle" onclick="toggleGameSpeed(this)"></button>
-    </div>
     <div class="setting-row" style="border-top:1px solid var(--ink-faint);padding-top:12px;margin-top:4px">
       <span>👁️ 색맹 모드</span>
-      <button class="toggle-btn${COLORBLIND_MODE ? ' on' : ''}" id="colorblind-toggle" onclick="toggleColorblind(this)"></button>
+      <button class="toggle-btn" id="colorblind-toggle" onclick="toggleColorblind(this)"></button>
     </div>
     <div class="setting-row">
       <span>📖 튜토리얼 초기화</span>
@@ -1658,6 +1654,14 @@ body { image-rendering: pixelated; }
         <span>⛶ 전체화면</span>
         <button class="pause-btn pause-settings fs-toggle-btn" style="width:auto;padding:8px 14px;font-size:14px"
           onclick="toggleFullscreen()">⛶ 전체화면으로</button>
+      </div>
+      <div class="setting-row" id="pause-speed-row">
+        <span id="pause-speed-label">⚡ 게임 속도</span>
+        <button class="toggle-btn" id="pause-speed-toggle" onclick="toggleGameSpeed(this)"></button>
+      </div>
+      <div class="setting-row">
+        <span>👁️ 색맹 모드</span>
+        <button class="toggle-btn" id="pause-colorblind-toggle" onclick="toggleColorblind(this)"></button>
       </div>
       <div class="setting-row">
         <span>📖 튜토리얼 초기화</span>
@@ -6825,7 +6829,10 @@ function toggleColorblind(btn) {
   COLORBLIND_MODE = !COLORBLIND_MODE;
   if (COLORBLIND_MODE) localStorage.setItem('gpa_colorblind','1');
   else localStorage.removeItem('gpa_colorblind');
-  btn.classList.toggle('on', COLORBLIND_MODE);
+  ['colorblind-toggle','pause-colorblind-toggle'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.toggle('on', COLORBLIND_MODE);
+  });
   // 기존 creature 텍스처 전부 제거 후 스프라이트 재생성
   const scene = game?.scene?.keys?.ArenaScene;
   if (!scene) return;
@@ -6837,7 +6844,11 @@ function toggleBossBanner() {
   const bb = document.getElementById('boss-banner');
   bb.classList.toggle('boss-collapsed');
 }
-function openOptionsModal() { document.getElementById('options-modal').classList.add('open'); refreshSpeedToggleRow(); }
+function openOptionsModal() {
+  document.getElementById('options-modal').classList.add('open');
+  const cbBtn = document.getElementById('colorblind-toggle');
+  if (cbBtn) cbBtn.classList.toggle('on', COLORBLIND_MODE);
+}
 function closeOptionsModal() { document.getElementById('options-modal').classList.remove('open'); }
 function toggleOptionsSfx(btn) {
   btn.classList.toggle('on');
@@ -6862,6 +6873,24 @@ function togglePause() {
 
 function toggleSettings() {
   document.getElementById('settings-panel').classList.toggle('open');
+  // 속도 토글 상태 반영
+  const sLabel = document.getElementById('pause-speed-label');
+  const sBtn   = document.getElementById('pause-speed-toggle');
+  const unlocked = LAB_BUFFS?.gameSpeedUnlock > 0;
+  if (sLabel && sBtn) {
+    if (unlocked) {
+      sLabel.textContent = `⚡ 게임 속도 (${LAB_BUFFS.gameSpeedUnlock}×)`;
+      sBtn.disabled = false; sBtn.style.opacity = '';
+      sBtn.classList.toggle('on', !!localStorage.getItem('gpa_speed_on'));
+    } else {
+      sLabel.textContent = '⚡ 게임 속도 (계통수 가속 I 해금 필요)';
+      sBtn.disabled = true; sBtn.style.opacity = '0.35';
+      sBtn.classList.remove('on');
+    }
+  }
+  // 색맹 모드 상태 반영
+  const cbBtn = document.getElementById('pause-colorblind-toggle');
+  if (cbBtn) cbBtn.classList.toggle('on', COLORBLIND_MODE);
 }
 
 function toggleSfxSetting(btn) {
