@@ -1700,7 +1700,7 @@ body { image-rendering: pixelated; }
           onclick="localStorage.removeItem('gpa_tutorial_done'); location.reload()">초기화</button>
       </div>
     </div>
-    <button class="pause-btn pause-home" onclick="if(confirm('메인 메뉴로 돌아갈까요? 현재 게임이 종료됩니다.')) location.reload()">🏠 메인 메뉴로</button>
+    <button class="pause-btn pause-home" onclick="if(confirm('메인 메뉴로 돌아갈까요? 현재 게임이 종료됩니다.')) { Audio.stopBgm(); location.reload(); }">🏠 메인 메뉴로</button>
   </div>
 </div>
 
@@ -3424,7 +3424,6 @@ class AudioManager {
     } catch (e) { this.ctx = null; }
   }
   resume() { if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume(); }
-  setMuted(m) { this.muted = m; if (this.masterGain) this.masterGain.gain.value = m ? 0 : 0.35; }
 
   // 톤 생성 헬퍼
   tone(freq, dur, type = 'sine', vol = 0.3, sweep = 0) {
@@ -3492,6 +3491,28 @@ class AudioManager {
     };
     makePad(130.81, 0.04); // C3
     makePad(196.00, 0.03); // G3
+  }
+
+  startBgm() {
+    if (this._bgm) return;
+    this._bgm = new window.Audio('assets/bgm.mp3');
+    this._bgm.loop = true;
+    this._bgm.volume = 0.45;
+    this._bgm.muted = this.muted;
+    this._bgm.play().catch(() => {});
+  }
+  stopBgm() {
+    if (!this._bgm) return;
+    this._bgm.pause();
+    this._bgm.currentTime = 0;
+    this._bgm = null;
+  }
+  pauseBgm()  { if (this._bgm) this._bgm.pause(); }
+  resumeBgm() { if (this._bgm) this._bgm.play().catch(() => {}); }
+  setMuted(m) {
+    this.muted = m;
+    if (this.masterGain) this.masterGain.gain.value = m ? 0 : 0.35;
+    if (this._bgm) this._bgm.muted = m;
   }
 }
 const Audio = new AudioManager();
@@ -6542,7 +6563,7 @@ function startGame(diffIndex = 0) {
   enterFullscreen();
   stopLeaderboard();
   if (game) return;
-  Audio.init(); Audio.resume();
+  Audio.init(); Audio.resume(); Audio.startBgm();
   document.getElementById('title-screen').style.display = 'none';
   document.getElementById('hud').style.display = 'block';
   const _db = document.getElementById('diff-badge');
@@ -7018,6 +7039,7 @@ function togglePause() {
   // Phaser 씬 일시정지/재개
   const scene = game?.scene?.keys?.ArenaScene;
   if (scene) { _paused ? scene.scene.pause() : scene.scene.resume(); }
+  _paused ? Audio.pauseBgm() : Audio.resumeBgm();
   // Feature 6: 집단 평균 스탯 요약
   if (_paused) {
     const inds = scene?.player?.individuals?.filter(i => !i.dead) || [];
