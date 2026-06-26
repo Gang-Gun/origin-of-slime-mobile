@@ -4671,7 +4671,7 @@ class ArenaScene extends Phaser.Scene {
     this.collectFood();
     // 튜토리얼 중 번식 단계 항상 가능하도록 식량 최솟값 보장
     if (this.tutorialActive && this.player) {
-      const _minFood = this.player._foodNeed() + 30;
+      const _minFood = this.player.need() + 30;
       if (this.player.food < _minFood) this.player.food = _minFood;
     }
     // 튜토리얼 중엔 굶주림·지형 피해·전쟁·도태 등 사망 시스템 정지 (설명 읽다 굶어 죽는 것 방지)
