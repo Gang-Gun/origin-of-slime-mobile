@@ -46,6 +46,19 @@ button { font: inherit; cursor: pointer; }
 html:fullscreen { background: #c5eebc; }
 :fullscreen::backdrop, ::backdrop { background: #c5eebc; }
 #game-container { width: 100vw; height: 100vh; }
+#combat-pulse {
+  display:none; position:fixed; inset:0; z-index:18; pointer-events:none;
+  box-shadow: inset 0 0 0 0 rgba(220,40,40,0);
+  animation: none;
+}
+#combat-pulse.active {
+  display:block;
+  animation: combatPulse 1.1s ease-in-out infinite;
+}
+@keyframes combatPulse {
+  0%,100% { box-shadow: inset 0 0 40px 10px rgba(220,40,40,0); }
+  50%      { box-shadow: inset 0 0 40px 10px rgba(220,40,40,0.28); }
+}
 canvas { display: block; image-rendering: pixelated; }
 
 /* ─── 공통 글래스 패널 ─── */
@@ -295,6 +308,7 @@ canvas { display: block; image-rendering: pixelated; }
   border-bottom: 2px solid rgba(249,101,88,.15);
 }
 #stats h2:first-child { margin-top: 0; }
+#stats-header { display:flex; align-items:center; font-family:'Jua',sans-serif; min-height:28px; }
 .row { display:flex; justify-content:space-between; align-items:center; gap:8px; padding:3px 0; border-bottom:1px dashed rgba(110,99,132,.14); }
 .row:last-child { border-bottom:none; }
 .label { color:var(--ink-soft); font-size:11.5px; }
@@ -1507,15 +1521,24 @@ body { image-rendering: pixelated; }
   </div>
 
   <section id="stats" class="panel">
-    <h2>🐾 집단 현황 <span onclick="toggleStatsPanel()" style="margin-left:auto;cursor:pointer;color:var(--coral)">✕</span></h2>
-    <div class="row"><span class="label">개체 수</span><strong id="s-count">20</strong></div>
-    <div class="row"><span class="label">번식</span><strong id="s-breed">불가</strong></div>
-    <div class="row"><span class="label">평균 HP</span><strong id="s-hp">100</strong></div>
-    <div class="row"><span class="label">공 / 방 / 속</span><strong><span id="s-attack">10</span> / <span id="s-defense">3</span> / <span id="s-speed">80</span></strong></div>
-    <div class="row"><span class="label">채집 / 매력</span><strong><span id="s-gather">5</span> / <span id="s-charm">5</span></strong></div>
-    <h2>🧬 유전자 비율</h2>
-    <div id="s-genes"></div>
-    <div id="s-bonus-inds"></div>
+    <!-- 요약 줄: 항상 표시 -->
+    <div id="stats-header">
+      <span style="font-size:13px">🐾 <strong id="s-count">20</strong>마리 &nbsp;·&nbsp; <strong id="s-breed" class="bad">번식 불가</strong></span>
+      <span style="display:flex;gap:6px;margin-left:auto;align-items:center">
+        <button id="stats-expand-btn" onclick="toggleStatsDetail()" style="background:none;border:none;font-size:13px;cursor:pointer;color:var(--px-ink);padding:2px 4px">▼</button>
+        <span onclick="toggleStatsPanel()" style="cursor:pointer;color:var(--coral);font-size:15px">✕</span>
+      </span>
+    </div>
+    <!-- 상세: 기본 접힘 -->
+    <div id="stats-detail" style="display:none">
+      <div class="row" style="margin-top:6px"><span class="label">HP · 공 · 방 · 속</span><strong><span id="s-hp">100</span> · <span id="s-attack">10</span> · <span id="s-defense">3</span> · <span id="s-speed">80</span></strong></div>
+      <div style="display:none"><span id="s-gather">5</span><span id="s-charm">5</span></div>
+      <button id="stats-gene-btn" onclick="toggleStatsGene()" style="background:none;border:none;font-size:12px;cursor:pointer;color:var(--px-blue-d);padding:4px 0;text-align:left">🧬 유전자 비율 ▼</button>
+      <div id="stats-gene-section" style="display:none">
+        <div id="s-genes"></div>
+        <div id="s-bonus-inds"></div>
+      </div>
+    </div>
   </section>
 
   <div id="bottom-bar">
@@ -1536,6 +1559,7 @@ body { image-rendering: pixelated; }
   </div>
   <div id="battle-vignette"></div>
   <div id="danger-vignette"></div>
+  <div id="combat-pulse"></div>
   <div id="battle-banner">⚔️ 전쟁 중</div>
   <div id="toast-mut" class="toast-stack"></div>
   <div id="toast-ach" class="toast-stack"></div>
@@ -5158,8 +5182,10 @@ class ArenaScene extends Phaser.Scene {
           if (groupA.isPlayer || groupB.isPlayer) {
             const enemy = groupA.isPlayer ? groupB : groupA;
             this.showMessage(`⚔️ ${enemy.name}와 전쟁 시작!`);
+            ContextHint.show('first_battle','⚔️','다른 집단과 전쟁이 시작됐어요!\n이기면 상대를 포섭할 수 있어요.\n💨 도망 버튼으로 피할 수도 있답니다.');
             document.getElementById('battle-banner').style.display = 'block';
             document.getElementById('battle-vignette').classList.add('active');
+            document.getElementById('combat-pulse').classList.add('active');
             Audio.sfxBattle();
             this.cameras.main.shake(250, 0.008);
             battle.onHit = (x, y) => this.spawnHitEffect(x, y);
@@ -5171,6 +5197,7 @@ class ArenaScene extends Phaser.Scene {
     if (!playerInBattle) {
       document.getElementById('battle-banner').style.display = 'none';
       document.getElementById('battle-vignette').classList.remove('active');
+      document.getElementById('combat-pulse').classList.remove('active');
     }
   }
 
@@ -5197,6 +5224,7 @@ class ArenaScene extends Phaser.Scene {
       this.showMessage(details.length ? `${result}\n${details.join(' · ')}` : result);
       document.getElementById('battle-banner').style.display = 'none';
       document.getElementById('battle-vignette').classList.remove('active');
+      document.getElementById('combat-pulse').classList.remove('active');
       // 연출
       if (won) { Audio.sfxWin(); this.burst(this.player.x, this.player.y, 0xffd97d, 16, 90); this.cameras.main.flash(180, 255, 240, 180); }
       else if (!draw) { Audio.sfxLose(); this.cameras.main.shake(300, 0.012); }
@@ -5236,6 +5264,7 @@ class ArenaScene extends Phaser.Scene {
     const gained = this.player.lastGainedMutations || [];
     this.showToast(`🥚 +${count}`, 'ach');
     Audio.sfxBreed();
+    ContextHint.show('first_breed','🥚','자손이 태어났어요!\n유전자는 부모에게서 물려받고\n가끔 돌연변이로 새 특성이 생겨요.\n📊 현황 버튼으로 유전자 비율을 확인해보세요!');
     this.burst(this.player.x, this.player.y, 0xffb4a2, 12, 70);
     // 돌연변이 토스트
     gained.forEach((id, i) => {
@@ -5383,6 +5412,7 @@ class ArenaScene extends Phaser.Scene {
     this.bossPhaseUntil = this.elapsed + (this.bossSlot === 'final' ? (METEOR_TIME + ((LAB_BUFFS&&LAB_BUFFS.meteorBonus)||0) - this.elapsed) : BOSS_RETREAT_TIME);
     document.getElementById('boss-hp').classList.add('show');
     this.showMessage(`${boss.ico} ${boss.name} 출현! 도망치며 번식해 빈도를 올리세요`, true);
+    ContextHint.show('first_boss','👹','거대 보스가 당신 집단만 노려요!\n💨 도망 버튼으로 피하면서 🥚 번식하세요.\n🔬 도감 > 보스 탭에서 안전 조건을 확인하세요.');
     this.recordAlleleSnapshot();
     if (navigator.vibrate) navigator.vibrate(120);
     this.cameras.main.shake(400, 0.01);
@@ -5979,7 +6009,7 @@ resolveBoss(win, reason) {
 
     // 현황 패널 (간소화)
     setText('s-count', group.count);
-    setText('s-breed', canBreed ? '가능 ✓' : '불가 ✗');
+    setText('s-breed', canBreed ? '🥚 번식 가능' : '번식 불가');
     document.getElementById('s-breed').className = canBreed ? 'good' : 'bad';
     setText('s-hp', group.average('hp').toFixed(0));
     setText('s-attack', group.average('attack').toFixed(0));
@@ -6019,7 +6049,11 @@ resolveBoss(win, reason) {
     const activeBattle = this.battles.find(b => b.active && (b.groupA.isPlayer || b.groupB.isPlayer));
     if (activeBattle) {
       const remaining = Math.max(0, Math.floor((BATTLE_DURATION - (Date.now() - activeBattle.startedAt)) / 1000));
-      document.getElementById('battle-banner').textContent = `⚔️ 전쟁 중 ${remaining}초`;
+      const _pb = activeBattle.groupA.isPlayer ? activeBattle.groupA : activeBattle.groupB;
+      const _eb = activeBattle.groupA.isPlayer ? activeBattle.groupB : activeBattle.groupA;
+      const _myN = _pb.individuals.filter(i=>!i.dead).length;
+      const _enN = _eb.individuals.filter(i=>!i.dead).length;
+      document.getElementById('battle-banner').textContent = `⚔️ 내 편 ${_myN}  vs  적 ${_enN}  (${remaining}초)`;
       document.getElementById('battle-banner').style.display = 'block';
     }
 
@@ -6655,6 +6689,20 @@ function startGame(diffIndex = 0) {
 function toggleStatsPanel() {
   document.getElementById('hud').classList.toggle('stats-open');
 }
+function toggleStatsDetail() {
+  const detail = document.getElementById('stats-detail');
+  const btn = document.getElementById('stats-expand-btn');
+  const open = detail.style.display === 'none';
+  detail.style.display = open ? '' : 'none';
+  btn.textContent = open ? '▲' : '▼';
+}
+function toggleStatsGene() {
+  const sec = document.getElementById('stats-gene-section');
+  const btn = document.getElementById('stats-gene-btn');
+  const open = sec.style.display === 'none';
+  sec.style.display = open ? '' : 'none';
+  btn.textContent = open ? '🧬 유전자 비율 ▲' : '🧬 유전자 비율 ▼';
+}
 
 function toggleMute() {
   Audio.muted = !Audio.muted;
@@ -7242,16 +7290,16 @@ const Tutorial = (() => {
   const STEPS = [
     {
       ico: '👋',
-      title: '슬라임 왕국에 오신 걸 환영해요!',
-      desc: '슬라임 집단을 이끌고 먹이를 모으며\n살아남으세요.\n10분 뒤 운석이 떨어지기 전까지\n최대한 번성하는 것이 목표예요!',
+      title: '슬라임의 기원',
+      desc: '슬라임 집단을 이끌고 식량을 모아\n번식하며 살아남으세요.\n10분 뒤 운석이 떨어지기 전까지\n집단을 키우는 것이 목표예요!',
       target: null, cond: null, nextLabel: '시작하기 →',
     },
     {
       ico: '🕹️',
-      title: '이동하기',
-      desc: '화면 아무 곳이나 꾹 누르고 드래그하면\n가상 조이스틱이 나타나요.\n슬라임들이 따라와요!',
-      target: null,        // 어두운 화면 없이 플레이 가능하게
-      noMask: true,        // 오버레이 투명
+      title: '이동',
+      desc: '화면을 꾹 누르고 드래그하면\n조이스틱이 나타나요.\n슬라임들이 따라와요!',
+      target: null,
+      noMask: true,
       cond: (scene) => scene._tutorialMoved,
       condLabel: '조이스틱을 드래그해보세요 👇',
       nextLabel: '완료! →',
@@ -7259,78 +7307,22 @@ const Tutorial = (() => {
     {
       ico: '🍓',
       title: '식량 모으기',
-      desc: '맵의 노란 원이 식량이에요.\n집단을 가까이 이동하면 자동으로 수집돼요!\n식량이 많을수록 번식이 쉬워요.',
+      desc: '맵의 노란 원이 식량이에요.\n가까이 이동하면 자동 수집!\n아래 식량 바가 채워지면 번식 가능해요.',
       target: null,
-      noMask: true,        // 오버레이 없이 맵 보이게
+      noMask: true,
       cond: (scene) => scene.player && scene.player.food > 40,
       condLabel: '식량을 조금 모아보세요 🍓',
       nextLabel: '좋아요! →',
     },
     {
-      ico: '🐾',
-      title: '상단 바 읽기',
-      desc: '🌿지형 · 🐾개체수 · ⏳진행도\n화면 아래 🍓식량 바를 확인하세요!\n⏸ 버튼으로 일시정지도 가능해요.',
-      target: '#top-bar',
-      cond: null,
-      nextLabel: '알겠어요! →',
-    },
-    {
-      ico: '📊',
-      title: '현황 & 유전자 보기',
-      desc: '우측 📊 현황 버튼을 탭하면\n능력치·유전자 대립유전자 빈도를 볼 수 있어요.\n🔬 도감에서 돌연변이 효과도 확인하세요!',
-      target: '#right-btns',
-      cond: (scene) => document.getElementById('hud')?.classList.contains('stats-open'),
-      condLabel: '📊 현황 버튼을 탭해보세요',
-      nextLabel: '알겠어요! →',
-    },
-    {
       ico: '🥚',
-      title: '번식 & 멘델 유전',
-      desc: '식량 잉여가 있으면 🥚 번식 버튼이 활성돼요.\n자손은 부모 유전자를 멘델 법칙으로 물려받아요.\n돌연변이도 독립적으로 유전된답니다!',
+      title: '번식',
+      desc: '식량이 충분하면 아래 🥚 버튼이 켜져요.\n눌러서 자손을 낳으세요!\n자손은 부모 형질을 이어받고\n가끔 돌연변이가 생겨요.',
       target: '#breed-btn',
+      noMask: true,
       cond: (scene) => scene.player && scene.player.generation >= 1,
-      condLabel: '번식 버튼을 눌러보세요',
-      nextLabel: '탄생! →',
-    },
-    {
-      ico: '⚔️',
-      title: '전쟁과 포섭',
-      desc: '다른 집단과 만나면 전쟁이 시작돼요.\nC 대립유전자(매력) 빈도가 높을수록\n상대 슬라임을 포섭할 확률이 높아요!',
-      target: '#bottom-bar',
-      cond: null,
-      nextLabel: '알겠어요! →',
-    },
-    {
-      ico: '⚠️',
-      title: '지형 이벤트 주의!',
-      desc: '각 지형에는 위험 이벤트가 있어요.\n경고(노란 깜빡임) → 활성(빨간 효과) 순서로 진행돼요.\n조건에 해당하는 개체는 15초간 점진적으로 사망해요!\n\n예: 초원의 들불 → 속도 68 미만 개체 전멸\n예: 화산의 화산 폭발 → RR(붉은색) 아닌 개체 전멸\n\n📖 도감 > 지형이벤트 탭에서 미리 확인하세요!',
-      target: null, noMask: true, cond: null, nextLabel: '알겠어요! →',
-    },
-    {
-      ico: '👹',
-      title: '거대 보스의 습격',
-      desc: '일정 시간마다 거대 보스가 출현해 당신 집단만 노려요!\n가까우면 💨 도망 버튼으로 피하고, 멀면 🥚 번식하세요.\n보스의 안전조건(특정 유전자·돌연변이)을 갖춘 개체만 살아남아요.',
-      target: null,
-      noMask: true,
-      cond: null,
-      nextLabel: '대비할게요! →',
-    },
-    {
-      ico: '⚔️',
-      title: '보스 도감 활용',
-      desc: '🔬 도감의 ⚔️ 보스 탭에서 각 보스의 안전조건을 미리 확인하세요.\n1번은 단일 조건, 2번은 복합 조건, 마지막은 최종 보스예요.\n…그리고 어쩌면, 숨겨진 전설의 존재가 깨어날지도 몰라요. ✨',
-      target: null,
-      noMask: true,
-      cond: null,
-      nextLabel: '알겠어요! →',
-    },
-    {
-      ico: '☄️',
-      title: '10분 뒤 운석이 떨어져요!',
-      desc: '9분 45초 후 경고 시작,\n10분이 되면 운석이 떨어져 전체 멸종!\n그 전까지 집단을 키우고 도전과제를 달성하세요 🏆',
-      target: '#c-gen',
-      cond: null,
-      nextLabel: '도전 시작! 🌱',
+      condLabel: '🥚 번식 버튼을 눌러보세요',
+      nextLabel: '탄생! 🌱',
     },
   ];
 
@@ -7553,6 +7545,37 @@ const Tutorial = (() => {
     card.style.left = `${(vw - (card.offsetWidth || 300)) / 2}px`;
     card.style.top  = `${(vh - (card.offsetHeight || 200)) / 2}px`;
   }
+})();
+
+// ── 상황별 1회 힌트 ───────────────────────────────────────────────
+const ContextHint = (() => {
+  const KEY = 'gpa_hints_seen';
+  function seen(id) {
+    try { return JSON.parse(localStorage.getItem(KEY) || '[]').includes(id); } catch { return false; }
+  }
+  function mark(id) {
+    try {
+      const arr = JSON.parse(localStorage.getItem(KEY) || '[]');
+      if (!arr.includes(id)) { arr.push(id); localStorage.setItem(KEY, JSON.stringify(arr)); }
+    } catch {}
+  }
+  function show(id, ico, text) {
+    if (seen(id)) return;
+    mark(id);
+    const el = document.createElement('div');
+    el.style.cssText = `position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
+      z-index:95;background:var(--px-parch);border:3px solid var(--px-out);border-radius:8px;
+      padding:16px 20px;font-family:'Galmuri11','Jua',sans-serif;font-size:14px;color:var(--px-ink);
+      text-align:center;max-width:80vw;box-shadow:0 6px 0 var(--px-out);line-height:1.6;
+      animation:popIn .25s cubic-bezier(.34,1.56,.64,1)`;
+    el.innerHTML = `<div style="font-size:28px;margin-bottom:8px">${ico}</div><div>${text.replace(/\n/g,'<br>')}</div>
+      <button onclick="this.parentElement.remove()" style="margin-top:12px;background:var(--px-green);
+        color:#fff;border:2px solid var(--px-out);border-radius:5px;padding:6px 18px;
+        font-family:inherit;font-size:13px;cursor:pointer">확인</button>`;
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 8000);
+  }
+  return { show };
 })();
 
 // 페이지 로드 시 순위표 초기화
