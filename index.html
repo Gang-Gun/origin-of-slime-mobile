@@ -2875,6 +2875,8 @@ class Individual {
     } else {
       this.mutationGenes = mutationsOrGenes || {};
     }
+    // 유전 가능한 스탯 보너스 (부모 평균으로 자손에 전달)
+    this.statBonus = { hpMult: 1, attack: 0, speed: 0, defense: 0 };
     this.stats = this.calculateStats();
     this.hp = this.stats.hp;
     this.dead = false;
@@ -2925,6 +2927,13 @@ class Individual {
       if (key === 'mutationRate' || key === 'foodNeed') continue;
       stats[key] = clamp(stats[key] * (0.88 + Math.random() * 0.24), MIN_STATS[key], MAX_STATS[key]);
     }
+    // 유전 보너스 적용 (statBonus는 constructor에서 초기화 후 외부에서 설정)
+    if (this.statBonus) {
+      if (this.statBonus.hpMult > 1)  stats.hp      = clamp(Math.round(stats.hp * this.statBonus.hpMult), MIN_STATS.hp, MAX_STATS.hp);
+      if (this.statBonus.attack  > 0) stats.attack  = clamp(stats.attack  + this.statBonus.attack,  MIN_STATS.attack,  MAX_STATS.attack);
+      if (this.statBonus.speed   > 0) stats.speed   = clamp(stats.speed   + this.statBonus.speed,   MIN_STATS.speed,   MAX_STATS.speed);
+      if (this.statBonus.defense > 0) stats.defense = clamp(stats.defense + this.statBonus.defense, MIN_STATS.defense, MAX_STATS.defense);
+    }
     return stats;
   }
 
@@ -2974,6 +2983,16 @@ class Individual {
     }
 
     const child = new Individual(groupId, x, y, genes, childMutGenes);
+    // statBonus 부모 평균 상속 (세대 걸쳐 점진 희석)
+    const ba = parentA.statBonus || {}; const bb = parentB.statBonus || {};
+    child.statBonus = {
+      hpMult:  1 + ((ba.hpMult  - 1 || 0) + (bb.hpMult  - 1 || 0)) / 2,
+      attack:  ((ba.attack  || 0) + (bb.attack  || 0)) / 2,
+      speed:   ((ba.speed   || 0) + (bb.speed   || 0)) / 2,
+      defense: ((ba.defense || 0) + (bb.defense || 0)) / 2,
+    };
+    child.stats = child.calculateStats(); // statBonus 반영해 재계산
+    child.hp = child.stats.hp;
     child.newMutationCount = newMutationCount;
     // 부모에게 없던 발현 = 진짜 새 획득 (멘델 재조합으로 새로 발현된 것 포함)
     child.newlyGained = child.mutations.filter(id => !parentExpressed.has(id));
@@ -4189,14 +4208,12 @@ class ArenaScene extends Phaser.Scene {
           ind.stats.gather = Math.min(ind.stats.gather + LAB_BUFFS.gatherBonus, 100);
         }
       }
-      // Apply difficulty AI buffs — stats persist when player recruits these individuals
+      // Apply difficulty AI buffs via statBonus — inherited by offspring through breed()
       if (!group.isPlayer && CURRENT_DIFFICULTY > 0) {
         const db = getDiffConfig();
-        ind.stats.hp      = Math.round(ind.stats.hp * db.aiHpMult);
-        ind.hp            = ind.stats.hp;
-        ind.stats.attack  = Math.min(ind.stats.attack  + db.aiAtkAdd, MAX_STATS.attack);
-        ind.stats.speed   = Math.min(ind.stats.speed   + db.aiSpdAdd, MAX_STATS.speed);
-        ind.stats.defense = Math.min(ind.stats.defense + db.aiDefAdd, MAX_STATS.defense);
+        ind.statBonus = { hpMult: db.aiHpMult, attack: db.aiAtkAdd, speed: db.aiSpdAdd, defense: db.aiDefAdd };
+        ind.stats = ind.calculateStats();
+        ind.hp    = ind.stats.hp;
       }
       group.individuals.push(ind);
     }
