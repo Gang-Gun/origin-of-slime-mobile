@@ -916,7 +916,7 @@ canvas { display: block; image-rendering: pixelated; }
 #event-dex-modal, #event-dex-modal *, #options-modal, #options-modal *,
 #allele-graph-modal, #allele-graph-modal *,
 #result, #result *, #score-submit-modal, #score-submit-modal *,
-#leaderboard-panel, #leaderboard-panel *, #title-screen, #title-screen *,
+#leaderboard-panel, #leaderboard-panel *, #stats-corner-btn, #title-screen, #title-screen *,
 #tutorial-overlay, #tutorial-overlay *, .toast {
   font-family: 'Galmuri11', 'Jua', sans-serif !important;
   letter-spacing: 0 !important;
@@ -1417,6 +1417,7 @@ body { image-rendering: pixelated; }
   </defs>
 </svg>
 <!-- 순위표 패널 (타이틀 화면 위에 표시, fixed) -->
+<div id="stats-corner-btn" onclick="openStatsModal()" style="display:none;position:fixed;top:16px;right:16px;z-index:45;background:rgba(255,255,255,0.82);backdrop-filter:blur(8px);border:1.5px solid rgba(255,255,255,0.9);border-radius:16px;padding:10px 16px;box-shadow:0 4px 20px rgba(0,0,0,0.10);font-family:'Jua',sans-serif;font-size:13px;font-weight:800;color:var(--ink);cursor:pointer;white-space:nowrap;user-select:none">📊 기록</div>
 <div id="leaderboard-panel" class="collapsed">
   <div class="lb-title" onclick="toggleLeaderboard()">
     <span class="lb-title-text">🏆 명예의 전당</span>
@@ -1433,7 +1434,6 @@ body { image-rendering: pixelated; }
   <div id="title-menu">
     <button id="start-btn" class="big-btn" type="button" onclick="openDiffSelect()">🌱 게임 시작</button>
     <button type="button" class="big-btn sky" onclick="openDex()">📖 도감</button>
-    <button type="button" class="big-btn sky" onclick="openStatsModal()">📊 기록</button>
     <button type="button" class="big-btn lilac" onclick="openLab()">🌳 계통수</button>
     <button type="button" class="big-btn lilac" onclick="openOptionsModal()">⚙️ 옵션</button>
   </div>
@@ -1768,6 +1768,7 @@ function initLeaderboard() {
   initFirebase();
   if (!_db) return; // Firebase 미설정 시 패널 숨김 유지
   document.getElementById('leaderboard-panel').style.display = 'flex';
+  document.getElementById('stats-corner-btn').style.display = 'block';
   _startLeaderboardListener();
 }
 
@@ -1805,6 +1806,7 @@ function _startLeaderboardListener() {
 function stopLeaderboard() {
   if (_lbUnsub) { _lbUnsub(); _lbUnsub = null; }
   document.getElementById('leaderboard-panel').style.display = 'none';
+  document.getElementById('stats-corner-btn').style.display = 'none';
 }
 
 function toggleLeaderboard() {
