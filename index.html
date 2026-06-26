@@ -1563,6 +1563,10 @@ body { image-rendering: pixelated; }
       <button class="pause-btn pause-settings fs-toggle-btn" style="width:auto;padding:8px 14px;font-size:13px"
         onclick="toggleFullscreen()">⛶ 전체화면으로</button>
     </div>
+    <div class="setting-row" style="border-top:1px solid var(--ink-faint);padding-top:12px;margin-top:4px">
+      <span>👁️ 색맹 모드</span>
+      <button class="toggle-btn${COLORBLIND_MODE ? ' on' : ''}" id="colorblind-toggle" onclick="toggleColorblind(this)"></button>
+    </div>
     <div class="setting-row">
       <span>📖 튜토리얼 초기화</span>
       <button class="pause-btn pause-settings" style="width:auto;padding:8px 14px;font-size:13px"
@@ -2275,6 +2279,11 @@ const MAX_NEW_MUTATIONS_PER_CHILD = 2;
 const BODY_COLOR_RED = 0xef4444;
 const BODY_COLOR_BLUE = 0x3b82f6;
 const BODY_COLOR_PURPLE = 0xa855f7;
+// 색맹 모드 팔레트 (주황/청록/노랑 — 적록색맹 구분 가능)
+const BODY_COLOR_CB_RED    = 0xf97316; // 주황
+const BODY_COLOR_CB_BLUE   = 0x0891b2; // 청록
+const BODY_COLOR_CB_PURPLE = 0xeab308; // 노랑
+let COLORBLIND_MODE = !!localStorage.getItem('gpa_colorblind');
 const ESCAPE_FOOD_PENALTY = 0.25;
 const ESCAPE_DISTANCE = 260;
 const MAX_INDIVIDUALS = 100;
@@ -2727,7 +2736,7 @@ function creatureTextureKey(individual) {
   const sig = signatureMutations(individual.mutations)
     .filter(id => id !== 'large_body' && id !== 'small_body');
   const cat = dominantMutationType(individual.mutations);
-  return `creature_${body}_${sig.length ? sig.join('.') : 'none'}_${cat}`;
+  return `creature_${body}_${sig.length ? sig.join('.') : 'none'}_${cat}${COLORBLIND_MODE?'_cb':''}`;
 }
 const BASE_STATS = { hp: 100, attack: 10, defense: 3, speed: 80, gather: 5, fertility: 1, charm: 5, foodNeed: 1, mutationRate: 0.08 };
 const MIN_STATS = { hp: 20, attack: 1, defense: 0, speed: 20, gather: 0, fertility: 0.1, charm: 0, foodNeed: 0.2, mutationRate: 0 };
@@ -2795,10 +2804,16 @@ function getPhenotypeLabel(individual, gene) {
 
 function getBodyColor(individual) {
   const genotype = getGenotypeLabel(individual, 'color');
+  if (COLORBLIND_MODE) {
+    if (genotype === 'RR') return BODY_COLOR_CB_RED;
+    if (genotype === 'BB') return BODY_COLOR_CB_BLUE;
+    return BODY_COLOR_CB_PURPLE;
+  }
   if (genotype === 'RR') return BODY_COLOR_RED;
   if (genotype === 'BB') return BODY_COLOR_BLUE;
   return BODY_COLOR_PURPLE;
 }
+function getColorGenotype(individual) { return getGenotypeLabel(individual, 'color'); }
 
 class Individual {
   constructor(groupId, x, y, genes = null, mutationsOrGenes = []) {
@@ -4212,6 +4227,21 @@ class ArenaScene extends Phaser.Scene {
     if (cat==='good') { px(4,0,1,1,0xe6ffe0,0.9); px(9,1,1,1,0xe6ffe0,0.8); }
     else if (cat==='bad') { px(6,2,1,1,0x2a2018,0.7); px(7,3,1,1,0x2a2018,0.6); px(3,5,1,1,0x2a2018,0.5); }
     else if (cat==='dual') { px(10,3,1,1,0xc49ee0,0.8); }
+    // 색맹 모드: 우하단에 모양 마커 (RR=+, RB=◆, BB=■)
+    if (COLORBLIND_MODE) {
+      const gt = getColorGenotype({ genes: pal._genes });
+      // pal._genes 없으면 색으로 추론
+      const col = pal.body;
+      const isRR = col === BODY_COLOR_CB_RED;
+      const isBB = col === BODY_COLOR_CB_BLUE;
+      if (isRR) { // + 십자
+        px(11,7,1,3,0xffffff,0.95); px(10,8,3,1,0xffffff,0.95);
+      } else if (isBB) { // ■ 사각
+        px(10,7,3,3,0xffffff,0.95); px(11,8,1,1,col,1);
+      } else { // ◆ 다이아몬드
+        px(11,7,1,1,0xffffff,0.95); px(10,8,3,1,0xffffff,0.95); px(11,9,1,1,0xffffff,0.95);
+      }
+    }
   }
 
   createBossTexture(bossId) {
@@ -6646,6 +6676,18 @@ function setDexFilter(filter, btn) {
   btn.classList.add('active');
   renderDex();
 }
+function toggleColorblind(btn) {
+  COLORBLIND_MODE = !COLORBLIND_MODE;
+  if (COLORBLIND_MODE) localStorage.setItem('gpa_colorblind','1');
+  else localStorage.removeItem('gpa_colorblind');
+  btn.classList.toggle('on', COLORBLIND_MODE);
+  // 기존 creature 텍스처 전부 제거 후 스프라이트 재생성
+  const scene = game?.scene?.keys?.ArenaScene;
+  if (!scene) return;
+  const toRemove = [...scene.textures.list].filter(k => k.startsWith('creature_'));
+  toRemove.forEach(k => scene.textures.remove(k));
+  scene.rebuildIndividualSprites();
+}
 function toggleBossBanner() {
   const bb = document.getElementById('boss-banner');
   bb.classList.toggle('boss-collapsed');
@@ -6754,7 +6796,7 @@ const Tutorial = (() => {
     {
       ico: '👋',
       title: '슬라임 왕국에 오신 걸 환영해요!',
-      desc: '슬라임 집단을 이끌고 먹이를 모으세요.\n번식·돌연변이·전쟁으로 유전자 풀이 변하고\n10분 뒤 운명의 순간이 찾아옵니다!',
+      desc: '슬라임 집단을 이끌고 먹이를 모으며\n살아남으세요.\n10분 뒤 운석이 떨어지기 전까지\n최대한 번성하는 것이 목표예요!',
       target: null, cond: null, nextLabel: '시작하기 →',
     },
     {
@@ -6810,6 +6852,12 @@ const Tutorial = (() => {
       target: '#bottom-bar',
       cond: null,
       nextLabel: '알겠어요! →',
+    },
+    {
+      ico: '⚠️',
+      title: '지형 이벤트 주의!',
+      desc: '각 지형에는 위험 이벤트가 있어요.\n경고(노란 깜빡임) → 활성(빨간 효과) 순서로 진행돼요.\n조건에 해당하는 개체는 15초간 점진적으로 사망해요!\n\n예: 초원의 들불 → 속도 68 미만 개체 전멸\n예: 화산의 화산 폭발 → RR(붉은색) 아닌 개체 전멸\n\n📖 도감 > 지형이벤트 탭에서 미리 확인하세요!',
+      target: null, noMask: true, cond: null, nextLabel: '알겠어요! →',
     },
     {
       ico: '👹',
