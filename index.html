@@ -1417,7 +1417,7 @@ body { image-rendering: pixelated; }
   </defs>
 </svg>
 <!-- 순위표 패널 (타이틀 화면 위에 표시, fixed) -->
-<div id="stats-corner-btn" onclick="openStatsModal()" style="display:none;position:fixed;top:16px;right:16px;z-index:45;background:rgba(255,255,255,0.82);backdrop-filter:blur(8px);border:1.5px solid rgba(255,255,255,0.9);border-radius:16px;padding:10px 16px;box-shadow:0 4px 20px rgba(0,0,0,0.10);font-family:'Jua',sans-serif;font-size:13px;font-weight:800;color:var(--ink);cursor:pointer;white-space:nowrap;user-select:none">📊 기록</div>
+<button id="stats-corner-btn" onclick="openStatsModal()" class="big-btn sky" style="display:none;position:fixed;top:16px;right:16px;z-index:45;padding:8px 14px;font-size:13px;white-space:nowrap">📊 기록</button>
 <div id="leaderboard-panel" class="collapsed">
   <div class="lb-title" onclick="toggleLeaderboard()">
     <span class="lb-title-text">🏆 명예의 전당</span>
@@ -1449,7 +1449,7 @@ body { image-rendering: pixelated; }
 <!-- 난이도 선택 모달 -->
 <div id="diff-modal" style="display:none;position:fixed;inset:0;z-index:90;background:rgba(20,14,36,.7);backdrop-filter:blur(8px);align-items:center;justify-content:center">
   <div id="diff-card" class="panel" style="padding:22px 20px;width:min(340px,90vw);display:flex;flex-direction:column;gap:12px;animation:popIn .3s cubic-bezier(.34,1.56,.64,1)">
-    <h2 style="font-family:'Jua',sans-serif;font-size:20px;color:var(--coral);text-align:center;margin:0">⚔️ 난이도 선택</h2>
+    <h2 style="font-size:20px;text-align:center;margin:0;color:var(--px-red-d)">⚔️ 난이도 선택</h2>
     <div id="diff-list" style="display:flex;flex-direction:column;gap:10px"></div>
     <button class="pause-btn pause-home" onclick="closeDiffSelect()">✕ 취소</button>
   </div>
@@ -6507,29 +6507,19 @@ let game = null;
 function openDiffSelect() {
   const maxUnlocked = getMaxUnlockedDiff();
   const list = document.getElementById('diff-list');
-  const gradients = [
-    'linear-gradient(135deg,#8ae484,#3d8a3a)',
-    'linear-gradient(135deg,#ffb347,#e07a20)',
-    'linear-gradient(135deg,#ff7070,#c9402f)',
-    'linear-gradient(135deg,#a06ad0,#4a1a6a)',
-  ];
-  const shadows = ['#2a6228','#b05800','#9a2010','#2a0a4a'];
+  const btnColors = ['', 'sky', 'coral', 'lilac'];
   list.innerHTML = DIFFICULTIES.map((d, i) => {
     const locked = i > maxUnlocked;
     return `<button onclick="${locked ? '' : `closeDiffSelect();startGame(${i})`}"
-      style="width:100%;padding:13px 16px;border-radius:14px;
-             border:2px solid rgba(255,255,255,${locked?'.2':'.7'});
-             background:${locked ? 'rgba(120,110,140,.3)' : gradients[i]};
-             color:${locked?'var(--ink-soft)':'#fff'};
-             font-family:'Jua',sans-serif;text-align:left;
-             opacity:${locked?.55:1};cursor:${locked?'default':'pointer'};
+      class="big-btn ${locked ? '' : btnColors[i]}"
+      style="width:100%;padding:13px 16px;text-align:left;
              display:flex;align-items:center;gap:12px;
-             box-shadow:${locked?'none':'0 4px 0 '+shadows[i]+', 0 6px 16px rgba(0,0,0,.15)'};
-             transition:transform .1s,box-shadow .1s">
+             opacity:${locked ? .45 : 1};cursor:${locked ? 'default' : 'pointer'};
+             ${locked ? 'background:var(--px-parch2) !important;color:var(--px-ink) !important;text-shadow:none !important;' : ''}">
       <span style="font-size:26px;line-height:1">${locked ? '🔒' : d.ico}</span>
       <div style="flex:1">
-        <div style="font-size:15px;font-weight:900;letter-spacing:.5px">${d.name}${locked?' (잠김)':''}</div>
-        <div style="font-size:11px;opacity:.85;white-space:pre-line;margin-top:3px;line-height:1.4">${locked?'이전 난이도 최종보스 처치 시 해금':d.desc}</div>
+        <div style="font-size:15px;font-weight:900;letter-spacing:.5px">${d.name}${locked ? ' (잠김)' : ''}</div>
+        <div style="font-size:11px;opacity:.85;white-space:pre-line;margin-top:3px;line-height:1.4">${locked ? '이전 난이도 최종보스 처치 시 해금' : d.desc}</div>
       </div>
     </button>`;
   }).join('');
