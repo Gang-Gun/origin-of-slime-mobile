@@ -1593,6 +1593,10 @@ body { image-rendering: pixelated; }
         onclick="toggleFullscreen()">⛶ 전체화면으로</button>
     </div>
     <div class="setting-row">
+      <span>🧬 돌연변이 선택</span>
+      <button class="toggle-btn" id="options-mutpick-toggle" onclick="toggleOptionsMutPick(this)"></button>
+    </div>
+    <div class="setting-row">
       <span>📖 튜토리얼 초기화</span>
       <button class="pause-btn pause-settings" style="width:auto;padding:8px 14px;font-size:13px"
         onclick="localStorage.removeItem('gpa_tutorial_done');closeOptionsModal();alert('초기화 완료. 다음 게임 시작 시 튜토리얼이 표시됩니다.')">초기화</button>
@@ -3185,7 +3189,8 @@ class Group {
         if (!this.lastGainedMutations.includes(id)) this.lastGainedMutations.push(id);
       }
       // Mutation selection picker (player only, when evo upgrades purchased)
-      if (this.isPlayer && child.newlyGained.length > 0 && LAB_BUFFS && LAB_BUFFS.mutationEnabled) {
+      if (this.isPlayer && child.newlyGained.length > 0 && LAB_BUFFS && LAB_BUFFS.mutationEnabled
+          && localStorage.getItem('gpa_mutpick_off') !== '1') {
         const scene = window._arenaScene;
         if (scene) showMutationPicker(child, child.newlyGained[0], scene);
       }
@@ -6982,8 +6987,14 @@ function toggleBossBanner() {
 }
 function openOptionsModal() {
   document.getElementById('options-modal').classList.add('open');
+  const mutBtn = document.getElementById('options-mutpick-toggle');
+  if (mutBtn) mutBtn.classList.toggle('on', localStorage.getItem('gpa_mutpick_off') !== '1');
 }
 function closeOptionsModal() { document.getElementById('options-modal').classList.remove('open'); }
+function toggleOptionsMutPick(btn) {
+  btn.classList.toggle('on');
+  localStorage.setItem('gpa_mutpick_off', btn.classList.contains('on') ? '0' : '1');
+}
 function toggleOptionsSfx(btn) {
   btn.classList.toggle('on');
   const muted = !btn.classList.contains('on');
