@@ -1454,7 +1454,6 @@ body { image-rendering: pixelated; }
     <div class="chip" id="diff-badge" style="display:none"><span id="diff-badge-ico">🌱</span><span id="diff-badge-name">일반</span></div>
     <div id="top-spacer"></div>
     <div id="env-badge"><span class="weather" id="weather-ico">☀️</span></div>
-    <div class="chip timer"><span class="ico">⏳</span><strong id="c-gen">5:00</strong></div>
     <button id="pause-btn" type="button" onclick="togglePause()">⏸</button>
   </div>
 
@@ -1573,8 +1572,8 @@ body { image-rendering: pixelated; }
       <button class="pause-btn pause-settings fs-toggle-btn" style="width:auto;padding:8px 14px;font-size:13px"
         onclick="toggleFullscreen()">⛶ 전체화면으로</button>
     </div>
-    <div class="setting-row" style="border-top:1px solid var(--ink-faint);padding-top:12px;margin-top:4px" id="speed-toggle-row" style="display:none">
-      <span>⚡ 게임 속도 증가</span>
+    <div class="setting-row" style="border-top:1px solid var(--ink-faint);padding-top:12px;margin-top:4px" id="speed-toggle-row">
+      <span id="speed-toggle-label">⚡ 게임 속도</span>
       <button class="toggle-btn" id="speed-toggle" onclick="toggleGameSpeed(this)"></button>
     </div>
     <div class="setting-row" style="border-top:1px solid var(--ink-faint);padding-top:12px;margin-top:4px">
@@ -6806,16 +6805,20 @@ function toggleGameSpeed(btn) {
   else localStorage.removeItem('gpa_speed_on');
 }
 function refreshSpeedToggleRow() {
-  const row = document.getElementById('speed-toggle-row');
-  const btn  = document.getElementById('speed-toggle');
-  if (!row || !btn) return;
+  const btn   = document.getElementById('speed-toggle');
+  const label = document.getElementById('speed-toggle-label');
+  if (!btn || !label) return;
   const unlocked = LAB_BUFFS?.gameSpeedUnlock > 0;
-  row.style.display = unlocked ? '' : 'none';
   if (unlocked) {
-    const label = row.querySelector('span');
-    const mult = LAB_BUFFS.gameSpeedUnlock;
-    label.textContent = `⚡ 게임 속도 (${mult}×)`;
+    label.textContent = `⚡ 게임 속도 (${LAB_BUFFS.gameSpeedUnlock}×)`;
+    btn.disabled = false;
+    btn.style.opacity = '';
     btn.classList.toggle('on', !!localStorage.getItem('gpa_speed_on'));
+  } else {
+    label.textContent = '⚡ 게임 속도 (계통수 가속 I 해금 필요)';
+    btn.disabled = true;
+    btn.style.opacity = '0.35';
+    btn.classList.remove('on');
   }
 }
 function toggleColorblind(btn) {
