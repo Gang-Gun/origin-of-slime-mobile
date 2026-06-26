@@ -6854,8 +6854,8 @@ function toggleColorblind(btn) {
   // 기존 creature 텍스처 전부 제거 후 스프라이트 재생성
   const scene = game?.scene?.keys?.ArenaScene;
   if (!scene) return;
-  const toRemove = [...scene.textures.list].filter(k => k.startsWith('creature_'));
-  toRemove.forEach(k => scene.textures.remove(k));
+  Object.keys(scene.textures.list).filter(k => k.startsWith('creature_'))
+    .forEach(k => scene.textures.remove(k));
   scene.rebuildIndividualSprites();
 }
 function toggleBossBanner() {
