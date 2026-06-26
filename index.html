@@ -5184,8 +5184,21 @@ class ArenaScene extends Phaser.Scene {
       if (Math.hypot(dx, dy) < 10) { dx = 1; dy = 0; }
       const d = Math.hypot(dx, dy);
       const fleeRange = BOSS_RANGE + 600;
-      const newX = clamp(this.bossEntity.x + dx / d * fleeRange, 54, WORLD_W - 54);
-      const newY = clamp(this.bossEntity.y + dy / d * fleeRange, 54, WORLD_H - 54);
+      const margin = 80;
+      const inBounds = (x, y) => x >= margin && x <= WORLD_W - margin && y >= margin && y <= WORLD_H - margin;
+      // 1순위: 보스 반대 방향
+      let fx = dx / d, fy = dy / d;
+      let cx = this.bossEntity.x + fx * fleeRange, cy = this.bossEntity.y + fy * fleeRange;
+      // 벽에 막히면 수직 방향 시도
+      if (!inBounds(cx, cy)) {
+        const cx1 = this.bossEntity.x + (-fy) * fleeRange, cy1 = this.bossEntity.y + (fx) * fleeRange;
+        const cx2 = this.bossEntity.x + (fy) * fleeRange,  cy2 = this.bossEntity.y + (-fx) * fleeRange;
+        if (inBounds(cx1, cy1)) { cx = cx1; cy = cy1; }
+        else if (inBounds(cx2, cy2)) { cx = cx2; cy = cy2; }
+        else { cx = WORLD_W / 2; cy = WORLD_H / 2; } // 맵 중앙으로 도망
+      }
+      const newX = clamp(cx, margin, WORLD_W - margin);
+      const newY = clamp(cy, margin, WORLD_H - margin);
       this.player.x = newX;
       this.player.y = newY;
       // 모든 개체를 그룹 중심 한 점으로 집결
