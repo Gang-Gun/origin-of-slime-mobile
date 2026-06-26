@@ -3547,7 +3547,9 @@ class AudioManager {
     this._bgm = null;
   }
   pauseBgm()  { if (this._bgm) this._bgm.pause(); }
-  resumeBgm() { if (this._bgm) this._bgm.play().catch(() => {}); }
+  resumeBgm() {
+    if (this._bgm && localStorage.getItem('gpa_bgm_off') !== '1') this._bgm.play().catch(() => {});
+  }
   setMuted(m) {
     this.muted = m;
     if (this.masterGain) {
@@ -7070,9 +7072,8 @@ function setBgmVol(val) {
   document.querySelectorAll('.vol-slider[id$="-bgm-vol"]').forEach(s => s.value = val);
 }
 function setSfxVol(val) {
-  const v = parseInt(val) / 100 * 0.35 / 0.35;
   localStorage.setItem('gpa_sfx_vol', val);
-  if (Audio.masterGain) Audio.masterGain.gain.value = Audio.muted ? 0 : (parseInt(val) / 100 * 0.7);
+  if (Audio.masterGain && !Audio.muted) Audio.masterGain.gain.value = parseInt(val) / 100 * 0.7;
   document.querySelectorAll('.vol-slider[id$="-sfx-vol"]').forEach(s => s.value = val);
 }
 function toggleOptionsBgm(btn) {
