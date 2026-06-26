@@ -4924,6 +4924,19 @@ class ArenaScene extends Phaser.Scene {
               }
             }
           }
+
+          // 같은 집단 peer separation
+          const SEP = 36;
+          for (const peer of group.individuals) {
+            if (peer === individual || peer.dead) continue;
+            const px = individual.x - peer.x, py = individual.y - peer.y;
+            const pd = Math.hypot(px, py) || 0.01;
+            if (pd < SEP) {
+              const push = (SEP - pd) * 0.5;
+              individual.x += (px / pd) * push;
+              individual.y += (py / pd) * push;
+            }
+          }
         }
       }
     }
