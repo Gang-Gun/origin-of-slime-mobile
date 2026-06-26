@@ -817,6 +817,7 @@ canvas { display: block; image-rendering: pixelated; }
   top:10px !important; left:50% !important; transform:translateX(-50%) !important;
   width:auto !important; max-width:92vw; padding:8px 16px !important; opacity:.95;
   transition:opacity .25s ease, padding .2s ease;
+  pointer-events:none;
 }
 #tutorial-card.tut-playing .tut-step,
 #tutorial-card.tut-playing .tut-ico,
@@ -1519,7 +1520,7 @@ body { image-rendering: pixelated; }
   <div id="toast-mut" class="toast-stack"></div>
   <div id="toast-ach" class="toast-stack"></div>
   <div id="event-message"><span id="evt-text"></span><button id="evt-collapse-btn" aria-label="접기">−</button></div>
-  <div id="boss-banner"><span id="boss-banner-text"></span><button id="boss-collapse-btn" onclick="toggleBossBanner()">−</button></div>
+  <div id="boss-banner" onclick="toggleBossBanner()"><span id="boss-banner-text"></span><button id="boss-collapse-btn" onclick="event.stopPropagation();toggleBossBanner()">−</button></div>
   <div id="boss-arrow"></div>
   <div id="boss-hp"><div id="boss-hp-fill"></div><span id="boss-hp-label"></span></div>
 </div>
@@ -4469,7 +4470,7 @@ class ArenaScene extends Phaser.Scene {
       const event = pointer.event;
       if (_paused) return;
       if (event && event.button === 2) return; // 우클릭은 조이스틱 제외
-      if (event && event.target && event.target.closest && event.target.closest('#hud button, #bottom-bar, #stats, #top-left, #terrain-badge, #boss-collapse-btn, #boss-banner.boss-collapsed')) return;
+      if (event && event.target && event.target.closest && event.target.closest('#hud button, #bottom-bar, #stats, #top-left, #terrain-badge, #boss-banner')) return;
       const { x: clientX, y: clientY } = this.getPointerClientPosition(pointer);
       Object.assign(this.joystick, { active: true, pointerId: pointer.id, baseX: clientX, baseY: clientY, knobX: 0, knobY: 0, dirX: 0, dirY: 0 });
       this.updateJoystickDom();
@@ -7337,7 +7338,7 @@ const Tutorial = (() => {
     if (stepNow.noMask && stepNow.cond) {
       playTimer = setTimeout(() => {
         if (_active && current === idx) document.getElementById('tutorial-card').classList.add('tut-playing');
-      }, 2600);
+      }, 1200);
     }
     // 이동 추적 (step 1)
     if (current === 1 && scene && !scene._tutorialMovePatch) {
