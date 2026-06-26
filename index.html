@@ -1428,10 +1428,19 @@ body { image-rendering: pixelated; }
 <div id="title-screen">
   <h1>슬라임의 기원<span class="en">Origin of Slime</span></h1>
   <div id="title-menu">
-    <button id="start-btn" class="big-btn" type="button" onclick="startGame()">🌱 게임 시작</button>
+    <button id="start-btn" class="big-btn" type="button" onclick="openDiffSelect()">🌱 게임 시작</button>
     <button type="button" class="big-btn sky" onclick="openDex()">📖 도감</button>
     <button type="button" class="big-btn lilac" onclick="openLab()">🌳 계통수</button>
     <button type="button" class="big-btn lilac" onclick="openOptionsModal()">⚙️ 옵션</button>
+  </div>
+</div>
+
+<!-- 난이도 선택 모달 -->
+<div id="diff-modal" style="display:none;position:fixed;inset:0;z-index:90;background:rgba(20,14,36,.7);backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center">
+  <div id="diff-card" style="background:var(--glass);border:3px solid var(--glass-bdr);border-radius:24px;padding:22px 20px;width:min(340px,90vw);display:flex;flex-direction:column;gap:12px;box-shadow:0 24px 48px rgba(20,14,36,.4)">
+    <h2 style="font-family:'Jua',sans-serif;font-size:18px;color:var(--coral);text-align:center;margin-bottom:2px">⚔️ 난이도 선택</h2>
+    <div id="diff-list" style="display:flex;flex-direction:column;gap:8px"></div>
+    <button class="big-btn" style="margin-top:4px;background:#888" onclick="closeDiffSelect()">✕ 취소</button>
   </div>
 </div>
 
@@ -1442,6 +1451,7 @@ body { image-rendering: pixelated; }
   <div id="top-bar">
     <div class="chip"><span class="ico" id="terrain-ico">🌿</span><span id="terrain-name">초원</span></div>
     <div class="chip"><span class="ico">🐾</span><strong id="c-count">20</strong></div>
+    <div class="chip" id="diff-badge" style="display:none"><span id="diff-badge-ico">🌱</span><span id="diff-badge-name">일반</span></div>
     <div id="top-spacer"></div>
     <div id="env-badge"><span class="weather" id="weather-ico">☀️</span></div>
     <div class="chip timer"><span class="ico">⏳</span><strong id="c-gen">5:00</strong></div>
@@ -2278,6 +2288,27 @@ const WORLD_W = 5000;
 const WORLD_H = 5000;
 const TILE = 80;
 const START_INDIVIDUALS = 20;
+
+// ── 난이도 시스템 ──────────────────────────────────
+const DIFFICULTIES = [
+  { id:'normal', name:'일반',   ico:'🌱', desc:'기본 게임 환경.\n이벤트·보스 강도 표준.',
+    bossHpMult:1,    cdMult:1,    startPop:0,   extraEnemies:0 },
+  { id:'hard',   name:'어려움', ico:'🔥', desc:'보스 HP 1.6배.\n이벤트 쿨타임 -30%.\n시작 개체 -4.',
+    bossHpMult:1.6,  cdMult:0.7,  startPop:-4,  extraEnemies:2 },
+  { id:'hell',   name:'지옥',   ico:'💀', desc:'보스 HP 2.5배.\n이벤트 쿨타임 -50%.\n시작 개체 -8.',
+    bossHpMult:2.5,  cdMult:0.5,  startPop:-8,  extraEnemies:4 },
+  { id:'abyss',  name:'심연',   ico:'🌑', desc:'보스 HP 4배.\n이벤트 쿨타임 -65%.\n시작 개체 -12.',
+    bossHpMult:4,    cdMult:0.35, startPop:-12, extraEnemies:6 },
+];
+let CURRENT_DIFFICULTY = 0; // 0~3, startGame()에서 설정
+function getMaxUnlockedDiff() {
+  return Math.min(3, parseInt(localStorage.getItem('gpa_diff_max') || '0', 10));
+}
+function unlockNextDiff(current) {
+  const next = current + 1;
+  if (next > getMaxUnlockedDiff()) localStorage.setItem('gpa_diff_max', String(next));
+}
+function getDiffConfig() { return DIFFICULTIES[CURRENT_DIFFICULTY]; }
 const START_FOOD = 30;
 const FOOD_CAP = 9999;
 const TARGET_POPULATION = 50;
@@ -3427,10 +3458,16 @@ class ArenaScene extends Phaser.Scene {
     this.hpGraphics = this.add.graphics().setDepth(5);
     computeLabBuffs();
     this.player = new Group(WORLD_W / 2, WORLD_H / 2, true, '나의 집단');
-    this.initGroup(this.player, START_INDIVIDUALS + (LAB_BUFFS ? LAB_BUFFS.extraPop : 0));
+    const _diff = getDiffConfig();
+    const _startPop = Math.max(5, START_INDIVIDUALS + (LAB_BUFFS ? LAB_BUFFS.extraPop : 0) + _diff.startPop);
+    this.initGroup(this.player, _startPop);
     this.aiGroups = [];
-    for (const [index, point] of [[380,380],[4620,380],[380,4620],[4620,4620],[2500,280],[2500,4720],[800,2500],[4200,2500]].entries()) {
-      const ai = new Group(point[0], point[1], false, `AI-${index + 1}`);
+    const _aiPoints = [[380,380],[4620,380],[380,4620],[4620,4620],[2500,280],[2500,4720],[800,2500],[4200,2500]];
+    const _aiCount  = Math.min(_aiPoints.length, 8 + _diff.extraEnemies);
+    for (let index = 0; index < _aiCount; index++) {
+      const point = _aiPoints[index % _aiPoints.length];
+      const ai = new Group(point[0] + (index >= 8 ? (Math.random()-0.5)*800 : 0),
+                           point[1] + (index >= 8 ? (Math.random()-0.5)*800 : 0), false, `AI-${index + 1}`);
       this.initGroup(ai, 10 + Math.floor(Math.random() * 8));
       this.aiGroups.push(ai);
     }
@@ -3810,7 +3847,7 @@ class ArenaScene extends Phaser.Scene {
     const offset = idx * 4000;
     t._danger = {
       phase: 'cooldown',
-      until: this.elapsed + DANGER_CD_MIN + offset,
+      until: this.elapsed + DANGER_CD_MIN * getDiffConfig().cdMult + offset,
       event: null,
       lastKillAt: 0,
       freqBefore: null,
@@ -3876,7 +3913,7 @@ class ArenaScene extends Phaser.Scene {
             this.recordAlleleSnapshot();
           }
           d.phase = 'cooldown';
-          d.until = now + DANGER_CD_MIN + Math.random() * (DANGER_CD_MAX - DANGER_CD_MIN);
+          d.until = now + (DANGER_CD_MIN + Math.random() * (DANGER_CD_MAX - DANGER_CD_MIN)) * getDiffConfig().cdMult;
           d.event = null;
           d.freqBefore = null;
         }
@@ -5374,6 +5411,7 @@ resolveBoss(win, reason) {
     if (slot === 'final') {
       this.cameras.main.flash(600, 255, 255, 180);
       const endType = boss.id === 'golden' ? 'golden' : 'primordial';
+      unlockNextDiff(CURRENT_DIFFICULTY);
       this.time.delayedCall(2000, () => this.endGame(endType));
     }
   } else if (reason === 'retreat') {
@@ -5498,9 +5536,10 @@ resolveBoss(win, reason) {
     const finalBoss = BOSS_ROSTER.find(b => b.final);
     const pick1 = single[Math.floor(Math.random() * single.length)];
     const pick2 = dual[Math.floor(Math.random() * dual.length)];
+    const hpMult = getDiffConfig().bossHpMult;
     return BOSS_SCHEDULE.map((s, idx) => {
       const boss = idx === 0 ? pick1 : idx === 1 ? pick2 : finalBoss;
-      return { at: s.at, slot: s.slot, hp: s.hp, bossId: boss.id, fired: false };
+      return { at: s.at, slot: s.slot, hp: Math.round(s.hp * hpMult), bossId: boss.id, fired: false };
     });
   }
 
@@ -6000,6 +6039,15 @@ resolveBoss(win, reason) {
     }
     changes.sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
     const doneAch = ACHIEVEMENTS.filter(a => this.achievements.has(a.id));
+    const _dc = getDiffConfig();
+    const diffColors = ['#3d8a3a','#e07a20','#c9402f','#4a1a6a'];
+    const diffBanner = CURRENT_DIFFICULTY > 0
+      ? `<div class="result-card panel" style="background:${diffColors[CURRENT_DIFFICULTY]}22;border-color:${diffColors[CURRENT_DIFFICULTY]};margin-bottom:8px">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:22px">${_dc.ico}</span>
+            <span style="font-weight:900;color:#fff">${_dc.name} 난이도${endingType==='primordial'||endingType==='golden' ? ' — 클리어! 🎉' : ''}</span>
+          </div>
+        </div>` : '';
     const meteorBanner = endingType === 'meteor'
       ? `<div class="result-card panel" style="background:rgba(120,20,20,.6);border-color:#ef4444">
           <h2 style="color:#fca5a5">☄️ 운석 충돌 — 전체 멸종</h2>
@@ -6091,7 +6139,7 @@ resolveBoss(win, reason) {
     const mutBadge = t => t==='good' ? '✅' : t==='bad' ? '❌' : '🔵';
 
     document.getElementById('result-content').innerHTML = `
-      ${meteorBanner}
+      ${diffBanner}${meteorBanner}
       <div class="result-card"><h2>📊 생존 결과</h2>
         <div class="row"><span>생존 시간</span><strong>${minutes}분 ${seconds}초</strong></div>
         <div class="row"><span>${byMeteor ? '운석 사망 개체' : '최종 개체'}</span><strong>${resultPopulation}마리</strong></div>
@@ -6303,13 +6351,47 @@ function showAlleleGraph(gene) {
 }
 
 let game = null;
-function startGame() {
-  enterFullscreen();            // 게임 시작 시 전체화면 (사용자 제스처 컨텍스트)
-  stopLeaderboard(); // 게임 중엔 순위표 패널 숨김
+function openDiffSelect() {
+  const maxUnlocked = getMaxUnlockedDiff();
+  const list = document.getElementById('diff-list');
+  list.innerHTML = DIFFICULTIES.map((d, i) => {
+    const locked = i > maxUnlocked;
+    const colors = ['#3d8a3a','#e07a20','#c9402f','#4a1a6a'];
+    const bg = locked ? '#555' : colors[i];
+    return `<button onclick="${locked ? '' : `closeDiffSelect();startGame(${i})`}"
+      style="width:100%;padding:12px 14px;border-radius:12px;border:none;
+             background:${bg};color:#fff;font-family:'Jua',sans-serif;
+             text-align:left;opacity:${locked?0.45:1};cursor:${locked?'default':'pointer'};
+             display:flex;align-items:center;gap:10px">
+      <span style="font-size:24px">${locked ? '🔒' : d.ico}</span>
+      <div>
+        <div style="font-size:15px;font-weight:900">${d.name}${locked ? ' (잠김)' : ''}</div>
+        <div style="font-size:11px;opacity:.85;white-space:pre-line;margin-top:2px">${locked ? '이전 난이도 최종보스 처치 시 해금' : d.desc}</div>
+      </div>
+    </button>`;
+  }).join('');
+  document.getElementById('diff-modal').style.display = 'flex';
+}
+function closeDiffSelect() {
+  document.getElementById('diff-modal').style.display = 'none';
+}
+function startGame(diffIndex = 0) {
+  CURRENT_DIFFICULTY = diffIndex ?? 0;
+  enterFullscreen();
+  stopLeaderboard();
   if (game) return;
-  Audio.init(); Audio.resume(); // 사용자 제스처로 오디오 활성화
+  Audio.init(); Audio.resume();
   document.getElementById('title-screen').style.display = 'none';
   document.getElementById('hud').style.display = 'block';
+  const _db = document.getElementById('diff-badge');
+  const _dc = getDiffConfig();
+  if (CURRENT_DIFFICULTY > 0) {
+    document.getElementById('diff-badge-ico').textContent = _dc.ico;
+    document.getElementById('diff-badge-name').textContent = _dc.name;
+    _db.style.display = '';
+  } else {
+    _db.style.display = 'none';
+  }
   const width = Math.max(window.innerWidth || 800, 400);
   const height = Math.max(window.innerHeight || 600, 500);
   game = new Phaser.Game({
