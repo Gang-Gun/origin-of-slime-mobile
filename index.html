@@ -1019,6 +1019,25 @@ body { image-rendering: pixelated; }
 .toggle-btn::after { border-radius: 2px !important; background: var(--px-parch) !important; border: 2px solid var(--px-out); top: 1px; left: 1px; width: 18px; height: 18px; }
 .toggle-btn.on::after { left: 25px !important; }
 
+/* ── 볼륨 슬라이더 ── */
+.vol-slider {
+  -webkit-appearance: none; appearance: none;
+  width: 100%; height: 10px;
+  background: var(--px-parch2); border: 2px solid var(--px-out);
+  border-radius: 3px; outline: none; cursor: pointer;
+}
+.vol-slider::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 18px; height: 18px;
+  background: var(--px-green); border: 2px solid var(--px-out);
+  border-radius: 3px; cursor: pointer;
+}
+.vol-slider::-moz-range-thumb {
+  width: 18px; height: 18px;
+  background: var(--px-green); border: 2px solid var(--px-out);
+  border-radius: 3px; cursor: pointer;
+}
+
 /* ── 모달 딤 배경: blur 제거 ── */
 #pause-modal, #dex-modal, #event-dex-modal, #options-modal, #score-submit-modal {
   backdrop-filter: none !important; background: rgba(25,15,7,.55) !important;
@@ -1587,9 +1606,15 @@ body { image-rendering: pixelated; }
       <span>🎵 배경음</span>
       <button class="toggle-btn on" id="options-bgm-toggle" onclick="toggleOptionsBgm(this)"></button>
     </div>
+    <div class="setting-row" style="gap:8px">
+      <input type="range" class="vol-slider" id="options-bgm-vol" min="0" max="100" value="45" oninput="setBgmVol(this.value)">
+    </div>
     <div class="setting-row">
       <span>🔊 효과음</span>
       <button class="toggle-btn on" id="options-sfx-toggle" onclick="toggleOptionsSfx(this)"></button>
+    </div>
+    <div class="setting-row" style="gap:8px">
+      <input type="range" class="vol-slider" id="options-sfx-vol" min="0" max="100" value="35" oninput="setSfxVol(this.value)">
     </div>
     <div class="setting-row" style="border-top:1px solid var(--ink-faint);padding-top:12px;margin-top:4px">
       <span>⛶ 전체화면</span>
@@ -1683,9 +1708,15 @@ body { image-rendering: pixelated; }
         <span>🎵 배경음</span>
         <button class="toggle-btn on" id="pause-bgm-toggle" onclick="togglePauseBgm(this)"></button>
       </div>
+      <div class="setting-row" style="gap:8px">
+        <input type="range" class="vol-slider" id="pause-bgm-vol" min="0" max="100" value="45" oninput="setBgmVol(this.value)">
+      </div>
       <div class="setting-row">
         <span>🔊 효과음</span>
         <button class="toggle-btn on" id="sfx-toggle" onclick="toggleSfxSetting(this)"></button>
+      </div>
+      <div class="setting-row" style="gap:8px">
+        <input type="range" class="vol-slider" id="pause-sfx-vol" min="0" max="100" value="35" oninput="setSfxVol(this.value)">
       </div>
       <div class="setting-row">
         <span>⛶ 전체화면</span>
@@ -3426,7 +3457,7 @@ class AudioManager {
     try {
       this.ctx = new (window.AudioContext || window.webkitAudioContext)();
       this.masterGain = this.ctx.createGain();
-      this.masterGain.gain.value = 0.35;
+      this.masterGain.gain.value = parseInt(localStorage.getItem('gpa_sfx_vol') ?? '50') / 100 * 0.7;
       this.masterGain.connect(this.ctx.destination);
       this.startAmbient();
     } catch (e) { this.ctx = null; }
@@ -3505,7 +3536,7 @@ class AudioManager {
     if (this._bgm) return;
     this._bgm = new window.Audio('assets/bgm.mp3');
     this._bgm.loop = true;
-    this._bgm.volume = 0.45;
+    this._bgm.volume = parseInt(localStorage.getItem('gpa_bgm_vol') ?? '45') / 100;
     this._bgm.muted = this.muted;
     if (localStorage.getItem('gpa_bgm_off') !== '1') this._bgm.play().catch(() => {});
   }
@@ -3519,7 +3550,10 @@ class AudioManager {
   resumeBgm() { if (this._bgm) this._bgm.play().catch(() => {}); }
   setMuted(m) {
     this.muted = m;
-    if (this.masterGain) this.masterGain.gain.value = m ? 0 : 0.35;
+    if (this.masterGain) {
+      const sfxVol = parseInt(localStorage.getItem('gpa_sfx_vol') ?? '50') / 100 * 0.7;
+      this.masterGain.gain.value = m ? 0 : sfxVol;
+    }
     if (this._bgm) this._bgm.muted = m;
   }
 }
@@ -7024,6 +7058,22 @@ function openOptionsModal() {
   if (bgmBtn) bgmBtn.classList.toggle('on', localStorage.getItem('gpa_bgm_off') !== '1');
   const mutBtn = document.getElementById('options-mutpick-toggle');
   if (mutBtn) mutBtn.classList.toggle('on', localStorage.getItem('gpa_mutpick_off') !== '1');
+  const bgmVol = localStorage.getItem('gpa_bgm_vol') ?? '45';
+  const sfxVol = localStorage.getItem('gpa_sfx_vol') ?? '50';
+  document.querySelectorAll('.vol-slider[id$="-bgm-vol"]').forEach(s => s.value = bgmVol);
+  document.querySelectorAll('.vol-slider[id$="-sfx-vol"]').forEach(s => s.value = sfxVol);
+}
+function setBgmVol(val) {
+  const v = parseInt(val) / 100;
+  localStorage.setItem('gpa_bgm_vol', val);
+  if (Audio._bgm) Audio._bgm.volume = v;
+  document.querySelectorAll('.vol-slider[id$="-bgm-vol"]').forEach(s => s.value = val);
+}
+function setSfxVol(val) {
+  const v = parseInt(val) / 100 * 0.35 / 0.35;
+  localStorage.setItem('gpa_sfx_vol', val);
+  if (Audio.masterGain) Audio.masterGain.gain.value = Audio.muted ? 0 : (parseInt(val) / 100 * 0.7);
+  document.querySelectorAll('.vol-slider[id$="-sfx-vol"]').forEach(s => s.value = val);
 }
 function toggleOptionsBgm(btn) {
   btn.classList.toggle('on');
@@ -7080,6 +7130,10 @@ function toggleSettings() {
   refreshSpeedBtn();
   const bgmBtn = document.getElementById('pause-bgm-toggle');
   if (bgmBtn) bgmBtn.classList.toggle('on', localStorage.getItem('gpa_bgm_off') !== '1');
+  const bgmVol = localStorage.getItem('gpa_bgm_vol') ?? '45';
+  const sfxVol = localStorage.getItem('gpa_sfx_vol') ?? '50';
+  document.querySelectorAll('.vol-slider[id$="-bgm-vol"]').forEach(s => s.value = bgmVol);
+  document.querySelectorAll('.vol-slider[id$="-sfx-vol"]').forEach(s => s.value = sfxVol);
   const mutBtn = document.getElementById('pause-mutpick-toggle');
   if (mutBtn) mutBtn.classList.toggle('on', localStorage.getItem('gpa_mutpick_off') !== '1');
 }
@@ -7201,7 +7255,7 @@ const Tutorial = (() => {
     {
       ico: '🐾',
       title: '상단 바 읽기',
-      desc: '🌿지형 · 🐾개체수 · 🍓식량 · 🏆승리\n⏳ 남은 시간을 항상 확인하세요!\n⏸ 버튼으로 일시정지도 가능해요.',
+      desc: '🌿지형 · 🐾개체수 · ⏳진행도\n화면 아래 🍓식량 바를 확인하세요!\n⏸ 버튼으로 일시정지도 가능해요.',
       target: '#top-bar',
       cond: null,
       nextLabel: '알겠어요! →',
