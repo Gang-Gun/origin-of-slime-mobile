@@ -1437,19 +1437,19 @@ body { image-rendering: pixelated; }
   </div>
 </div>
 <div id="stats-modal" style="display:none;position:fixed;inset:0;z-index:90;background:rgba(20,14,36,.7);backdrop-filter:blur(8px);align-items:center;justify-content:center">
-  <div style="background:var(--glass);border:3px solid var(--glass-bdr);border-radius:24px;padding:24px 20px;width:min(320px,88vw);display:flex;flex-direction:column;gap:10px">
-    <h2 style="font-family:'Jua',sans-serif;font-size:18px;color:var(--coral);text-align:center;margin:0">📊 누적 기록</h2>
+  <div class="panel" style="padding:24px 22px;width:min(320px,88vw);display:flex;flex-direction:column;gap:12px;animation:popIn .3s cubic-bezier(.34,1.56,.64,1)">
+    <h2 style="font-family:'Jua',sans-serif;font-size:20px;color:var(--coral);text-align:center;margin:0">📊 누적 기록</h2>
     <div id="stats-modal-content"></div>
-    <button class="big-btn" style="background:#888;margin-top:4px" onclick="closeStatsModal()">✕ 닫기</button>
+    <button class="pause-btn pause-home" onclick="closeStatsModal()">✕ 닫기</button>
   </div>
 </div>
 
 <!-- 난이도 선택 모달 -->
-<div id="diff-modal" style="display:none;position:fixed;inset:0;z-index:90;background:rgba(20,14,36,.7);backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center">
-  <div id="diff-card" style="background:var(--glass);border:3px solid var(--glass-bdr);border-radius:24px;padding:22px 20px;width:min(340px,90vw);display:flex;flex-direction:column;gap:12px;box-shadow:0 24px 48px rgba(20,14,36,.4)">
-    <h2 style="font-family:'Jua',sans-serif;font-size:18px;color:var(--coral);text-align:center;margin-bottom:2px">⚔️ 난이도 선택</h2>
-    <div id="diff-list" style="display:flex;flex-direction:column;gap:8px"></div>
-    <button class="big-btn" style="margin-top:4px;background:#888" onclick="closeDiffSelect()">✕ 취소</button>
+<div id="diff-modal" style="display:none;position:fixed;inset:0;z-index:90;background:rgba(20,14,36,.7);backdrop-filter:blur(8px);align-items:center;justify-content:center">
+  <div id="diff-card" class="panel" style="padding:22px 20px;width:min(340px,90vw);display:flex;flex-direction:column;gap:12px;animation:popIn .3s cubic-bezier(.34,1.56,.64,1)">
+    <h2 style="font-family:'Jua',sans-serif;font-size:20px;color:var(--coral);text-align:center;margin:0">⚔️ 난이도 선택</h2>
+    <div id="diff-list" style="display:flex;flex-direction:column;gap:10px"></div>
+    <button class="pause-btn pause-home" onclick="closeDiffSelect()">✕ 취소</button>
   </div>
 </div>
 
@@ -1506,10 +1506,12 @@ body { image-rendering: pixelated; }
   </div>
 
   <div id="near-extinct-overlay" style="position:fixed;inset:0;pointer-events:none;z-index:11;background:transparent"></div>
-  <div id="recruit-toast" style="display:none;position:fixed;bottom:120px;left:50%;transform:translateX(-50%);z-index:30;background:rgba(30,20,50,.92);border:2px solid #818cf8;border-radius:14px;padding:10px 16px;text-align:center;font-family:'Jua',sans-serif">
-    <div id="recruit-msg" style="color:#fff;font-size:14px;margin-bottom:8px"></div>
-    <button onclick="doRecruit()" style="background:#818cf8;color:#fff;border:none;border-radius:8px;padding:6px 16px;font-family:'Jua',sans-serif;font-size:13px;cursor:pointer;margin-right:6px">영입</button>
-    <button onclick="dismissRecruit()" style="background:#555;color:#fff;border:none;border-radius:8px;padding:6px 12px;font-family:'Jua',sans-serif;font-size:13px;cursor:pointer">거절</button>
+  <div id="recruit-toast" class="panel" style="display:none;position:fixed;bottom:130px;left:50%;transform:translateX(-50%);z-index:30;padding:12px 16px;text-align:center;font-family:'Jua',sans-serif;white-space:nowrap;animation:slideUp .25s cubic-bezier(.34,1.56,.64,1)">
+    <div id="recruit-msg" style="font-size:13px;color:var(--ink);margin-bottom:10px;font-weight:800"></div>
+    <div style="display:flex;gap:8px;justify-content:center">
+      <button onclick="doRecruit()" class="pause-btn pause-resume" style="padding:8px 20px;font-size:14px;width:auto">⚔️ 영입</button>
+      <button onclick="dismissRecruit()" class="pause-btn pause-home" style="padding:8px 16px;font-size:14px;width:auto">✕</button>
+    </div>
   </div>
   <div id="battle-vignette"></div>
   <div id="danger-vignette"></div>
@@ -1655,8 +1657,14 @@ body { image-rendering: pixelated; }
 <div id="pause-modal">
   <div id="pause-card">
     <h2>⏸ 일시정지</h2>
-    <div id="pause-avg-stats" style="display:none;font-size:12px;color:var(--ink-soft);text-align:center;padding:4px 0 8px;border-bottom:1px solid var(--ink-faint);margin-bottom:4px">
-      평균: ❤️<span id="avg-hp">-</span> ⚔️<span id="avg-atk">-</span> 🛡️<span id="avg-def">-</span> ⚡<span id="avg-spd">-</span>
+    <div id="pause-avg-stats" style="display:none;border-bottom:1px solid var(--ink-faint);padding-bottom:12px;margin-bottom:2px">
+      <div style="font-family:'Jua',sans-serif;font-size:11px;color:var(--ink-soft);text-align:center;margin-bottom:6px">집단 평균 스탯</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+        <div style="background:rgba(239,68,68,.1);border-radius:10px;padding:5px 8px;text-align:center;font-family:'Jua',sans-serif;font-size:12px">❤️ HP <strong id="avg-hp" style="color:#ef4444">-</strong></div>
+        <div style="background:rgba(249,101,88,.1);border-radius:10px;padding:5px 8px;text-align:center;font-family:'Jua',sans-serif;font-size:12px">⚔️ 공격 <strong id="avg-atk" style="color:var(--coral)">-</strong></div>
+        <div style="background:rgba(74,158,192,.1);border-radius:10px;padding:5px 8px;text-align:center;font-family:'Jua',sans-serif;font-size:12px">🛡️ 방어 <strong id="avg-def" style="color:var(--sky-dk)">-</strong></div>
+        <div style="background:rgba(110,196,106,.1);border-radius:10px;padding:5px 8px;text-align:center;font-family:'Jua',sans-serif;font-size:12px">⚡ 속도 <strong id="avg-spd" style="color:var(--leaf-dk)">-</strong></div>
+      </div>
     </div>
     <button class="pause-btn pause-resume" onclick="togglePause()">▶ 게임 계속</button>
     <button class="pause-btn pause-settings" onclick="toggleSettings()">⚙️ 설정</button>
@@ -5978,11 +5986,19 @@ resolveBoss(win, reason) {
     if (bonusIndsEl) {
       const enhanced = group.individuals.filter(i => !i.dead && i.statBonus && (i.statBonus.hpMult > 1 || i.statBonus.attack > 0));
       if (enhanced.length > 0) {
-        bonusIndsEl.innerHTML = `<h2 style="margin-top:6px">⚡ 강화 개체</h2>` + enhanced.slice(0, 5).map(ind => {
+        bonusIndsEl.innerHTML = `<h2 style="margin-top:8px;margin-bottom:4px">⚡ 강화 개체</h2>` + enhanced.slice(0, 5).map(ind => {
           const hm = ind.statBonus.hpMult || 1;
           const atk = ind.statBonus.attack || 0;
-          return `<div style="margin-top:4px;padding:3px 8px;background:rgba(129,140,248,.2);border-radius:8px;font-size:11px;color:#818cf8">
-            ⚡ 강화 개체 · HP ×${hm.toFixed(1)} · 공격 +${Math.round(atk)}
+          const spd = ind.statBonus.speed || 0;
+          const def = ind.statBonus.defense || 0;
+          const tags = [];
+          if (hm > 1) tags.push(`HP ×${hm.toFixed(1)}`);
+          if (atk > 0) tags.push(`공 +${Math.round(atk)}`);
+          if (spd > 0) tags.push(`속 +${Math.round(spd)}`);
+          if (def > 0) tags.push(`방 +${Math.round(def)}`);
+          return `<div style="display:flex;align-items:center;gap:6px;padding:5px 8px;background:var(--glass);border:1px solid var(--glass-bdr);border-radius:10px;margin-bottom:4px;font-family:'Jua',sans-serif">
+            <span style="font-size:13px">⚡</span>
+            <span style="font-size:11px;color:var(--sky-dk);flex:1">${tags.join(' · ')}</span>
           </div>`;
         }).join('');
       } else {
@@ -6474,19 +6490,29 @@ let game = null;
 function openDiffSelect() {
   const maxUnlocked = getMaxUnlockedDiff();
   const list = document.getElementById('diff-list');
+  const gradients = [
+    'linear-gradient(135deg,#8ae484,#3d8a3a)',
+    'linear-gradient(135deg,#ffb347,#e07a20)',
+    'linear-gradient(135deg,#ff7070,#c9402f)',
+    'linear-gradient(135deg,#a06ad0,#4a1a6a)',
+  ];
+  const shadows = ['#2a6228','#b05800','#9a2010','#2a0a4a'];
   list.innerHTML = DIFFICULTIES.map((d, i) => {
     const locked = i > maxUnlocked;
-    const colors = ['#3d8a3a','#e07a20','#c9402f','#4a1a6a'];
-    const bg = locked ? '#555' : colors[i];
     return `<button onclick="${locked ? '' : `closeDiffSelect();startGame(${i})`}"
-      style="width:100%;padding:12px 14px;border-radius:12px;border:none;
-             background:${bg};color:#fff;font-family:'Jua',sans-serif;
-             text-align:left;opacity:${locked?0.45:1};cursor:${locked?'default':'pointer'};
-             display:flex;align-items:center;gap:10px">
-      <span style="font-size:24px">${locked ? '🔒' : d.ico}</span>
-      <div>
-        <div style="font-size:15px;font-weight:900">${d.name}${locked ? ' (잠김)' : ''}</div>
-        <div style="font-size:11px;opacity:.85;white-space:pre-line;margin-top:2px">${locked ? '이전 난이도 최종보스 처치 시 해금' : d.desc}</div>
+      style="width:100%;padding:13px 16px;border-radius:14px;
+             border:2px solid rgba(255,255,255,${locked?'.2':'.7'});
+             background:${locked ? 'rgba(120,110,140,.3)' : gradients[i]};
+             color:${locked?'var(--ink-soft)':'#fff'};
+             font-family:'Jua',sans-serif;text-align:left;
+             opacity:${locked?.55:1};cursor:${locked?'default':'pointer'};
+             display:flex;align-items:center;gap:12px;
+             box-shadow:${locked?'none':'0 4px 0 '+shadows[i]+', 0 6px 16px rgba(0,0,0,.15)'};
+             transition:transform .1s,box-shadow .1s">
+      <span style="font-size:26px;line-height:1">${locked ? '🔒' : d.ico}</span>
+      <div style="flex:1">
+        <div style="font-size:15px;font-weight:900;letter-spacing:.5px">${d.name}${locked?' (잠김)':''}</div>
+        <div style="font-size:11px;opacity:.85;white-space:pre-line;margin-top:3px;line-height:1.4">${locked?'이전 난이도 최종보스 처치 시 해금':d.desc}</div>
       </div>
     </button>`;
   }).join('');
@@ -7394,14 +7420,21 @@ function openStatsModal() {
   const s = loadStats();
   const ms = s.totalPlayMs || 0;
   const h = Math.floor(ms / 3600000), m = Math.floor((ms % 3600000) / 60000);
-  document.getElementById('stats-modal-content').innerHTML = `
-    <div style="display:flex;flex-direction:column;gap:8px;font-family:'Jua',sans-serif">
-      <div style="display:flex;justify-content:space-between"><span>총 게임 수</span><strong>${s.totalGames || 0}회</strong></div>
-      <div style="display:flex;justify-content:space-between"><span>최종보스 처치</span><strong>${s.totalWins || 0}회</strong></div>
-      <div style="display:flex;justify-content:space-between"><span>최고 점수</span><strong>${(s.bestScore || 0).toLocaleString()}</strong></div>
-      <div style="display:flex;justify-content:space-between"><span>총 보스 처치</span><strong>${s.totalBossKills || 0}회</strong></div>
-      <div style="display:flex;justify-content:space-between"><span>총 플레이 시간</span><strong>${h}시간 ${m}분</strong></div>
-    </div>`;
+  const rows = [
+    ['🎮 총 게임 수', `${s.totalGames || 0}회`],
+    ['🏆 최종보스 처치', `${s.totalWins || 0}회`],
+    ['⭐ 최고 점수', `${(s.bestScore || 0).toLocaleString()}`],
+    ['💀 총 보스 처치', `${s.totalBossKills || 0}회`],
+    ['⏱ 총 플레이 시간', `${h}시간 ${m}분`],
+  ];
+  document.getElementById('stats-modal-content').innerHTML =
+    `<div style="display:flex;flex-direction:column;gap:0;font-family:'Jua',sans-serif">` +
+    rows.map((r, i) =>
+      `<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 4px;${i < rows.length - 1 ? 'border-bottom:1px solid var(--glass-bdr)' : ''}">
+        <span style="color:var(--ink-soft);font-size:13px">${r[0]}</span>
+        <strong style="color:var(--ink);font-size:14px">${r[1]}</strong>
+      </div>`
+    ).join('') + `</div>`;
   document.getElementById('stats-modal').style.display = 'flex';
 }
 function closeStatsModal() { document.getElementById('stats-modal').style.display = 'none'; }
