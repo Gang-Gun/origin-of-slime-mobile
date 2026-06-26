@@ -2779,12 +2779,12 @@ function dominantMutationType(mutations) {
   for (const t of order) { if (count[t] > bestN) { bestN = count[t]; best = t; } }
   return best;
 }
-function creatureTextureKey(individual) {
-  const body = getBodyColor(individual);
+function creatureTextureKey(individual, cbMode = COLORBLIND_MODE) {
+  const body = cbMode ? getBodyColorCB(individual) : getBodyColorNormal(individual);
   const sig = signatureMutations(individual.mutations)
     .filter(id => id !== 'large_body' && id !== 'small_body');
   const cat = dominantMutationType(individual.mutations);
-  return `creature_${body}_${sig.length ? sig.join('.') : 'none'}_${cat}${COLORBLIND_MODE?'_cb':''}`;
+  return `creature_${body}_${sig.length ? sig.join('.') : 'none'}_${cat}${cbMode?'_cb':''}`;
 }
 const BASE_STATS = { hp: 100, attack: 10, defense: 3, speed: 80, gather: 5, fertility: 1, charm: 5, foodNeed: 1, mutationRate: 0.08 };
 const MIN_STATS = { hp: 20, attack: 1, defense: 0, speed: 20, gather: 0, fertility: 0.1, charm: 0, foodNeed: 0.2, mutationRate: 0 };
@@ -2850,16 +2850,20 @@ function getPhenotypeLabel(individual, gene) {
   return individual.hasDominant(gene) ? GENES[gene].dominantName : GENES[gene].recessiveName;
 }
 
-function getBodyColor(individual) {
-  const genotype = getGenotypeLabel(individual, 'color');
-  if (COLORBLIND_MODE) {
-    if (genotype === 'RR') return BODY_COLOR_CB_RED;
-    if (genotype === 'BB') return BODY_COLOR_CB_BLUE;
-    return BODY_COLOR_CB_PURPLE;
-  }
-  if (genotype === 'RR') return BODY_COLOR_RED;
-  if (genotype === 'BB') return BODY_COLOR_BLUE;
+function getBodyColorNormal(individual) {
+  const g = getGenotypeLabel(individual, 'color');
+  if (g === 'RR') return BODY_COLOR_RED;
+  if (g === 'BB') return BODY_COLOR_BLUE;
   return BODY_COLOR_PURPLE;
+}
+function getBodyColorCB(individual) {
+  const g = getGenotypeLabel(individual, 'color');
+  if (g === 'RR') return BODY_COLOR_CB_RED;
+  if (g === 'BB') return BODY_COLOR_CB_BLUE;
+  return BODY_COLOR_CB_PURPLE;
+}
+function getBodyColor(individual) {
+  return COLORBLIND_MODE ? getBodyColorCB(individual) : getBodyColorNormal(individual);
 }
 function getColorGenotype(individual) { return getGenotypeLabel(individual, 'color'); }
 
@@ -4225,15 +4229,14 @@ class ArenaScene extends Phaser.Scene {
   }
 
   // 픽셀아트 슬라임: 넓적한 돔형, 흰 눈 + 동공, 혀, 하이라이트
-  createCreatureTexture(individual) {
-    const bodyColor = getBodyColor(individual);
+  _buildCreatureTexture(individual, cbMode) {
+    const key = creatureTextureKey(individual, cbMode);
+    if (this.textures.exists(key)) return key;
     const sig = signatureMutations(individual.mutations).filter(id => id!=='large_body' && id!=='small_body');
     const cat = dominantMutationType(individual.mutations);
-    const key = creatureTextureKey(individual);
-    if (this.textures.exists(key)) return key;
-    const g = this.make.graphics({ add: false });
+    const rawColor = cbMode ? getBodyColorCB(individual) : getBodyColorNormal(individual);
     const S = 4;
-    let c = bodyColor;
+    let c = rawColor;
     if (cat === 'bad') {
       const ri=(c>>16)&0xFF, gi=(c>>8)&0xFF, bi=c&0xFF, gray=0x88;
       const bl=(a,b)=>Math.round(a*0.9+b*0.1);
@@ -4256,17 +4259,25 @@ class ArenaScene extends Phaser.Scene {
       [_,D,L,L,L,L,T,T,T,L,L,L,L,D,_,_],
       [_,_,D,D,D,D,D,D,D,D,D,D,D,_,_,_],
     ];
+    const g = this.make.graphics({ add: false });
     for (let row=0; row<grid.length; row++) for (let col=0; col<grid[row].length; col++) {
       const cl=grid[row][col]; if (cl===null) continue;
       g.fillStyle(cl,1); g.fillRect(col*S, row*S, S, S);
     }
-    this.drawMutationOverlay(g, S, sig, cat, { dark, light, body: c });
+    this.drawMutationOverlay(g, S, sig, cat, { dark, light, body: c }, cbMode);
     g.generateTexture(key, 16*S, 10*S);
     g.destroy();
     return key;
   }
 
-  drawMutationOverlay(g, S, sig, cat, pal) {
+  createCreatureTexture(individual) {
+    // 두 모드 모두 미리 생성 → 토글 시 generateTexture 호출 없이 setTexture만
+    this._buildCreatureTexture(individual, false);
+    this._buildCreatureTexture(individual, true);
+    return creatureTextureKey(individual, COLORBLIND_MODE);
+  }
+
+  drawMutationOverlay(g, S, sig, cat, pal, cbMode = COLORBLIND_MODE) {
     const px=(x,y,w,h,c,a=1)=>{ g.fillStyle(c,a); g.fillRect(x*S,y*S,w*S,h*S); };
     const D = pal.dark, L = pal.light;
     if (sig.includes('hard_shell')) {
@@ -4310,9 +4321,7 @@ class ArenaScene extends Phaser.Scene {
     else if (cat==='bad') { px(6,2,1,1,0x2a2018,0.7); px(7,3,1,1,0x2a2018,0.6); px(3,5,1,1,0x2a2018,0.5); }
     else if (cat==='dual') { px(10,3,1,1,0xc49ee0,0.8); }
     // 색맹 모드: 우하단에 모양 마커 (RR=+, RB=◆, BB=■)
-    if (COLORBLIND_MODE) {
-      const gt = getColorGenotype({ genes: pal._genes });
-      // pal._genes 없으면 색으로 추론
+    if (cbMode) {
       const col = pal.body;
       const isRR = col === BODY_COLOR_CB_RED;
       const isBB = col === BODY_COLOR_CB_BLUE;
@@ -6854,13 +6863,12 @@ function toggleColorblind(btn) {
   // 기존 creature 텍스처 전부 제거 후 스프라이트 재생성
   const scene = game?.scene?.keys?.ArenaScene;
   if (!scene) return;
-  // 스프라이트 파괴 없이 텍스처만 교체 (검은 화면 방지)
+  // 이미 두 모드 텍스처가 생성돼 있으므로 setTexture만 (generateTexture 호출 없음 → 검은 화면 없음)
   for (const [id, data] of scene.individualSprites) {
     let ind = null;
     for (const g of scene.groups) { ind = g.individuals.find(i => i.id === id); if (ind) break; }
     if (!ind) continue;
-    const key = scene.createCreatureTexture(ind);
-    data.sprite.setTexture(key);
+    data.sprite.setTexture(creatureTextureKey(ind, COLORBLIND_MODE));
   }
 }
 function toggleBossBanner() {
