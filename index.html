@@ -1691,6 +1691,10 @@ body { image-rendering: pixelated; }
           onclick="cycleGameSpeed()">1×</button>
       </div>
       <div class="setting-row">
+        <span>🧬 돌연변이 선택</span>
+        <button class="toggle-btn" id="pause-mutpick-toggle" onclick="togglePauseMutPick(this)"></button>
+      </div>
+      <div class="setting-row">
         <span>📖 튜토리얼 초기화</span>
         <button class="pause-btn pause-settings" style="width:auto;padding:8px 14px;font-size:14px"
           onclick="localStorage.removeItem('gpa_tutorial_done'); location.reload()">초기화</button>
@@ -7030,11 +7034,18 @@ function togglePause() {
 
 function toggleSettings() {
   document.getElementById('settings-panel').classList.toggle('open');
-  // 속도 토글 상태 반영
   const sLabel = document.getElementById('pause-speed-label');
   const unlocked = LAB_BUFFS?.gameSpeedUnlock > 0;
   if (sLabel) sLabel.textContent = unlocked ? '⚡ 게임 속도' : '⚡ 게임 속도 (계통수 가속 I 해금 필요)';
   refreshSpeedBtn();
+  const mutBtn = document.getElementById('pause-mutpick-toggle');
+  if (mutBtn) mutBtn.classList.toggle('on', localStorage.getItem('gpa_mutpick_off') !== '1');
+}
+function togglePauseMutPick(btn) {
+  btn.classList.toggle('on');
+  localStorage.setItem('gpa_mutpick_off', btn.classList.contains('on') ? '0' : '1');
+  const optBtn = document.getElementById('options-mutpick-toggle');
+  if (optBtn) optBtn.classList.toggle('on', btn.classList.contains('on'));
 }
 
 function toggleSfxSetting(btn) {
