@@ -2478,16 +2478,16 @@ const BOSS_ROSTER = [
   // 단일 조건 6 — 돌연변이 보유 또는 능력치 충족 시 안전
   { id:'lava',   name:'용암 거인',   ico:'🔥', reqText:'단단한 껍질·재생 능력 / HP 140 이상', refuge:'volcano', refugeText:'🌋 화산',
     safe:i=> (i.mutations||[]).includes('hard_shell') || (i.mutations||[]).includes('regeneration') || i.stats.hp > 140 },
-  { id:'sand',   name:'모래 폭군',   ico:'🏜️', reqText:'빠른 다리·작은 몸집 / 속도 100 이상',  refuge:'desert',  refugeText:'🏜️ 사막',
-    safe:i=> (i.mutations||[]).includes('fast_legs') || (i.mutations||[]).includes('small_body') || i.stats.speed > 100 },
+  { id:'sand',   name:'모래 폭군',   ico:'🏜️', reqText:'빠른 다리·작은 몸집·파란색 몸 / 속도 100 이상',  refuge:'desert',  refugeText:'🏜️ 사막',
+    safe:i=> (i.mutations||[]).includes('fast_legs') || (i.mutations||[]).includes('small_body') || i.stats.speed > 100 || !i.hasDominant('color') },
   { id:'glacier',name:'빙하 군주',   ico:'❄️', reqText:'단단한 껍질·큰 몸집·재생 능력 / 방어 10 이상', refuge:'snow', refugeText:'❄️ 눈밭',
     safe:i=> (i.mutations||[]).includes('hard_shell') || (i.mutations||[]).includes('large_body') || (i.mutations||[]).includes('regeneration') || i.stats.defense > 10 },
   { id:'spore',  name:'독포자 마수', ico:'☠️', reqText:'독성 분비·재생 능력 / 공격력 20 이상',    refuge:'swamp',   refugeText:'🐸 독성늪',
     safe:i=> (i.mutations||[]).includes('poison_gland') || (i.mutations||[]).includes('regeneration') || i.stats.attack > 20 },
   { id:'gale',   name:'질풍 추적자', ico:'💨', reqText:'빠른 다리·작은 몸집 / 속도 105 이상',    refuge:'river',   refugeText:'💧 강가',
     safe:i=> (i.mutations||[]).includes('fast_legs') || (i.mutations||[]).includes('small_body') || i.stats.speed > 105 },
-  { id:'charmer',name:'매혹 포식자', ico:'💗', reqText:'지배 페로몬·화려한 무늬 / 매력 18 이상', refuge:'forest', refugeText:'🌳 숲',
-    safe:i=> (i.mutations||[]).includes('pheromone') || (i.mutations||[]).includes('bright_pattern') || i.stats.charm > 18 },
+  { id:'charmer',name:'매혹 포식자', ico:'💗', reqText:'지배 페로몬·화려한 무늬·붉은색 몸 / 매력 18 이상', refuge:'forest', refugeText:'🌳 숲',
+    safe:i=> (i.mutations||[]).includes('pheromone') || (i.mutations||[]).includes('bright_pattern') || i.stats.charm > 18 || i.hasDominant('color') },
   // 복합 조건 3 — 두 조건 동시 충족
   { id:'steel',  name:'강철 질주병', ico:'🛡️', reqText:'(단단한 껍질·방어 10↑) + (빠른 다리·속도 100↑)', refuge:'snow', refugeText:'❄️ 눈밭',
     safe:i=> ((i.mutations||[]).includes('hard_shell')||i.stats.defense>10) && ((i.mutations||[]).includes('fast_legs')||i.stats.speed>100) },
@@ -2680,9 +2680,9 @@ const TERRAIN_EVENTS = {
       message: '전염병이 번식력 강한 개체들을 쓰러뜨렸습니다.',
       predicate: i => i.stats.fertility > 1.3 },
     { name: '붉은 달',
-      warning: '붉은 달이 떠오릅니다! 매력이 낮고 단단한 껍질이 없는 개체들이 포식자에게 발각되기 쉽습니다.',
-      message: '붉은 달빛 아래 몸을 숨기지 못한 개체들이 포식자에게 발각됐습니다.',
-      predicate: i => i.stats.charm < 10 && !(i.mutations||[]).includes('hard_shell') }
+      warning: '붉은 달이 떠오릅니다! 붉은색 개체들이 달빛에 눈에 띄어 포식자에게 발각될 위험이 있습니다.',
+      message: '붉은 달빛 아래 붉은색(R) 개체들이 포식자에게 발각됐습니다. 파란색 개체들은 어둠에 위장해 살아남았습니다.',
+      predicate: i => i.hasDominant('color') }
   ],
   forest: [
     { name: '위장 포식자 출현',
@@ -2704,7 +2704,11 @@ const TERRAIN_EVENTS = {
     { name: '야간 포식자',
       warning: '야간 포식자들이 활동을 시작했습니다! 매력이 낮은 개체들이 표적이 됩니다.',
       message: '야간 포식자가 매력이 낮은 개체들을 잡아갔습니다.',
-      predicate: i => i.stats.charm < 10 }
+      predicate: i => i.stats.charm < 10 },
+    { name: '숲 속 위장 실패',
+      warning: '숲 포식자들이 선명한 색의 개체를 추적하고 있습니다! 붉은색 개체들이 나뭇잎 사이에서 눈에 띕니다.',
+      message: '숲의 녹색 배경에서 붉은색(R) 개체들이 포식자에게 발각됐습니다. 파란색 개체들은 위장에 성공했습니다.',
+      predicate: i => i.hasDominant('color') }
   ],
   desert: [
     { name: '극심한 폭염',
@@ -2726,7 +2730,11 @@ const TERRAIN_EVENTS = {
     { name: '신기루',
       warning: '신기루가 나타나 개체들이 뒤쫓기 시작했습니다! 식량 손실이 예상됩니다.',
       message: '신기루를 쫓아가다 지쳐 식량의 30%를 잃었습니다.',
-      foodRatio: 0.70 }
+      foodRatio: 0.70 },
+    { name: '사막 열흡수',
+      warning: '극열의 사막 햇볕이 내리쬡니다! 붉은색 개체들이 열을 더 많이 흡수해 탈수 위험이 높습니다.',
+      message: '강렬한 사막 햇볕에 붉은색(R) 개체들이 과열로 쓰러졌습니다. 파란색 개체들은 열을 반사해 살아남았습니다.',
+      predicate: i => i.hasDominant('color') }
   ],
   volcano: [
     { name: '화산 폭발',
@@ -2814,7 +2822,11 @@ const TERRAIN_EVENTS = {
     { name: '늪 안개',
       warning: '짙은 늪 안개가 몰려오고 있습니다! 독성 면역도 없고 느린 개체들이 특히 위험합니다.',
       message: '늪 안개에 면역력과 이동력이 부족한 개체들이 질식했습니다.',
-      predicate: i => !(i.mutations||[]).includes('poison_gland') && i.stats.speed < 65 }
+      predicate: i => !(i.mutations||[]).includes('poison_gland') && i.stats.speed < 65 },
+    { name: '늪 포식자의 추적',
+      warning: '늪 포식자가 선명한 색의 먹잇감을 추적 중입니다! 붉은색 개체들이 탁한 물 위에서 눈에 띕니다.',
+      message: '탁한 늪 위에서 붉은색(R) 개체들이 포식자의 눈에 띄어 잡아먹혔습니다. 파란색 개체들은 물색과 비슷해 살아남았습니다.',
+      predicate: i => i.hasDominant('color') }
   ]
 };
 
