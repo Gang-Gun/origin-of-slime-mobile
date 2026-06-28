@@ -2498,8 +2498,8 @@ const BOSS_ROSTER = [
   // 히든 — 황금 슬라임 (유전자 3종 이상이 100% 완전 고정된 적 있으면 최종 슬롯 대체)
   { id:'golden', name:'황금 슬라임', ico:'✨', hidden:true,
     spawnText:'돌연변이 3종 이상이 집단의 70% 이상에 보급된 런에서 최종 보스 대체(동시 충족 불필요)',
-    reqText:'HP 140↑·속도 100↑·방어 10↑·공격 20↑·매력 18↑ (또는 각 대응 돌연변이) 5가지 모두',
-    refuge:'plain', refugeText:'🌿 초원 · 5가지 능력치·돌연변이 유지',
+    reqText:'생존력(HP 140↑·재생·단단한 껍질) + 기동력(속도 100↑·빠른 다리·작은 몸집) + 방어력(방어 10↑·단단한 껍질·큰 몸집) + 공격력(공격 20↑·독성 분비·강한 턱) + 매력(매력 18↑·지배 페로몬·화려한 무늬) — 5가지 모두',
+    refuge:'plain', refugeText:'🌿 초원 · 위 5가지 조건 전부 유지해야 생존',
     safe: i => {
       const mut = i.mutations || [];
       return (i.stats.hp > 140 || mut.includes('hard_shell') || mut.includes('regeneration')) &&
@@ -2511,7 +2511,8 @@ const BOSS_ROSTER = [
   },
   // 최종 — 5항목 중 4가지 충족 (균형 성장 강제)
   { id:'primordial', name:'태초의 포식자', ico:'🌈', final:true,
-    reqText:'5항목 중 4가지 충족', refuge:null, refugeText:'균형 성장(전투·기동·생존·저항·사회 중 4↑)',
+    reqText:'아래 5항목 중 4가지 충족 — ①생존력(HP 140↑·재생·단단한 껍질) ②기동력(속도 100↑·빠른 다리·작은 몸집) ③방어력(방어 10↑·단단한 껍질·큰 몸집) ④공격력(공격 20↑·독성 분비·강한 턱) ⑤사회력(매력 18↑·지배 페로몬·화려한 무늬)',
+    refuge:null, refugeText:'없음 · 5항목 중 4가지를 갖춰야 생존 (부족한 개체는 도태)',
     safe:(i)=> {
       const mut = i.mutations || [];
       const checks = [
