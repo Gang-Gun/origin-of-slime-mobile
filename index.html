@@ -2331,7 +2331,11 @@ function showMutationPicker(child, naturalMutId, scene) {
   const optsEl = document.getElementById('mutation-picker-options');
   const skipBtn = document.getElementById('mutation-skip-btn');
   subEl.textContent = `${candidates.length}개 중 하나를 선택하세요.`;
-  skipBtn.style.display = 'none';
+  // pick1 해금 전(선택지 1개)에는 거부 버튼 표시
+  const canReject = (nChoices <= 1) && !(LAB_BUFFS.mutationChoices > 0);
+  skipBtn.style.display = canReject ? '' : 'none';
+  skipBtn.textContent = '🚫 거부';
+  skipBtn.onclick = () => resolveMutationPick(null);
 
   const _mutIco = {good:'✅',dual:'🔵',bad:'❌'};
   const _mutEffectDesc = (effects) => {
@@ -4974,16 +4978,18 @@ class ArenaScene extends Phaser.Scene {
             }
           }
 
-          // 같은 집단 peer separation
-          const SEP = 36;
-          for (const peer of group.individuals) {
-            if (peer === individual || peer.dead) continue;
-            const px = individual.x - peer.x, py = individual.y - peer.y;
-            const pd = Math.hypot(px, py) || 0.01;
-            if (pd < SEP) {
-              const push = (SEP - pd) * 0.5;
-              individual.x += (px / pd) * push;
-              individual.y += (py / pd) * push;
+          // 같은 집단 peer separation: 전투 중에만 펼쳐지도록
+          const SEP = group.state === 'battle' ? 36 : 0;
+          if (SEP > 0) {
+            for (const peer of group.individuals) {
+              if (peer === individual || peer.dead) continue;
+              const px = individual.x - peer.x, py = individual.y - peer.y;
+              const pd = Math.hypot(px, py) || 0.01;
+              if (pd < SEP) {
+                const push = (SEP - pd) * 0.5;
+                individual.x += (px / pd) * push;
+                individual.y += (py / pd) * push;
+              }
             }
           }
         }
