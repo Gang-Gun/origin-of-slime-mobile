@@ -2310,15 +2310,11 @@ let _mutPickResolve = null;
 let _mutPickChild = null;
 
 function showMutationPicker(child, naturalMutId, scene) {
-  // 기본 15% 확률로 항상 활성화 — 연구소 업그레이드로 확률·선택지 수 증가
-  const baseChance = 0.15;
-  const totalChance = Math.min(1.0, baseChance + (LAB_BUFFS.mutationChance || 0));
-  if (Math.random() >= totalChance) return false;
-  // Generate candidate pool
+  // 돌연변이 발생 시 무조건 선택창 표시 — 확률 체크 없음
   const nChoices = Math.max(1, LAB_BUFFS.mutationChoices || 0);
   const allMutIds = (typeof MUTATIONS !== 'undefined') ? MUTATIONS.map(m=>m.id) : [];
   const candidates = [naturalMutId];
-  const others = allMutIds.filter(id => id !== naturalMutId);
+  const others = allMutIds.filter(id => id !== naturalMutId && !(child.mutations||[]).includes(id));
   // shuffle
   for (let i = others.length-1; i > 0; i--) {
     const j = Math.floor(Math.random()*(i+1));
@@ -2329,10 +2325,8 @@ function showMutationPicker(child, naturalMutId, scene) {
   const subEl = document.getElementById('mutation-picker-sub');
   const optsEl = document.getElementById('mutation-picker-options');
   const skipBtn = document.getElementById('mutation-skip-btn');
-  subEl.textContent = nChoices === 1
-    ? '이 돌연변이를 수락하거나 거절하세요.'
-    : `${candidates.length}개 중 하나를 선택하세요.`;
-  skipBtn.textContent = nChoices === 1 ? '❌ 거절' : '⏭ 건너뛰기';
+  subEl.textContent = `${candidates.length}개 중 하나를 선택하세요.`;
+  skipBtn.style.display = 'none';
 
   const _mutIco = {good:'✅',dual:'🔵',bad:'❌'};
   const _mutEffectDesc = (effects) => {
@@ -3157,7 +3151,9 @@ class Group {
 
   canBreed() {
     const bc = this.isPlayer && LAB_BUFFS ? Math.max(1, Math.round(BREED_COST * LAB_BUFFS.breedCostMult)) : BREED_COST;
-    return this.state === 'normal' && this.count >= 2 && this.count < this._maxPop() && this.surplus() >= bc;
+    const minPop = this.isPlayer ? 5 : 2;
+    const minFood = this.isPlayer ? bc * 10 : bc;
+    return this.state === 'normal' && this.count >= minPop && this.count < this._maxPop() && this.surplus() >= minFood;
   }
 
   average(stat) {
@@ -3257,8 +3253,8 @@ class Group {
     const breedCost = this.isPlayer && LAB_BUFFS
       ? Math.max(1, Math.round(BREED_COST * LAB_BUFFS.breedCostMult))
       : BREED_COST;
-    const rawCount = Math.floor(this.surplus() / breedCost);
-    const childCount = Math.min(Math.max(1, Math.floor(rawCount * this.densityFactor())), this._maxPop() - this.count);
+    const rawCount = this.isPlayer ? 10 : Math.floor(this.surplus() / breedCost);
+    const childCount = Math.min(Math.max(1, this.isPlayer ? rawCount : Math.floor(rawCount * this.densityFactor())), this._maxPop() - this.count);
     if (childCount <= 0) return 0;
     this.food -= childCount * breedCost;
     this.generation += 1;
