@@ -1533,8 +1533,15 @@ body { image-rendering: pixelated; }
     <div id="stats-detail" style="display:none">
       <div class="row" style="margin-top:6px"><span class="label">HP · 공 · 방 · 속</span><strong><span id="s-hp">100</span> · <span id="s-attack">10</span> · <span id="s-defense">3</span> · <span id="s-speed">80</span></strong></div>
       <div style="display:none"><span id="s-gather">5</span><span id="s-charm">5</span></div>
-      <div id="stats-gene-section" style="display:none">
-        <div id="s-genes"></div>
+      <div id="stats-gene-section">
+        <div id="s-genes-section" style="display:none">
+          <div style="font-size:11px;font-weight:800;color:var(--ink-soft);margin:8px 0 4px;letter-spacing:.03em">🔬 대립유전자 빈도</div>
+          <div id="s-genes"></div>
+        </div>
+        <div id="s-genotypes-section" style="display:none">
+          <div style="font-size:11px;font-weight:800;color:var(--ink-soft);margin:8px 0 4px;letter-spacing:.03em">🧬 유전자형 분포 (몸색)</div>
+          <div id="s-genotypes"></div>
+        </div>
         <div id="s-bonus-inds"></div>
       </div>
     </div>
@@ -2046,16 +2053,14 @@ const LAB_NODE_DEFS = [
   { id:'bos4', t:'ess', parent:'bos3',  ico:'🛡️', name:'저항 IV',   costType:'ess', costAmt:11, effect:'보스 처치 시 전 개체 HP +30%' },
   { id:'bos5', t:'ess', parent:'bos4',  ico:'🛡️', name:'저항 V',    costType:'ess', costAmt:20, effect:'안전하지 않은 개체 2마리 이상 필요' },
   // 선택적 진화 계열
-  { id:'evo1',  t:'ess', parent:'eroot', ico:'🧬', name:'선택적 진화', costType:'ess', costAmt:1,  effect:'선택창 확률 강화 계열 해금 (기본 15% → 30%)' },
-  { id:'prob1', t:'ess', parent:'evo1',  ico:'📡', name:'감지 I',    costType:'ess', costAmt:1,  effect:'선택창 확률 +15% (합계 30%)' },
-  { id:'prob2', t:'ess', parent:'prob1', ico:'📡', name:'감지 II',   costType:'ess', costAmt:2,  effect:'선택창 확률 +30% (합계 45%)' },
-  { id:'prob3', t:'ess', parent:'prob2', ico:'📡', name:'감지 III',  costType:'ess', costAmt:4,  effect:'선택창 확률 +50% (합계 65%)' },
-  { id:'prob4', t:'ess', parent:'prob3', ico:'📡', name:'감지 IV',   costType:'ess', costAmt:8,  effect:'선택창 확률 +75% (합계 90%)' },
-  { id:'prob5', t:'ess', parent:'prob4', ico:'📡', name:'감지 V',    costType:'ess', costAmt:14, effect:'항상 선택창 표시 (100%)' },
+  { id:'evo1',  t:'ess', parent:'eroot', ico:'🧬', name:'선택적 진화', costType:'ess', costAmt:1,  effect:'돌연변이 선택지 수 강화 + 유전 분석 계열 해금' },
   { id:'pick1', t:'ess', parent:'evo1',  ico:'🎲', name:'선택 I',    costType:'ess', costAmt:1,  effect:'2개 중 선택 해금' },
   { id:'pick2', t:'ess', parent:'pick1', ico:'🎲', name:'선택 II',   costType:'ess', costAmt:2,  effect:'3개 중 선택' },
   { id:'pick3', t:'ess', parent:'pick2', ico:'🎲', name:'선택 III',  costType:'ess', costAmt:5,  effect:'4개 중 선택' },
   { id:'pick4', t:'ess', parent:'pick3', ico:'🎲', name:'선택 IV',   costType:'ess', costAmt:10, effect:'5개 중 선택' },
+  { id:'vis1',  t:'ess', parent:'evo1',  ico:'🔬', name:'유전 분석 I',  costType:'ess', costAmt:2,  effect:'현황판에 대립유전자 빈도 표시 (5종 비율 바)' },
+  { id:'vis2',  t:'ess', parent:'vis1',  ico:'🔬', name:'유전 분석 II', costType:'ess', costAmt:5,  effect:'유전자형 분포 추가 표시 (동형·이형접합 비율)' },
+  { id:'vis3',  t:'ess', parent:'vis2',  ico:'🔬', name:'유전 분석 III', costType:'ess', costAmt:10, effect:'결과 화면에서 대립유전자 변화 그래프 해금' },
   // 게임 속도 계열
   { id:'spd1', t:'ess', parent:'eroot', ico:'⚡', name:'가속 I',  costType:'ess', costAmt:2,  effect:'설정에서 1.5× 속도 토글 해금' },
   { id:'spd2', t:'ess', parent:'spd1',  ico:'⚡', name:'가속 II', costType:'ess', costAmt:6,  effect:'설정에서 2× 속도 토글 해금' },
@@ -2101,8 +2106,8 @@ function computeLabBuffs() {
     bossHealOnKill:has('bos4'),
     bossHarderThreshold: has('bos5'),
     mutationEnabled: has('evo1'),
-    mutationChance: has('prob5')?1.0 : has('prob4')?0.75 : has('prob3')?0.50 : has('prob2')?0.30 : has('prob1')?0.15 : 0,
     mutationChoices: has('pick4')?5 : has('pick3')?4 : has('pick2')?3 : has('pick1')?2 : 0,
+    geneVisLevel: has('vis3')?3 : has('vis2')?2 : has('vis1')?1 : 0,
     maxPopBonus: (has('cap1')?10:0) + (has('cap2')?20:0) + (has('cap3')?35:0) + (has('cap4')?55:0) + (has('cap5')?80:0),
     gameSpeedUnlock: has('spd2') ? 2 : has('spd1') ? 1.5 : 0, // 0=미해금, 1.5/2=해금된 최대 배율
   };
@@ -6080,42 +6085,49 @@ resolveBoss(win, reason) {
       document.getElementById('battle-banner').style.display = 'block';
     }
 
-    // ── 유전자 대립유전자 빈도 (50% 기준선 + 설명)
-    const geneFreq = group.geneFrequency();
-    const GENE_META = {
-      color:  { ico:'🔴', label:'R (몸색)',    desc:'R:공격+5·HP+8 / B:방어+4·식량↓', allele:'R/B', col:'#ef5555' },
-      speed:  { ico:'⚡', label:'S (속도)',    desc:'속도+25  식량소모+0.3',           allele:'S/s', col:'#22c55e' },
-      poison: { ico:'☠️', label:'P (독성)',    desc:'공격+10·방어+3  늪 적응',         allele:'P/p', col:'#a855f7' },
-      armor:  { ico:'🛡️', label:'A (갑옷)',    desc:'방어+10·HP+15·속도-8',            allele:'A/a', col:'#60a5fa' },
-      charm:  { ico:'💗', label:'C (매력)',    desc:'매력+12·번식+0.3  포섭↑',         allele:'C/c', col:'#f0abfc' },
-    };
-    document.getElementById('s-genes').innerHTML = Object.entries(GENE_META).map(([gene, m]) => {
-      const pct = geneFreq[gene] || 0;
-      const delta = pct - 50;
-      const absDelta = Math.abs(delta);
-      const deltaColor = delta > 5 ? m.col : delta < -5 ? '#94a3b8' : 'var(--ink-soft)';
-      const deltaStr = delta > 0 ? `+${delta.toFixed(0)}%` : `${delta.toFixed(0)}%`;
-      return `<div style="margin:4px 0">
-        <div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;margin-bottom:2px">
-          <span style="font-weight:800;color:var(--ink)">${m.ico} ${m.label}</span>
-          <span style="display:flex;gap:4px;align-items:center">
-            <span style="color:${deltaColor};font-weight:900;font-size:11.5px">${pct.toFixed(0)}%</span>
-            <span style="color:${deltaColor};font-size:10px">(${deltaStr})</span>
-          </span>
-        </div>
-        <div style="position:relative;height:8px;background:rgba(110,99,132,.15);border-radius:999px;overflow:hidden">
-          <div style="position:absolute;left:50%;top:0;bottom:0;width:1px;background:rgba(110,99,132,.3)"></div>
-          <div style="position:absolute;height:100%;border-radius:999px;background:${m.col};
-            ${delta>=0 ? `left:50%;width:${Math.min(50,delta)}%` : `left:${50+delta}%;width:${Math.min(50,absDelta)}%;background:#94a3b8`}">
+    // ── 유전자 대립유전자 빈도 (vis1 이상 해금 시 표시)
+    const visLv = (LAB_BUFFS && LAB_BUFFS.geneVisLevel) || 0;
+    const genesSection = document.getElementById('s-genes-section');
+    if (genesSection) genesSection.style.display = visLv >= 1 ? '' : 'none';
+    if (visLv >= 1) {
+      const geneFreq = group.geneFrequency();
+      const GENE_META = {
+        color:  { ico:'🔴', label:'R (몸색)',  desc:'R:공격+5·HP+8 / B:방어+4·식량↓', allele:'R/B', col:'#ef5555' },
+        speed:  { ico:'⚡', label:'S (속도)',  desc:'속도+25  식량소모+0.3',           allele:'S/s', col:'#22c55e' },
+        poison: { ico:'☠️', label:'P (독성)',  desc:'공격+10·방어+3  늪 적응',         allele:'P/p', col:'#a855f7' },
+        armor:  { ico:'🛡️', label:'A (갑옷)', desc:'방어+10·HP+15·속도-8',            allele:'A/a', col:'#60a5fa' },
+        charm:  { ico:'💗', label:'C (매력)', desc:'매력+12·번식+0.3  포섭↑',         allele:'C/c', col:'#f0abfc' },
+      };
+      document.getElementById('s-genes').innerHTML = Object.entries(GENE_META).map(([gene, m]) => {
+        const pct = geneFreq[gene] || 0;
+        const delta = pct - 50;
+        const absDelta = Math.abs(delta);
+        const deltaColor = delta > 5 ? m.col : delta < -5 ? '#94a3b8' : 'var(--ink-soft)';
+        const deltaStr = delta > 0 ? `+${delta.toFixed(0)}%` : `${delta.toFixed(0)}%`;
+        return `<div style="margin:4px 0">
+          <div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;margin-bottom:2px">
+            <span style="font-weight:800;color:var(--ink)">${m.ico} ${m.label}</span>
+            <span style="display:flex;gap:4px;align-items:center">
+              <span style="color:${deltaColor};font-weight:900;font-size:11.5px">${pct.toFixed(0)}%</span>
+              <span style="color:${deltaColor};font-size:10px">(${deltaStr})</span>
+            </span>
           </div>
-        </div>
-        <div style="font-size:10px;color:var(--ink-soft);margin-top:1px">${m.desc} · ${m.allele}</div>
-      </div>`;
-    }).join('');
+          <div style="position:relative;height:8px;background:rgba(110,99,132,.15);border-radius:999px;overflow:hidden">
+            <div style="position:absolute;left:50%;top:0;bottom:0;width:1px;background:rgba(110,99,132,.3)"></div>
+            <div style="position:absolute;height:100%;border-radius:999px;background:${m.col};
+              ${delta>=0 ? `left:50%;width:${Math.min(50,delta)}%` : `left:${50+delta}%;width:${Math.min(50,absDelta)}%;background:#94a3b8`}">
+            </div>
+          </div>
+          <div style="font-size:10px;color:var(--ink-soft);margin-top:1px">${m.desc} · ${m.allele}</div>
+        </div>`;
+      }).join('');
+    }
 
-    // 몸색 유전자형 분포 (RR/RB/BB) — 섹션이 존재할 때만 갱신
+    // 유전자형 분포 (RR/RB/BB) — vis2 이상
     const genotypesEl = document.getElementById('s-genotypes');
-    if (genotypesEl) {
+    const genotypesSection = document.getElementById('s-genotypes-section');
+    if (genotypesSection) genotypesSection.style.display = visLv >= 2 ? '' : 'none';
+    if (visLv >= 2 && genotypesEl) {
       genotypesEl.innerHTML = Object.entries(group.genotypeFrequency('color'))
         .sort((a, b) => b[1] - a[1])
         .map(([gt, pct]) => {
@@ -6444,6 +6456,15 @@ resolveBoss(win, reason) {
         <div class="row" style="margin-top:6px;padding-top:6px;border-top:1px solid var(--ink-faint)">
           <span>유전적 다양성</span><strong>${(finalDiversity * 100).toFixed(0)}%</strong>
         </div>
+        ${(LAB_BUFFS && LAB_BUFFS.geneVisLevel >= 3) ? `
+        <div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--ink-faint)">
+          <div style="font-size:11px;font-weight:800;color:var(--ink-soft);margin-bottom:6px">📈 대립유전자 변화 그래프</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px">
+            ${[['color','🔴 몸색'],['speed','⚡ 속도'],['poison','☠️ 독성'],['armor','🛡️ 갑옷'],['charm','💗 매력']].map(([g,label])=>
+              `<button onclick="showAlleleGraph('${g}')" style="font-size:12px;padding:4px 10px;border-radius:999px;border:1.5px solid var(--leaf-dk);background:rgba(61,138,58,.12);color:var(--leaf-dk);font-weight:800;cursor:pointer">${label}</button>`
+            ).join('')}
+          </div>
+        </div>` : ''}
       </div>
 
       <div class="result-card"><h2>🔬 돌연변이 기록</h2>
