@@ -2362,7 +2362,6 @@ function showMutationPicker(child, naturalMutId, scene) {
 
   _mutPickChild = child;
   _mutPickResolve = (chosenId) => {
-    // Remove all candidates from child, then apply chosen
     for (const mid of candidates) {
       delete child.mutationGenes[mid];
     }
@@ -2373,6 +2372,9 @@ function showMutationPicker(child, naturalMutId, scene) {
       child.newlyGained = [];
       child.newMutationCount = 0;
     }
+    // 스탯 재계산 (거부 시 제거된 돌연변이 효과 반영)
+    child.stats = child.calculateStats();
+    child.hp = Math.min(child.hp, child.stats.hp);
     if (scene && !scene._paused) scene.scene.resume();
   };
 
