@@ -2046,16 +2046,16 @@ const LAB_NODE_DEFS = [
   { id:'bos4', t:'ess', parent:'bos3',  ico:'🛡️', name:'저항 IV',   costType:'ess', costAmt:11, effect:'보스 처치 시 전 개체 HP +30%' },
   { id:'bos5', t:'ess', parent:'bos4',  ico:'🛡️', name:'저항 V',    costType:'ess', costAmt:20, effect:'안전하지 않은 개체 2마리 이상 필요' },
   // 선택적 진화 계열
-  { id:'evo1',  t:'ess', parent:'eroot', ico:'🧬', name:'선택적 진화', costType:'ess', costAmt:1,  effect:'돌연변이 선택 시스템 활성화' },
-  { id:'prob1', t:'ess', parent:'evo1',  ico:'📡', name:'감지 I',    costType:'ess', costAmt:1,  effect:'돌연변이 발생 시 선택창 확률 15%' },
-  { id:'prob2', t:'ess', parent:'prob1', ico:'📡', name:'감지 II',   costType:'ess', costAmt:2,  effect:'선택창 확률 30%' },
-  { id:'prob3', t:'ess', parent:'prob2', ico:'📡', name:'감지 III',  costType:'ess', costAmt:4,  effect:'선택창 확률 50%' },
-  { id:'prob4', t:'ess', parent:'prob3', ico:'📡', name:'감지 IV',   costType:'ess', costAmt:8,  effect:'선택창 확률 75%' },
+  { id:'evo1',  t:'ess', parent:'eroot', ico:'🧬', name:'선택적 진화', costType:'ess', costAmt:1,  effect:'선택창 확률 강화 계열 해금 (기본 15% → 30%)' },
+  { id:'prob1', t:'ess', parent:'evo1',  ico:'📡', name:'감지 I',    costType:'ess', costAmt:1,  effect:'선택창 확률 +15% (합계 30%)' },
+  { id:'prob2', t:'ess', parent:'prob1', ico:'📡', name:'감지 II',   costType:'ess', costAmt:2,  effect:'선택창 확률 +30% (합계 45%)' },
+  { id:'prob3', t:'ess', parent:'prob2', ico:'📡', name:'감지 III',  costType:'ess', costAmt:4,  effect:'선택창 확률 +50% (합계 65%)' },
+  { id:'prob4', t:'ess', parent:'prob3', ico:'📡', name:'감지 IV',   costType:'ess', costAmt:8,  effect:'선택창 확률 +75% (합계 90%)' },
   { id:'prob5', t:'ess', parent:'prob4', ico:'📡', name:'감지 V',    costType:'ess', costAmt:14, effect:'항상 선택창 표시 (100%)' },
-  { id:'pick1', t:'ess', parent:'evo1',  ico:'🎲', name:'선택 I',    costType:'ess', costAmt:1,  effect:'돌연변이 1개 표시: 수락 또는 거절' },
-  { id:'pick2', t:'ess', parent:'pick1', ico:'🎲', name:'선택 II',   costType:'ess', costAmt:2,  effect:'2개 중 선택' },
-  { id:'pick3', t:'ess', parent:'pick2', ico:'🎲', name:'선택 III',  costType:'ess', costAmt:5,  effect:'3개 중 선택' },
-  { id:'pick4', t:'ess', parent:'pick3', ico:'🎲', name:'선택 IV',   costType:'ess', costAmt:10, effect:'4개 중 선택' },
+  { id:'pick1', t:'ess', parent:'evo1',  ico:'🎲', name:'선택 I',    costType:'ess', costAmt:1,  effect:'2개 중 선택 해금' },
+  { id:'pick2', t:'ess', parent:'pick1', ico:'🎲', name:'선택 II',   costType:'ess', costAmt:2,  effect:'3개 중 선택' },
+  { id:'pick3', t:'ess', parent:'pick2', ico:'🎲', name:'선택 III',  costType:'ess', costAmt:5,  effect:'4개 중 선택' },
+  { id:'pick4', t:'ess', parent:'pick3', ico:'🎲', name:'선택 IV',   costType:'ess', costAmt:10, effect:'5개 중 선택' },
   // 게임 속도 계열
   { id:'spd1', t:'ess', parent:'eroot', ico:'⚡', name:'가속 I',  costType:'ess', costAmt:2,  effect:'설정에서 1.5× 속도 토글 해금' },
   { id:'spd2', t:'ess', parent:'spd1',  ico:'⚡', name:'가속 II', costType:'ess', costAmt:6,  effect:'설정에서 2× 속도 토글 해금' },
@@ -2102,7 +2102,7 @@ function computeLabBuffs() {
     bossHarderThreshold: has('bos5'),
     mutationEnabled: has('evo1'),
     mutationChance: has('prob5')?1.0 : has('prob4')?0.75 : has('prob3')?0.50 : has('prob2')?0.30 : has('prob1')?0.15 : 0,
-    mutationChoices: has('pick4')?4 : has('pick3')?3 : has('pick2')?2 : has('pick1')?1 : 0,
+    mutationChoices: has('pick4')?5 : has('pick3')?4 : has('pick2')?3 : has('pick1')?2 : 0,
     maxPopBonus: (has('cap1')?10:0) + (has('cap2')?20:0) + (has('cap3')?35:0) + (has('cap4')?55:0) + (has('cap5')?80:0),
     gameSpeedUnlock: has('spd2') ? 2 : has('spd1') ? 1.5 : 0, // 0=미해금, 1.5/2=해금된 최대 배율
   };
@@ -2494,7 +2494,7 @@ const BOSS_ROSTER = [
     safe:i=> ((i.mutations||[]).includes('fast_legs')||i.stats.speed>100) && ((i.mutations||[]).includes('pheromone')||(i.mutations||[]).includes('bright_pattern')||i.stats.charm>18) },
   // 히든 — 황금 슬라임 (유전자 3종 이상이 100% 완전 고정된 적 있으면 최종 슬롯 대체)
   { id:'golden', name:'황금 슬라임', ico:'✨', hidden:true,
-    spawnText:'유전자 5종 중 3종 이상이 100% 완전 고정된 런에서 최종 보스 대체(동시 충족 불필요)',
+    spawnText:'돌연변이 3종 이상이 집단의 70% 이상에 보급된 런에서 최종 보스 대체(동시 충족 불필요)',
     reqText:'HP 140↑·속도 100↑·방어 10↑·공격 20↑·매력 18↑ (또는 각 대응 돌연변이) 5가지 모두',
     refuge:'plain', refugeText:'🌿 초원 · 5가지 능력치·돌연변이 유지',
     safe: i => {
@@ -2610,19 +2610,19 @@ const ACHIEVEMENTS = [
   { id:'no_starve',   cat:'식량', name:'🍀 굶주림 없이', desc:'굶주림 사망 없이 3분 생존',    bonus:300,
     check:(g,el)=>g.starved===0&&el>=180000 },
 
-  // ── 유전자 — 대립유전자 빈도 ──────────────────────────
-  { id:'red_wave',    cat:'유전자', name:'🔴 붉은 물결',   desc:'R 대립유전자 빈도 70%+',       bonus:200,
-    check:(g)=>(g.geneFrequency()['color']||0)>=70 },
-  { id:'blue_wave',   cat:'유전자', name:'🔵 푸른 물결',   desc:'B 대립유전자 빈도 70%+',       bonus:200,
-    check:(g)=>(g.geneFrequency()['color']||0)<=30 },
-  { id:'speed_evo',   cat:'유전자', name:'⚡ 속도 진화',   desc:'S 대립유전자 빈도 75%+',       bonus:200,
-    check:(g)=>(g.geneFrequency()['speed']||0)>=75 },
-  { id:'poison_evo',  cat:'유전자', name:'☠️ 독성 진화',   desc:'P 대립유전자 빈도 75%+',       bonus:200,
-    check:(g)=>(g.geneFrequency()['poison']||0)>=75 },
-  { id:'charm_evo',   cat:'유전자', name:'💗 매력 진화',   desc:'C 대립유전자 빈도 75%+',       bonus:200,
-    check:(g)=>(g.geneFrequency()['charm']||0)>=75 },
-  { id:'dominant_all',cat:'유전자', name:'👑 우성 지배',   desc:'모든 유전자 우성 대립유전자 60%+', bonus:500,
-    check:(g)=>Object.values(g.geneFrequency()).every(p=>p>=60) },
+  // ── 돌연변이 진화 ─────────────────────────────────────
+  { id:'red_wave',    cat:'돌연변이', name:'❤️ 생존자들',     desc:'재생 능력·단단한 껍질 돌연변이 개체 10마리 이상', bonus:200,
+    check:(g)=>g.individuals.filter(i=>!i.dead&&((i.mutations||[]).includes('regeneration')||(i.mutations||[]).includes('hard_shell'))).length>=10 },
+  { id:'blue_wave',   cat:'돌연변이', name:'💙 효율주의자',   desc:'효율 대사·작은 몸집 돌연변이 개체 10마리 이상',   bonus:200,
+    check:(g)=>g.individuals.filter(i=>!i.dead&&((i.mutations||[]).includes('efficient_metabolism')||(i.mutations||[]).includes('small_body'))).length>=10 },
+  { id:'speed_evo',   cat:'돌연변이', name:'⚡ 속도 진화',    desc:'빠른 다리 돌연변이 개체 8마리 이상',              bonus:200,
+    check:(g)=>g.individuals.filter(i=>!i.dead&&(i.mutations||[]).includes('fast_legs')).length>=8 },
+  { id:'poison_evo',  cat:'돌연변이', name:'☠️ 독성 진화',    desc:'독성 분비 돌연변이 개체 8마리 이상',              bonus:200,
+    check:(g)=>g.individuals.filter(i=>!i.dead&&(i.mutations||[]).includes('poison_gland')).length>=8 },
+  { id:'charm_evo',   cat:'돌연변이', name:'💗 매력 진화',    desc:'지배 페로몬 돌연변이 개체 8마리 이상',            bonus:200,
+    check:(g)=>g.individuals.filter(i=>!i.dead&&(i.mutations||[]).includes('pheromone')).length>=8 },
+  { id:'dominant_all',cat:'돌연변이', name:'👑 전방위 진화',  desc:'5종 이상 good 돌연변이를 동시 보유한 개체 존재',  bonus:500,
+    check:(g)=>g.individuals.some(i=>!i.dead&&(i.mutations||[]).filter(id=>{const m=MUTATIONS.find(x=>x.id===id);return m&&m.type==='good';}).length>=5) },
 
   // ── 유전자 — 다양성·돌연변이 ──────────────────────────
   { id:'diverse',     cat:'유전자', name:'🧬 다양성 수호', desc:'2분 후에도 다양성 75%+ 유지',  bonus:250,
@@ -2669,23 +2669,23 @@ const TERRAIN_EVENTS = {
       message: '들불이 느린 개체들을 휩쓸었습니다.',
       predicate: i => i.stats.speed < 68 },
     { name: '야생 동물 습격',
-      warning: '야생 동물 무리가 접근 중입니다! 갑옷도 매력도 없는 개체들이 표적이 됩니다.',
-      message: '야생 동물이 갑옷도 매력도 없는 개체들을 습격했습니다.',
-      predicate: i => !i.hasDominant('armor') && !i.hasDominant('charm') },
+      warning: '야생 동물 무리가 접근 중입니다! 방어력과 매력이 모두 낮은 개체들이 표적이 됩니다.',
+      message: '야생 동물이 방어력과 매력이 낮은 개체들을 습격했습니다.',
+      predicate: i => i.stats.defense < 6 && i.stats.charm < 10 },
     { name: '전염병 창궐',
       warning: '전염병이 퍼지기 시작했습니다! 번식력이 강한 개체들 사이에서 빠르게 확산됩니다.',
       message: '전염병이 번식력 강한 개체들을 쓰러뜨렸습니다.',
       predicate: i => i.stats.fertility > 1.3 },
     { name: '붉은 달',
-      warning: '붉은 달이 떠오릅니다! 파란색(BB) 개체들이 포식자에게 발각되기 쉽습니다.',
-      message: '붉은 달빛 아래 파란색(BB) 개체들이 포식자에게 발각됐습니다.',
-      predicate: i => getGenotypeLabel(i, 'color') === 'BB' }
+      warning: '붉은 달이 떠오릅니다! 매력이 낮고 단단한 껍질이 없는 개체들이 포식자에게 발각되기 쉽습니다.',
+      message: '붉은 달빛 아래 몸을 숨기지 못한 개체들이 포식자에게 발각됐습니다.',
+      predicate: i => i.stats.charm < 10 && !(i.mutations||[]).includes('hard_shell') }
   ],
   forest: [
     { name: '위장 포식자 출현',
-      warning: '숲 속에서 위장 포식자가 발견됐습니다! 눈에 띄는 붉은 개체(RR)들이 위험합니다.',
-      message: '위장 포식자가 붉은 개체(RR)들을 골라 잡아갔습니다.',
-      predicate: i => getGenotypeLabel(i, 'color') === 'RR' },
+      warning: '숲 속에서 위장 포식자가 발견됐습니다! HP가 낮고 재생 능력이 없는 개체들이 위험합니다.',
+      message: '위장 포식자가 체력이 약한 개체들을 골라 잡아갔습니다.',
+      predicate: i => i.stats.hp < 110 && !(i.mutations||[]).includes('regeneration') },
     { name: '나무 쓰러짐',
       warning: '폭풍이 거목들을 흔들고 있습니다! 느린 개체들은 피하지 못할 수 있습니다.',
       message: '폭풍에 거목이 쓰러져 느린 개체들이 깔렸습니다.',
@@ -2695,13 +2695,13 @@ const TERRAIN_EVENTS = {
       message: '열매 풍년으로 식량이 크게 늘었습니다!',
       foodDelta: 55 },
     { name: '기생충 감염',
-      warning: '숲 속 기생충이 퍼지고 있습니다! 갑옷이 없는 개체들이 취약합니다.',
-      message: '기생충이 갑옷 없는 개체들의 피부에 침투했습니다.',
-      predicate: i => !i.hasDominant('armor') },
+      warning: '숲 속 기생충이 퍼지고 있습니다! 방어력이 낮은 개체들이 취약합니다.',
+      message: '기생충이 방어력이 낮은 개체들의 피부에 침투했습니다.',
+      predicate: i => i.stats.defense < 7 },
     { name: '야간 포식자',
       warning: '야간 포식자들이 활동을 시작했습니다! 매력이 낮은 개체들이 표적이 됩니다.',
-      message: '야간 포식자가 매력 없는 개체들을 잡아갔습니다.',
-      predicate: i => !i.hasDominant('charm') }
+      message: '야간 포식자가 매력이 낮은 개체들을 잡아갔습니다.',
+      predicate: i => i.stats.charm < 10 }
   ],
   desert: [
     { name: '극심한 폭염',
@@ -2713,13 +2713,13 @@ const TERRAIN_EVENTS = {
       message: '오아시스에서 귀한 식량을 획득했습니다!',
       foodDelta: 40 },
     { name: '독전갈 습격',
-      warning: '독전갈 떼가 나타났습니다! 독성 유전자가 없는 개체들이 위험합니다.',
-      message: '독전갈이 독성 유전자 없는 개체들을 쏘아 쓰러뜨렸습니다.',
-      predicate: i => !i.hasDominant('poison') },
+      warning: '독전갈 떼가 나타났습니다! 독성에 면역이 없는 개체들이 위험합니다.',
+      message: '독전갈이 독성 면역 없는 개체들을 쏘아 쓰러뜨렸습니다.',
+      predicate: i => i.stats.attack < 15 && !(i.mutations||[]).includes('poison_gland') },
     { name: '열사병',
-      warning: '극한 폭염이 시작됩니다! 무거운 갑옷을 두른 개체들이 열사병에 걸릴 수 있습니다.',
-      message: '극한 폭염에 갑옷을 두른 개체들이 열사병으로 쓰러졌습니다.',
-      predicate: i => i.hasDominant('armor') },
+      warning: '극한 폭염이 시작됩니다! 방어력은 높지만 속도가 느린 개체들이 열사병에 걸릴 수 있습니다.',
+      message: '극한 폭염에 무겁고 느린 개체들이 열사병으로 쓰러졌습니다.',
+      predicate: i => i.stats.defense > 12 && i.stats.speed < 75 },
     { name: '신기루',
       warning: '신기루가 나타나 개체들이 뒤쫓기 시작했습니다! 식량 손실이 예상됩니다.',
       message: '신기루를 쫓아가다 지쳐 식량의 30%를 잃었습니다.',
@@ -2727,31 +2727,31 @@ const TERRAIN_EVENTS = {
   ],
   volcano: [
     { name: '화산 폭발',
-      warning: '화산이 폭발하려 합니다! 붉은 몸(RR)이 없는 개체들이 열기를 버티지 못할 수 있습니다.',
-      message: '화산 폭발로 붉은 몸이 없는 개체 다수가 열기에 쓰러졌습니다.',
-      predicate: i => getGenotypeLabel(i, 'color') !== 'RR' },
+      warning: '화산이 폭발하려 합니다! 재생 능력이나 방어력이 없는 개체들이 열기를 버티지 못할 수 있습니다.',
+      message: '화산 폭발로 열기에 취약한 개체 다수가 쓰러졌습니다.',
+      predicate: i => i.stats.defense < 7 && !(i.mutations||[]).includes('regeneration') },
     { name: '독가스 분출',
-      warning: '화산 독가스가 분출되기 시작했습니다! 독성 유전자가 없는 개체들이 위험합니다.',
-      message: '독가스로 독성 유전자 없는 개체들이 쓰러졌습니다.',
-      predicate: i => !i.hasDominant('poison') },
+      warning: '화산 독가스가 분출되기 시작했습니다! 독성 면역이 없는 개체들이 위험합니다.',
+      message: '독가스로 독성 면역 없는 개체들이 쓰러졌습니다.',
+      predicate: i => i.stats.attack < 15 && !(i.mutations||[]).includes('poison_gland') },
     { name: '마그마 흐름',
       warning: '마그마가 흘러들고 있습니다! 느린 개체들은 피하지 못할 수 있습니다.',
       message: '마그마에 느린 개체들이 피하지 못하고 쓰러졌습니다.',
       predicate: i => i.stats.speed < 70 },
     { name: '용암 분수',
-      warning: '용암이 솟구치려 합니다! 매력이 없는 개체들이 무리 밖에서 위험에 처합니다.',
-      message: '용암 분수가 매력 없는 개체들을 덮쳤습니다.',
-      predicate: i => !i.hasDominant('charm') },
+      warning: '용암이 솟구치려 합니다! 매력이 낮은 개체들이 무리 밖에서 위험에 처합니다.',
+      message: '용암 분수가 무리에서 멀어진 개체들을 덮쳤습니다.',
+      predicate: i => i.stats.charm < 10 },
     { name: '화산재 폭풍',
-      warning: '짙은 화산재가 쏟아지기 시작했습니다! 갑옷이 없는 개체들이 질식 위험에 처합니다.',
-      message: '화산재 폭풍에 갑옷 없는 개체들이 질식했습니다.',
-      predicate: i => !i.hasDominant('armor') }
+      warning: '짙은 화산재가 쏟아지기 시작했습니다! 방어력이 낮은 개체들이 질식 위험에 처합니다.',
+      message: '화산재 폭풍에 방어력이 낮은 개체들이 질식했습니다.',
+      predicate: i => i.stats.defense < 7 }
   ],
   snow: [
     { name: '눈보라',
-      warning: '눈보라가 몰아치기 시작했습니다! 갑옷이 없는 개체들이 동사할 위험이 있습니다.',
-      message: '눈보라에 갑옷 없는 개체들이 동사했습니다.',
-      predicate: i => !i.hasDominant('armor') },
+      warning: '눈보라가 몰아치기 시작했습니다! 방어력이 낮은 개체들이 동사할 위험이 있습니다.',
+      message: '눈보라에 방어력이 낮은 개체들이 동사했습니다.',
+      predicate: i => i.stats.defense < 7 },
     { name: '혹한 동상',
       warning: '극심한 추위가 몰려옵니다! 체력이 낮은 개체들이 동상에 걸릴 수 있습니다.',
       message: '혹한에 체력이 낮은 개체들이 동상으로 쓰러졌습니다.',
@@ -2761,13 +2761,13 @@ const TERRAIN_EVENTS = {
       message: '눈이 뒤덮어 식량의 40%가 사라졌습니다.',
       foodRatio: 0.60 },
     { name: '극야 생존',
-      warning: '극야의 혹한이 시작됩니다! 붉은 개체(RR)들이 눈밭에 적응하지 못합니다.',
-      message: '극야의 혹한에 붉은 개체(RR)들이 쓰러졌습니다.',
-      predicate: i => getGenotypeLabel(i, 'color') === 'RR' },
+      warning: '극야의 혹한이 시작됩니다! 체력이 낮고 재생 능력이 없는 개체들이 버티지 못합니다.',
+      message: '극야의 혹한에 체력이 낮은 개체들이 쓰러졌습니다.',
+      predicate: i => i.stats.hp < 115 && !(i.mutations||[]).includes('large_body') },
     { name: '눈사태',
-      warning: '눈사태가 일어나려 합니다! 무거운 갑옷을 두른 개체들이 미처 피하지 못할 수 있습니다.',
-      message: '눈사태에 갑옷을 두른 개체들이 미처 피하지 못했습니다.',
-      predicate: i => i.hasDominant('armor') }
+      warning: '눈사태가 일어나려 합니다! 속도가 느린 개체들이 미처 피하지 못할 수 있습니다.',
+      message: '눈사태에 느린 개체들이 미처 피하지 못했습니다.',
+      predicate: i => i.stats.speed < 75 && i.stats.defense > 12 }
   ],
   river: [
     { name: '갑작스런 홍수',
@@ -2775,27 +2775,27 @@ const TERRAIN_EVENTS = {
       message: '강이 범람해 느린 개체들이 떠내려갔습니다.',
       predicate: i => i.stats.speed < 70 },
     { name: '강 독소 유입',
-      warning: '상류에서 독소가 유입되고 있습니다! 독성 유전자가 없는 개체들이 중독될 수 있습니다.',
-      message: '독소로 독성 유전자 없는 개체들이 중독됐습니다.',
-      predicate: i => !i.hasDominant('poison') },
+      warning: '상류에서 독소가 유입되고 있습니다! 독성 면역이 없는 개체들이 중독될 수 있습니다.',
+      message: '독소로 독성 면역이 없는 개체들이 중독됐습니다.',
+      predicate: i => i.stats.attack < 15 && !(i.mutations||[]).includes('poison_gland') },
     { name: '물고기 풍년',
       warning: '강에 물고기가 넘쳐흐르고 있습니다! 곧 풍성한 식량을 얻을 수 있습니다.',
       message: '물고기 풍년으로 풍성한 식량을 얻었습니다!',
       foodDelta: 60 },
     { name: '급류',
-      warning: '급류가 발생하고 있습니다! 무거운 갑옷을 입은 개체들이 가라앉을 수 있습니다.',
-      message: '급류에 갑옷을 입은 개체들이 가라앉았습니다.',
-      predicate: i => i.hasDominant('armor') },
+      warning: '급류가 발생하고 있습니다! 방어력은 높지만 속도가 느린 개체들이 가라앉을 수 있습니다.',
+      message: '급류에 무거운 개체들이 가라앉았습니다.',
+      predicate: i => i.stats.speed < 72 && i.stats.defense > 12 },
     { name: '강변 포식자',
       warning: '강변 포식자들이 모여들고 있습니다! 매력이 낮은 개체들이 표적이 됩니다.',
-      message: '강변 포식자가 매력 없는 개체들을 잡아갔습니다.',
-      predicate: i => !i.hasDominant('charm') }
+      message: '강변 포식자가 매력이 낮은 개체들을 잡아갔습니다.',
+      predicate: i => i.stats.charm < 10 }
   ],
   swamp: [
     { name: '독성 폭발 확산',
-      warning: '늪의 독성이 급격히 강해지고 있습니다! 독성 유전자가 없는 개체 대다수가 위험합니다.',
-      message: '늪 독성 폭발로 독성 유전자 없는 개체들이 대거 쓰러졌습니다.',
-      predicate: i => !i.hasDominant('poison') },
+      warning: '늪의 독성이 급격히 강해지고 있습니다! 독성 면역이 없는 개체 대다수가 위험합니다.',
+      message: '늪 독성 폭발로 독성 면역 없는 개체들이 대거 쓰러졌습니다.',
+      predicate: i => i.stats.attack < 15 && !(i.mutations||[]).includes('poison_gland') },
     { name: '늪 수렁',
       warning: '늪이 깊어지기 시작했습니다! 느린 개체들이 수렁에 빠질 수 있습니다.',
       message: '늪 수렁에 느린 개체들이 헤어나오지 못했습니다.',
@@ -2805,13 +2805,13 @@ const TERRAIN_EVENTS = {
       message: '썩은 열매를 먹어 식량의 35%가 손실됐습니다.',
       foodRatio: 0.65 },
     { name: '독거미',
-      warning: '독거미들이 활동을 시작했습니다! 매력이 낮은 개체들이 무리 밖에서 위험합니다.',
-      message: '독거미가 매력 없는 개체들을 물어 쓰러뜨렸습니다.',
-      predicate: i => !i.hasDominant('charm') },
+      warning: '독거미들이 활동을 시작했습니다! 매력이 낮고 공격력이 약한 개체들이 무리 밖에서 위험합니다.',
+      message: '독거미가 방어력이 낮은 개체들을 물어 쓰러뜨렸습니다.',
+      predicate: i => i.stats.charm < 10 && i.stats.attack < 14 },
     { name: '늪 안개',
-      warning: '짙은 늪 안개가 몰려오고 있습니다! 독성도 없고 느린 개체들이 특히 위험합니다.',
-      message: '늪 안개에 독성도 없고 느린 개체들이 질식했습니다.',
-      predicate: i => !i.hasDominant('poison') && i.stats.speed < 65 }
+      warning: '짙은 늪 안개가 몰려오고 있습니다! 독성 면역도 없고 느린 개체들이 특히 위험합니다.',
+      message: '늪 안개에 면역력과 이동력이 부족한 개체들이 질식했습니다.',
+      predicate: i => !(i.mutations||[]).includes('poison_gland') && i.stats.speed < 65 }
   ]
 };
 
@@ -5288,7 +5288,7 @@ class ArenaScene extends Phaser.Scene {
     const gained = this.player.lastGainedMutations || [];
     this.showToast(`🥚 +${count}`, 'ach');
     Audio.sfxBreed();
-    ContextHint.show('first_breed','🥚','자손이 태어났어요!\n유전자는 부모에게서 물려받고\n가끔 돌연변이로 새 특성이 생겨요.\n📊 현황 버튼으로 유전자 비율을 확인해보세요!');
+    ContextHint.show('first_breed','🥚','자손이 태어났어요!\n부모의 특성을 물려받고\n가끔 돌연변이로 새 능력이 생겨요.\n🔬 돌연변이가 쌓일수록 집단이 강해집니다!');
     this.burst(this.player.x, this.player.y, 0xffb4a2, 12, 70);
     // 돌연변이 토스트
     gained.forEach((id, i) => {
@@ -5755,15 +5755,18 @@ resolveBoss(win, reason) {
     if (Audio.sfxMeteor) Audio.sfxMeteor();
   }
 
-  // 유전자 3종 이상이 각각 한 번이라도 100% 완전 고정되면 황금 슬라임 조건 달성
+  // 돌연변이 3종 이상이 집단의 70% 이상에게 보급되면 황금 슬라임 조건 달성
   // (동시에 충족할 필요 없음 — 게임 중 누적 기록)
   _checkGoldenCondition() {
     if (this._goldenConditionMet) return;
-    if (!this.player.individuals.length) return;
-    const freq = this.player.geneFrequency();
-    for (const g of ['color','speed','poison','armor','charm']) {
-      const v = freq[g] || 0;
-      if (v >= 100 || (g === 'color' && v <= 0)) this._genesMaxedEver.add(g);
+    const aliveInds = this.player.individuals.filter(i => !i.dead);
+    if (!aliveInds.length) return;
+    const mutFreq = {};
+    for (const ind of aliveInds) {
+      for (const id of (ind.mutations || [])) mutFreq[id] = (mutFreq[id] || 0) + 1;
+    }
+    for (const [id, cnt] of Object.entries(mutFreq)) {
+      if (cnt / aliveInds.length >= 0.7) this._genesMaxedEver.add(id);
     }
     if (this._genesMaxedEver.size >= 3) {
       this._goldenConditionMet = true;
@@ -6366,47 +6369,35 @@ resolveBoss(win, reason) {
         </div>`
       : '';
 
-    // 유전자 대립유전자 빈도 변화 (초기 50% 기준)
-    const finalGeneFreq = byMeteor ? (this.savedMeteorGeneFreq || {}) : group.geneFrequency();
-    const GENE_RESULT_META = {
-      color:  { ico:'🔴', label:'R 대립유전자 (몸색)',   col:'#ef5555' },
-      speed:  { ico:'⚡', label:'S 대립유전자 (속도)',   col:'#22c55e' },
-      poison: { ico:'☠️', label:'P 대립유전자 (독성)',   col:'#a855f7' },
-      armor:  { ico:'🛡️', label:'A 대립유전자 (갑옷)',   col:'#60a5fa' },
-      charm:  { ico:'💗', label:'C 대립유전자 (매력)',   col:'#f0abfc' },
-    };
-    const geneChanges = Object.entries(GENE_RESULT_META).map(([gene, m]) => ({
-      gene, ...m,
-      initial: 50,
-      final: finalGeneFreq[gene] || 0,
-      delta: (finalGeneFreq[gene] || 0) - 50,
-    })).sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
-
-    const maxDelta = Math.max(...geneChanges.map(g => Math.abs(g.delta)), 1);
-    const geneChangeHtml = geneChanges.map((g, i) => {
-      const isBig = i === 0 && Math.abs(g.delta) >= 10;
-      const barW = Math.min(100, Math.abs(g.delta) / maxDelta * 100);
-      const barDir = g.delta >= 0 ? 'right' : 'left';
-      const barCol = g.delta >= 0 ? g.col : '#94a3b8';
-      return `<div onclick="showAlleleGraph('${g.gene}')" style="cursor:pointer;margin:${isBig ? '8px' : '5px'} 0;padding:${isBig ? '8px 10px' : '4px 8px'};
-        border-radius:12px;background:${isBig ? 'rgba(255,220,50,.15)' : 'transparent'};
-        ${isBig ? 'border:1.5px solid rgba(255,200,40,.4)' : ''}">
-        <div style="display:flex;justify-content:space-between;align-items:center">
-          <span style="font-size:${isBig ? '14' : '12'}px;font-weight:900;color:var(--ink)">
-            ${g.ico} ${g.label}${isBig ? ' 🏅' : ''} <span style="font-size:10px;color:var(--ink-soft);font-weight:700">📈</span>
-          </span>
-          <span style="font-size:${isBig ? '17' : '13'}px;font-weight:900;color:${g.delta > 0 ? g.col : g.delta < 0 ? '#94a3b8' : 'var(--ink-soft)'}">
-            50% → ${g.final.toFixed(0)}%
-            <span style="font-size:${isBig ? '13' : '11'}px">(${g.delta > 0 ? '+' : ''}${g.delta.toFixed(0)}%)</span>
-          </span>
-        </div>
-        <div style="margin-top:3px;height:7px;background:rgba(110,99,132,.12);border-radius:999px;position:relative;overflow:hidden">
-          <div style="position:absolute;left:50%;top:0;bottom:0;width:1.5px;background:rgba(110,99,132,.4)"></div>
-          <div style="position:absolute;height:100%;border-radius:999px;background:${barCol};
-            width:${barW/2}%;${barDir === 'right' ? 'left:50%' : `left:${50 - barW/2}%`}"></div>
-        </div>
-      </div>`;
-    }).join('');
+    // 돌연변이 보급 현황 (최종 집단 기준)
+    const finalInds = group.individuals.filter(i => !i.dead);
+    const mutFreqMap = {};
+    for (const ind of finalInds) {
+      for (const id of (ind.mutations || [])) mutFreqMap[id] = (mutFreqMap[id] || 0) + 1;
+    }
+    const MUT_TYPE_COL = { good: '#22c55e', dual: '#60a5fa', bad: '#ef5555' };
+    const topMuts = Object.entries(mutFreqMap)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 6)
+      .map(([id, cnt]) => {
+        const m = MUTATIONS.find(x => x.id === id);
+        if (!m) return null;
+        const pct = finalInds.length ? Math.round(cnt / finalInds.length * 100) : 0;
+        const col = MUT_TYPE_COL[m.type] || '#94a3b8';
+        const isBig = pct >= 50;
+        return `<div style="margin:${isBig?'8':'5'}px 0;padding:${isBig?'8px 10px':'4px 8px'};
+          border-radius:12px;background:${isBig?'rgba(34,197,94,.1)':'transparent'};
+          ${isBig?'border:1.5px solid rgba(34,197,94,.35)':''}">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <span style="font-size:${isBig?14:12}px;font-weight:900;color:var(--ink)">${m.name}${isBig?' 🏅':''}</span>
+            <span style="font-size:${isBig?17:13}px;font-weight:900;color:${col}">${pct}% <span style="font-size:11px">(${cnt}마리)</span></span>
+          </div>
+          <div style="margin-top:3px;height:7px;background:rgba(110,99,132,.12);border-radius:999px;overflow:hidden">
+            <div style="height:100%;border-radius:999px;background:${col};width:${pct}%"></div>
+          </div>
+        </div>`;
+      }).filter(Boolean).join('');
+    const geneChangeHtml = topMuts || '<div style="color:var(--ink-soft);font-size:12px">이번 런에서 돌연변이가 발현되지 않았습니다.</div>';
 
     // 최다 이벤트 지형 계산
     const eventEntries = Object.entries(this.terrainEventCount || {});
@@ -6452,7 +6443,7 @@ resolveBoss(win, reason) {
         ${hotTerrainHtml}
       </div>
 
-      <div class="result-card"><h2>🧬 유전자 풀 변화 <small style="font-size:11px;color:var(--ink-soft);font-family:Nunito">(초기 50% 기준 · 항목 터치 → 📈 변화 그래프)</small></h2>
+      <div class="result-card"><h2>🔬 돌연변이 보급 현황 <small style="font-size:11px;color:var(--ink-soft);font-family:Nunito">(최종 집단 기준 · 상위 6종)</small></h2>
         ${geneChangeHtml}
         <div class="row" style="margin-top:6px;padding-top:6px;border-top:1px solid var(--ink-faint)">
           <span>유전적 다양성</span><strong>${(finalDiversity * 100).toFixed(0)}%</strong>
@@ -6742,31 +6733,31 @@ const EVENT_DEX_DATA = [
     bg:'linear-gradient(135deg,#6ec46a,#3d8a3a)',
     events:[
       { name:'메뚜기 떼 습격',   type:'food',  criterion:'식량 50% 즉시 감소',                          desc:'메뚜기 떼가 밀밭을 휩쓸어 식량이 절반으로 줄어듭니다.' },
-      { name:'들불',             type:'death', criterion:'속도 68 미만 개체 → 15초간 점진 사망',         desc:'빠르지 않으면 번지는 불길을 피하지 못합니다. 갑옷(A_) 보유 시 속도 -8 주의.' },
-      { name:'야생 동물 습격',   type:'death', criterion:'갑옷(A_) AND 매력(C_) 모두 없는 개체 → 점진 사망', desc:'둘 중 하나라도 있으면 살아남습니다.' },
-      { name:'전염병 창궐',      type:'death', criterion:'번식력 1.3 초과 개체 → 15초간 점진 사망',      desc:'매력(C_) 또는 높은번식력 돌연변이로 번식력이 높으면 위험합니다.' },
-      { name:'붉은 달',          type:'death', criterion:'BB(파란색) 개체 → 15초간 점진 사망',           desc:'붉은 달빛 아래 파란색이 포식자에게 발각됩니다.' },
+      { name:'들불',             type:'death', criterion:'속도 68 미만 개체 → 15초간 점진 사망',         desc:'빠르지 않으면 번지는 불길을 피하지 못합니다. 빠른 다리·작은 몸집 돌연변이가 도움이 됩니다.' },
+      { name:'야생 동물 습격',   type:'death', criterion:'방어 6 미만 AND 매력 10 미만 개체 → 점진 사망', desc:'방어력이나 매력이 있으면 살아남습니다. 단단한 껍질·지배 페로몬 돌연변이가 효과적입니다.' },
+      { name:'전염병 창궐',      type:'death', criterion:'번식력 1.3 초과 개체 → 15초간 점진 사망',      desc:'높은 번식력 돌연변이는 번식에 유리하지만 전염병에 취약합니다.' },
+      { name:'붉은 달',          type:'death', criterion:'매력 10 미만 AND 단단한 껍질 없는 개체 → 점진 사망', desc:'매력이 낮고 몸을 숨기지 못하는 개체가 포식자에게 발각됩니다. 지배 페로몬·단단한 껍질이 유리합니다.' },
     ]
   },
   {
     id:'forest', label:'숲', ico:'🌳',
     bg:'linear-gradient(135deg,#3d8a3a,#1a5c1a)',
     events:[
-      { name:'위장 포식자 출현',  type:'death', criterion:'RR(붉은색) 개체 → 15초간 점진 사망',          desc:'숲 속 위장 포식자가 눈에 띄는 붉은색을 골라 잡습니다.' },
-      { name:'나무 쓰러짐',       type:'death', criterion:'속도 72 미만 개체 → 15초간 점진 사망',         desc:'폭풍에 거목이 쓰러집니다. 갑옷(A_) 보유 시 속도 -8 주의.' },
+      { name:'위장 포식자 출현',  type:'death', criterion:'HP 110 미만 AND 재생 능력 없는 개체 → 점진 사망', desc:'체력이 약하고 회복력이 없는 개체가 사냥당합니다. 재생 능력·큰 몸집 돌연변이가 도움이 됩니다.' },
+      { name:'나무 쓰러짐',       type:'death', criterion:'속도 72 미만 개체 → 15초간 점진 사망',         desc:'폭풍에 거목이 쓰러집니다. 빠른 다리·작은 몸집 돌연변이가 유리합니다.' },
       { name:'열매 풍년',         type:'food',  criterion:'식량 +55 즉시',                                desc:'숲에 열매가 풍성하게 익어 식량이 크게 늘어납니다.' },
-      { name:'기생충 감염',        type:'death', criterion:'갑옷(A_) 없는 개체 → 15초간 점진 사망',        desc:'갑옷이 없으면 기생충을 막지 못합니다.' },
-      { name:'야간 포식자',        type:'death', criterion:'매력(C_) 없는 개체 → 15초간 점진 사망',        desc:'매력이 없어 무리를 이탈한 개체가 표적이 됩니다.' },
+      { name:'기생충 감염',        type:'death', criterion:'방어 7 미만 개체 → 15초간 점진 사망',          desc:'방어력이 낮으면 기생충을 막지 못합니다. 단단한 껍질·재생 능력 돌연변이가 효과적입니다.' },
+      { name:'야간 포식자',        type:'death', criterion:'매력 10 미만 개체 → 15초간 점진 사망',          desc:'매력이 낮아 무리를 이탈한 개체가 표적이 됩니다. 지배 페로몬·화려한 무늬 돌연변이가 도움이 됩니다.' },
     ]
   },
   {
     id:'desert', label:'사막', ico:'🏜️',
     bg:'linear-gradient(135deg,#e8b84b,#b87d1a)',
     events:[
-      { name:'극심한 폭염',       type:'death', criterion:'식량요구량 1.35 이상 개체 → 15초간 점진 사망',  desc:'대사량이 높으면 탈수가 빠릅니다. 속도(S_) 유전자는 식량요구 +0.3 추가.' },
+      { name:'극심한 폭염',       type:'death', criterion:'식량요구량 1.35 이상 개체 → 15초간 점진 사망',  desc:'대사량이 높으면 탈수가 빠릅니다. 효율 대사·작은 몸집 돌연변이로 식량 소모를 줄이세요.' },
       { name:'오아시스 발견',      type:'food',  criterion:'식량 +40 즉시',                                desc:'귀한 오아시스를 발견해 식량을 획득합니다.' },
-      { name:'독전갈 습격',        type:'death', criterion:'독성(P_) 없는 개체 → 15초간 점진 사망',         desc:'독성 유전자가 없으면 독에 쓰러집니다.' },
-      { name:'열사병',             type:'death', criterion:'갑옷(A_) 있는 개체 → 15초간 점진 사망',         desc:'사막에서 갑옷은 오히려 열을 가두어 치명적입니다.' },
+      { name:'독전갈 습격',        type:'death', criterion:'공격 15 미만 AND 독성 분비 없는 개체 → 점진 사망', desc:'독성 면역이 없으면 독에 쓰러집니다. 독성 분비 돌연변이가 가장 효과적입니다.' },
+      { name:'열사병',             type:'death', criterion:'방어 12 초과 AND 속도 75 미만 개체 → 점진 사망', desc:'방어력이 높지만 느린 개체가 열기를 못 이깁니다. 사막에서는 기동성이 중요합니다.' },
       { name:'신기루',             type:'food',  criterion:'식량 30% 즉시 감소',                           desc:'신기루를 쫓다 지쳐 식량을 낭비합니다.' },
     ]
   },
@@ -6774,44 +6765,44 @@ const EVENT_DEX_DATA = [
     id:'volcano', label:'화산지대', ico:'🌋',
     bg:'linear-gradient(135deg,#e85c3a,#9b2010)',
     events:[
-      { name:'화산 폭발',         type:'death', criterion:'RR(붉은색) 아닌 모든 개체 → 15초간 점진 사망', desc:'오직 붉은색(RR) 개체만 극한 열기를 버팁니다.' },
-      { name:'독가스 분출',        type:'death', criterion:'독성(P_) 없는 개체 → 15초간 점진 사망',         desc:'독성 유전자가 없으면 가스에 쓰러집니다.' },
-      { name:'마그마 흐름',        type:'death', criterion:'속도 70 미만 개체 → 15초간 점진 사망',           desc:'마그마를 피하려면 빠른 발이 필요합니다. 갑옷(A_) 보유 시 속도 -8 주의.' },
-      { name:'용암 분수',          type:'death', criterion:'매력(C_) 없는 개체 → 15초간 점진 사망',          desc:'무리 밖에 있던 개체가 용암 분수에 덮칩니다.' },
-      { name:'화산재 폭풍',        type:'death', criterion:'갑옷(A_) 없는 개체 → 15초간 점진 사망',          desc:'짙은 화산재에 갑옷이 없으면 질식합니다.' },
+      { name:'화산 폭발',         type:'death', criterion:'방어 7 미만 AND 재생 능력 없는 개체 → 점진 사망', desc:'방어력이나 회복력이 없으면 열기를 버티지 못합니다. 재생 능력·단단한 껍질 돌연변이가 유리합니다.' },
+      { name:'독가스 분출',        type:'death', criterion:'공격 15 미만 AND 독성 분비 없는 개체 → 점진 사망', desc:'독성 면역이 없으면 가스에 쓰러집니다. 독성 분비 돌연변이가 가장 효과적입니다.' },
+      { name:'마그마 흐름',        type:'death', criterion:'속도 70 미만 개체 → 15초간 점진 사망',           desc:'마그마를 피하려면 빠른 이동이 필요합니다. 빠른 다리·작은 몸집 돌연변이가 도움이 됩니다.' },
+      { name:'용암 분수',          type:'death', criterion:'매력 10 미만 개체 → 15초간 점진 사망',           desc:'무리 밖에 혼자 있던 개체가 용암 분수에 덮칩니다. 지배 페로몬으로 무리를 유지하세요.' },
+      { name:'화산재 폭풍',        type:'death', criterion:'방어 7 미만 개체 → 15초간 점진 사망',            desc:'짙은 화산재에 방어력이 낮으면 질식합니다. 단단한 껍질·재생 능력 돌연변이가 효과적입니다.' },
     ]
   },
   {
     id:'snow', label:'눈밭', ico:'❄️',
     bg:'linear-gradient(135deg,#8ecfe8,#4a9ec0)',
     events:[
-      { name:'눈보라',             type:'death', criterion:'갑옷(A_) 없는 개체 → 15초간 점진 사망',          desc:'갑옷이 없으면 혹한을 버티지 못하고 동사합니다.' },
+      { name:'눈보라',             type:'death', criterion:'방어 7 미만 개체 → 15초간 점진 사망',           desc:'방어력이 낮으면 혹한을 버티지 못하고 동사합니다. 단단한 껍질·큰 몸집 돌연변이가 유리합니다.' },
       { name:'혹한 동상',          type:'death', criterion:'현재 HP < 최대 HP×55% 개체 → 15초간 점진 사망', desc:'체력이 낮은 상태일수록 동상에 취약합니다.' },
       { name:'먹이 고갈',          type:'food',  criterion:'식량 40% 즉시 감소',                            desc:'눈이 모든 것을 뒤덮어 식량이 급감합니다.' },
-      { name:'극야 생존',          type:'death', criterion:'RR(붉은색) 개체 → 15초간 점진 사망',             desc:'흰 눈밭에서 붉은색이 포식자에게 쉽게 발각됩니다.' },
-      { name:'눈사태',             type:'death', criterion:'갑옷(A_) 있는 개체 → 15초간 점진 사망',          desc:'무거운 갑옷이 눈사태에서 발목을 잡습니다.' },
+      { name:'극야 생존',          type:'death', criterion:'HP 115 미만 AND 큰 몸집 없는 개체 → 점진 사망', desc:'체력과 보온성이 부족한 개체가 버티지 못합니다. 큰 몸집·재생 능력 돌연변이가 도움이 됩니다.' },
+      { name:'눈사태',             type:'death', criterion:'속도 75 미만 AND 방어 12 초과 개체 → 점진 사망', desc:'무겁고 느린 개체가 눈사태를 피하지 못합니다. 기동성을 유지하세요.' },
     ]
   },
   {
     id:'river', label:'강가', ico:'💧',
     bg:'linear-gradient(135deg,#4ab8d8,#1a6a98)',
     events:[
-      { name:'갑작스런 홍수',      type:'death', criterion:'속도 70 미만 개체 → 15초간 점진 사망',           desc:'빠르지 않으면 강물에 떠내려갑니다. 갑옷(A_) 보유 시 속도 -8 주의.' },
-      { name:'강 독소 유입',       type:'death', criterion:'독성(P_) 없는 개체 → 15초간 점진 사망',          desc:'상류에서 유입된 독소에 중독됩니다.' },
+      { name:'갑작스런 홍수',      type:'death', criterion:'속도 70 미만 개체 → 15초간 점진 사망',           desc:'빠르지 않으면 강물에 떠내려갑니다. 빠른 다리·작은 몸집 돌연변이가 유리합니다.' },
+      { name:'강 독소 유입',       type:'death', criterion:'공격 15 미만 AND 독성 분비 없는 개체 → 점진 사망', desc:'독성 면역이 없으면 중독됩니다. 독성 분비 돌연변이가 가장 효과적입니다.' },
       { name:'물고기 풍년',        type:'food',  criterion:'식량 +60 즉시',                                 desc:'강에 물고기가 넘쳐 풍성한 식량을 얻습니다.' },
-      { name:'급류',               type:'death', criterion:'갑옷(A_) 있는 개체 → 15초간 점진 사망',          desc:'무거운 갑옷이 급류에서 가라앉게 만듭니다.' },
-      { name:'강변 포식자',        type:'death', criterion:'매력(C_) 없는 개체 → 15초간 점진 사망',          desc:'무리를 이탈한 개체가 강변 포식자의 표적이 됩니다.' },
+      { name:'급류',               type:'death', criterion:'속도 72 미만 AND 방어 12 초과 개체 → 점진 사망', desc:'무겁고 느린 개체가 급류에 가라앉습니다. 기동성과 무게의 균형을 맞추세요.' },
+      { name:'강변 포식자',        type:'death', criterion:'매력 10 미만 개체 → 15초간 점진 사망',           desc:'무리를 이탈한 개체가 강변 포식자의 표적이 됩니다. 지배 페로몬·화려한 무늬가 효과적입니다.' },
     ]
   },
   {
     id:'swamp', label:'독성 늪', ico:'🐸',
     bg:'linear-gradient(135deg,#7ab84a,#3a6e1a)',
     events:[
-      { name:'독성 폭발 확산',     type:'death', criterion:'독성(P_) 없는 개체 → 15초간 점진 사망',          desc:'늪의 독성이 폭발적으로 강해져 독성 유전자가 없으면 살아남기 어렵습니다.' },
+      { name:'독성 폭발 확산',     type:'death', criterion:'공격 15 미만 AND 독성 분비 없는 개체 → 점진 사망', desc:'늪의 독성이 폭발적으로 강해집니다. 독성 분비 돌연변이가 없으면 살아남기 어렵습니다.' },
       { name:'늪 수렁',            type:'death', criterion:'속도 62 미만 개체 → 15초간 점진 사망',            desc:'깊어진 수렁에 느린 개체가 빠져나오지 못합니다.' },
       { name:'썩은 열매',          type:'food',  criterion:'식량 35% 즉시 감소',                            desc:'썩은 열매를 먹어 식량이 오염됩니다.' },
-      { name:'독거미',             type:'death', criterion:'매력(C_) 없는 개체 → 15초간 점진 사망',          desc:'무리를 이탈한 개체가 독거미에 물립니다.' },
-      { name:'늪 안개',            type:'death', criterion:'독성(P_) 없음 AND 속도 65 미만 → 동시 해당 시 점진 사망', desc:'두 조건을 동시에 만족하는 개체만 위험합니다.' },
+      { name:'독거미',             type:'death', criterion:'매력 10 미만 AND 공격 14 미만 개체 → 점진 사망', desc:'매력과 공격력이 모두 낮은 고립된 개체가 독거미에 물립니다.' },
+      { name:'늪 안개',            type:'death', criterion:'독성 분비 없음 AND 속도 65 미만 → 동시 해당 시 점진 사망', desc:'두 조건을 동시에 만족하는 개체만 위험합니다. 독성 분비 돌연변이나 빠른 이동으로 대응하세요.' },
     ]
   },
 ];
