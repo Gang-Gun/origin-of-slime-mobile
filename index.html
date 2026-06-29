@@ -351,6 +351,8 @@ canvas { display: block; image-rendering: pixelated; }
 }
 #pause-modal.open { display: flex; animation: fadeIn .2s ease; }
 @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+@keyframes fadeOut { from{opacity:1} to{opacity:0} }
+@keyframes bounceIn { 0%{transform:scale(0.3);opacity:0} 60%{transform:scale(1.15)} 80%{transform:scale(0.95)} 100%{transform:scale(1);opacity:1} }
 #pause-card {
   background: var(--glass); border: 2px solid var(--glass-bdr); border-radius: 28px;
   padding: 26px 28px; width: min(310px, 88vw); text-align: center;
@@ -5677,9 +5679,12 @@ resolveBoss(win, reason) {
       this.time.delayedCall(2000, () => this.endGame(endType));
     }
   } else if (reason === 'retreat') {
-    this.showMessage(`${boss.ico} ${boss.name}가 물러갑니다… (보상 없음)`, true);
+    this.showMessage(`${boss.ico} ${boss.name}가 물러갑니다… 30초 후 재도전`, true);
     this.cameras.main.flash(300, 120, 120, 180);
     if (navigator.vibrate) navigator.vibrate([40, 60, 40]);
+    // 퇴각: 같은 보스 30초 후 재등장
+    this._waveFired = false;
+    this._nextBossAt = this.elapsed + 30000;
   }
   this.activeBoss = null;
   this.bossSlot = null;
@@ -6508,7 +6513,79 @@ resolveBoss(win, reason) {
 
     const titleMap = { meteor:'☄️ 멸종 엔딩', primordial:'🌈 진화의 정점', golden:'✨ 황금의 전설' };
     document.getElementById('result').querySelector('h1').textContent = titleMap[endingType] || '🏁 게임 종료';
-    document.getElementById('result').style.display = 'block';
+
+    const isWin = endingType === 'primordial' || endingType === 'golden';
+    if (isWin) {
+      this._showVictorySplash(endingType, () => {
+        document.getElementById('result').style.display = 'block';
+      });
+    } else {
+      document.getElementById('result').style.display = 'block';
+    }
+  }
+
+  _showVictorySplash(endingType, onDone) {
+    // 파티클 (Phaser Graphics로 별 흩뿌리기)
+    const colors = endingType === 'golden'
+      ? [0xfbbf24, 0xfde68a, 0xffffff, 0xff9900]
+      : [0x818cf8, 0xc7d2fe, 0x22c55e, 0xffffff];
+    const particles = [];
+    for (let i = 0; i < 60; i++) {
+      const g = this.add.graphics().setDepth(100);
+      const col = colors[Math.floor(Math.random() * colors.length)];
+      g.fillStyle(col, 1);
+      g.fillCircle(0, 0, 3 + Math.random() * 5);
+      const cx = this.cameras.main.worldView.x + Math.random() * this.cameras.main.width;
+      const cy = this.cameras.main.worldView.y + this.cameras.main.height * 0.3 + Math.random() * this.cameras.main.height * 0.4;
+      g.setPosition(cx, cy);
+      const vx = (Math.random() - 0.5) * 6;
+      const vy = -(3 + Math.random() * 5);
+      particles.push({ g, vx, vy, life: 1.0, decay: 0.008 + Math.random() * 0.012 });
+    }
+
+    // 풀스크린 오버레이
+    const ov = document.createElement('div');
+    ov.id = 'victory-splash';
+    ov.style.cssText = `position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;
+      background:${endingType==='golden' ? 'rgba(30,20,0,.92)' : 'rgba(10,5,30,.92)'};animation:fadeIn .4s ease`;
+    const ico  = endingType === 'golden' ? '✨' : '🌈';
+    const msg  = endingType === 'golden' ? '황금의 전설' : '진화의 정점';
+    const sub  = endingType === 'golden' ? '극한까지 진화한 집단만이 이룰 수 있는 위업!' : '태초의 포식자를 쓰러뜨렸습니다!';
+    const col  = endingType === 'golden' ? '#fbbf24' : '#818cf8';
+    ov.innerHTML = `
+      <div style="font-size:72px;animation:bounceIn .6s ease">${ico}</div>
+      <div style="font-family:'Jua',sans-serif;font-size:32px;color:${col};margin:12px 0 6px;text-shadow:0 0 20px ${col}88">${msg}</div>
+      <div style="font-size:14px;color:rgba(255,255,255,.75);margin-bottom:32px;text-align:center;padding:0 24px">${sub}</div>
+      <div style="font-size:13px;color:rgba(255,255,255,.4)">터치하면 결과 화면으로</div>`;
+    ov.addEventListener('click', () => {
+      ov.style.animation = 'fadeOut .3s ease forwards';
+      setTimeout(() => { ov.remove(); onDone(); }, 300);
+    });
+    document.body.appendChild(ov);
+
+    // 파티클 틱
+    let frame;
+    const tick = () => {
+      for (const p of particles) {
+        if (!p.g.active) continue;
+        p.vy += 0.12;
+        p.g.x += p.vx;
+        p.g.y += p.vy;
+        p.life -= p.decay;
+        p.g.setAlpha(Math.max(0, p.life));
+        if (p.life <= 0) p.g.destroy();
+      }
+      frame = requestAnimationFrame(tick);
+    };
+    tick();
+    // 4초 후 자동 진행
+    setTimeout(() => {
+      cancelAnimationFrame(frame);
+      particles.forEach(p => { if (p.g.active) p.g.destroy(); });
+      if (document.getElementById('victory-splash')) {
+        ov.remove(); onDone();
+      }
+    }, 4000);
   }
 }
 
