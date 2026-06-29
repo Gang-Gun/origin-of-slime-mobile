@@ -1495,6 +1495,7 @@ body { image-rendering: pixelated; }
   <div id="top-bar">
     <div class="chip"><span class="ico" id="terrain-ico">🌿</span><span id="terrain-name">초원</span></div>
     <div class="chip"><span class="ico">🐾</span><strong id="c-count">20</strong></div>
+    <div class="chip"><strong id="boss-wave-counter" style="font-size:12px">⚔️ 0/10</strong></div>
     <div class="chip" id="diff-badge" style="display:none"><span id="diff-badge-ico">🌱</span><span id="diff-badge-name">일반</span></div>
     <div id="top-spacer"></div>
     <div id="env-badge"><span class="weather" id="weather-ico">☀️</span></div>
@@ -2546,11 +2547,11 @@ const BOSS_VISUAL = {
 };
 
 // 10분 기준 보스 등장 시각(ms)과 슬롯
-const BOSS_SCHEDULE = [
-  { at: 50000, slot:'mid',   hp:37500 },  // 경고 0:50 → 출현 2:30
-  { at:230000, slot:'mid',   hp:37500 },  // 경고 3:50 → 출현 5:30
-  { at:440000, slot:'final', hp:105000 },  // 경고 7:20 → 출현 9:00
-];
+// 웨이브 순서 고정 (난이도 오름차순: 단일→복합→최종)
+const WAVE_BOSS_ORDER = ['sand','charmer','spore','gale','glacier','lava','steel','siren','plague','primordial'];
+const WAVE_BOSS_HP    = [25000, 28000, 31000, 34000, 38000, 43000, 58000, 68000, 80000, 130000];
+const WAVE_FIRST_AT   = 50000;   // 첫 보스 경고 시작 시각 (50초)
+const WAVE_COOLDOWN   = 55000;   // 보스 처치 후 다음 경고까지 대기 (55초)
 
 // ── 날씨 시스템 ──────────────────────────────────
 const WEATHERS = {
@@ -3665,11 +3666,9 @@ class ArenaScene extends Phaser.Scene {
     this._genesMaxedEver = new Set();
     this._goldenConditionMet = false;
     // 보스 위협 상태
-    this.bossSchedule = this.rollBossSchedule();
-    this._progressMarkersBuilt = false;
-    // 이전 게임의 보스 마커 제거 (☄️는 id 없으므로 id 있는 것만 제거)
-    const _pm = document.getElementById('game-progress-markers');
-    if (_pm) _pm.querySelectorAll('.pbm[id]').forEach(el => el.remove());
+    this._waveIdx = 0;
+    this._nextBossAt = WAVE_FIRST_AT;
+    this._waveFired = false;
     this.initTerrainDanger();
     this.tutorialActive = false; // 튜토리얼 진행 중 — 사망 시스템 일시 정지
     this.bossPhase = 'idle';   // idle | warning | chase
@@ -4773,16 +4772,16 @@ class ArenaScene extends Phaser.Scene {
         }
       }
     }
-    // 보스 스케줄 체크 (튜토리얼 중엔 보스 등장 보류 — 읽는 동안 사망 방지)
-    if (!this.tutorialActive && this.bossPhase === 'idle') {
-      const due = this.bossSchedule.find(s => !s.fired && this.elapsed >= s.at);
-      if (due) {
-        due.fired = true;
-        // 최종 슬롯 발화 시 황금 슬라임 조건 달성 여부 확인 → 대체
-        if (due.slot === 'final' && this._goldenConditionMet) due.bossId = 'golden';
-        this.startBossWarning(bossById(due.bossId), due.slot);
-        this._dueBossHp = due.hp;
-      }
+    // 웨이브 보스 스케줄 체크
+    if (!this.tutorialActive && this.bossPhase === 'idle' && !this._waveFired && this._waveIdx < WAVE_BOSS_ORDER.length && this.elapsed >= this._nextBossAt) {
+      this._waveFired = true;
+      const isFinal = this._waveIdx === WAVE_BOSS_ORDER.length - 1;
+      let bossId = WAVE_BOSS_ORDER[this._waveIdx];
+      if (isFinal && this._goldenConditionMet) bossId = 'golden';
+      const slot = isFinal ? 'final' : 'mid';
+      this.startBossWarning(bossById(bossId), slot);
+      const hpMult = getDiffConfig().bossHpMult;
+      this._dueBossHp = Math.round(WAVE_BOSS_HP[this._waveIdx] * hpMult);
     }
     if (this.bossPhase === 'warning') this.bossWarningTick();
     if (this.bossPhase === 'chase') this.bossChaseTick(dt);
@@ -5676,6 +5675,15 @@ resolveBoss(win, reason) {
   }
   this.activeBoss = null;
   this.bossSlot = null;
+  // 웨이브 진행: 처치 시 다음 보스 예약
+  if (win && slot !== 'final') {
+    this._waveIdx++;
+    this._waveFired = false;
+    this._nextBossAt = this.elapsed + WAVE_COOLDOWN;
+    const next = WAVE_BOSS_ORDER[this._waveIdx];
+    const nextBoss = bossById(next);
+    if (nextBoss) this.showMessage(`✅ 처치! 다음: ${nextBoss.ico} ${nextBoss.name} (${Math.round(WAVE_COOLDOWN/1000)}초 후)`, true);
+  }
 }
 
   // 보스 처치 시 재화 아이템을 바닥에 산란시키고 자동 수거
@@ -5784,22 +5792,6 @@ resolveBoss(win, reason) {
     }
   }
 
-  // 1번: 단일 조건 보스 / 2번: 복합(2개) 조건 보스 / 3번: 최종 보스
-  // 황금 슬라임은 런타임에 조건 달성 시 최종 슬롯을 대체함
-  rollBossSchedule() {
-    // 복합(2조건) 보스는 reqText에 유전자 결합 마커 '+'가 있음 (예: '갑옷(AA)+속도(SS)')
-    // 단일(1조건) 보스는 '+'가 없음 → 첫 보스=단일, 둘째 보스=복합 보장
-    const single    = BOSS_ROSTER.filter(b => !b.hidden && !b.final && !b.reqText.includes('+'));
-    const dual      = BOSS_ROSTER.filter(b => !b.hidden && !b.final &&  b.reqText.includes('+'));
-    const finalBoss = BOSS_ROSTER.find(b => b.final);
-    const pick1 = single[Math.floor(Math.random() * single.length)];
-    const pick2 = dual[Math.floor(Math.random() * dual.length)];
-    const hpMult = getDiffConfig().bossHpMult;
-    return BOSS_SCHEDULE.map((s, idx) => {
-      const boss = idx === 0 ? pick1 : idx === 1 ? pick2 : finalBoss;
-      return { at: s.at, slot: s.slot, hp: Math.round(s.hp * hpMult), bossId: boss.id, fired: false };
-    });
-  }
 
   showMessage(text, env = false) {
     if (this.eventLog && !this.gameOver) {
@@ -6207,34 +6199,19 @@ resolveBoss(win, reason) {
     const timeEl = document.getElementById('game-progress-time');
     if (timeEl) timeEl.textContent = `${em}:${String(es).padStart(2,'0')} / ${tm}:${String(ts).padStart(2,'0')}`;
 
-    // 보스 마커 최초 1회 생성
-    if (!this._progressMarkersBuilt && this.bossSchedule) {
-      this._progressMarkersBuilt = true;
-      const container = document.getElementById('game-progress-markers');
-      if (container) {
-        this.bossSchedule.forEach((s, idx) => {
-          const spawnPct = Math.min(98, ((s.at + BOSS_WARN_TIME) / METEOR_TIME) * 100);
-          const div = document.createElement('div');
-          div.className = 'pbm';
-          div.id = `pbm-${idx}`;
-          div.style.left = spawnPct.toFixed(1) + '%';
-          div.textContent = '❓';
-          div.title = `HP: ${s.hp.toLocaleString()}`;
-          container.appendChild(div);
-        });
+    // 웨이브 진행도 표시
+    const waveEl = document.getElementById('boss-wave-counter');
+    if (waveEl) {
+      const total = WAVE_BOSS_ORDER.length;
+      const done  = this._waveIdx;
+      const cur   = this.activeBoss;
+      if (cur) {
+        waveEl.textContent = `${cur.ico} ${done + 1}/${total}`;
+        waveEl.style.color = '#ff7d6e';
+      } else {
+        waveEl.textContent = `⚔️ ${done}/${total}`;
+        waveEl.style.color = done >= total ? '#22c55e' : '';
       }
-    }
-
-    // 경고 시작 후 보스 아이콘 공개
-    if (this.bossSchedule) {
-      this.bossSchedule.forEach((s, idx) => {
-        if (!s.fired) return;
-        const div = document.getElementById(`pbm-${idx}`);
-        if (div && div.textContent === '❓') {
-          const boss = bossById(s.bossId);
-          if (boss) { div.textContent = boss.ico; div.title = boss.name; }
-        }
-      });
     }
   }
 
