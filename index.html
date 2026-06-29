@@ -1574,6 +1574,7 @@ body { image-rendering: pixelated; }
   <div id="toast-ach" class="toast-stack"></div>
   <div id="event-message"><span id="evt-text"></span><button id="evt-collapse-btn" aria-label="접기">−</button></div>
   <div id="boss-banner" onclick="toggleBossBanner()"><span id="boss-banner-text"></span><button id="boss-collapse-btn" onclick="event.stopPropagation();toggleBossBanner()">−</button></div>
+  <div id="next-boss-hint" style="display:none;position:fixed;top:102px;left:50%;transform:translateX(-50%);z-index:25;background:rgba(20,14,36,.82);border:1.5px solid rgba(110,99,132,.4);border-radius:12px;padding:6px 14px;font-size:11.5px;font-weight:800;color:#fff;text-align:center;white-space:nowrap;backdrop-filter:blur(6px);max-width:90vw;overflow:hidden;text-overflow:ellipsis"></div>
   <div id="boss-arrow"></div>
   <div id="boss-hp"><div id="boss-hp-fill"></div><span id="boss-hp-label"></span></div>
 </div>
@@ -6223,6 +6224,28 @@ resolveBoss(win, reason) {
         waveEl.style.color = done >= total ? '#22c55e' : '';
       }
     }
+
+    // 다음 보스 힌트 배너
+    const hintEl = document.getElementById('next-boss-hint');
+    if (hintEl && this._waveList) {
+      const bossActive = this.bossPhase !== 'idle' || this.activeBoss;
+      const allDone = this._waveIdx >= this._waveList.length;
+      if (bossActive || allDone) {
+        hintEl.style.display = 'none';
+      } else {
+        const nextBoss = bossById(this._waveList[this._waveIdx]);
+        if (nextBoss) {
+          const secsLeft = Math.max(0, Math.ceil((this._nextBossAt - this.elapsed) / 1000));
+          const waveNum  = this._waveIdx + 1;
+          const m = Math.floor(secsLeft / 60), s = secsLeft % 60;
+          const timeStr = m > 0 ? `${m}분 ${s}초` : `${s}초`;
+          hintEl.style.display = '';
+          hintEl.innerHTML = `⚔️ <b>${waveNum}/3</b> ${nextBoss.ico} <b>${nextBoss.name}</b> ${timeStr} 후 &nbsp;|&nbsp; 준비: ${nextBoss.reqText}`;
+        } else {
+          hintEl.style.display = 'none';
+        }
+      }
+    }
   }
 
   startMeteorWarning() {
@@ -6382,7 +6405,7 @@ resolveBoss(win, reason) {
     const MUT_TYPE_COL = { good: '#22c55e', dual: '#60a5fa', bad: '#ef5555' };
     const topMuts = Object.entries(mutFreqMap)
       .sort((a, b) => b[1] - a[1])
-      .slice(0, 6)
+      .slice(0, 4)
       .map(([id, cnt]) => {
         const m = MUTATIONS.find(x => x.id === id);
         if (!m) return null;
@@ -6431,74 +6454,44 @@ resolveBoss(win, reason) {
     const mutTypeColor = t => t==='good' ? 'var(--leaf-dk)' : t==='bad' ? 'var(--coral)' : 'var(--lilac-dk)';
     const mutBadge = t => t==='good' ? '✅' : t==='bad' ? '❌' : '🔵';
 
+    // 도전과제 보너스 행 (달성한 것만)
+    const achRows = doneAch.length
+      ? doneAch.map(a => `<div class="row"><span>🏆 ${a.name}</span><strong class="good">+${a.bonus}</strong></div>`).join('')
+      : '';
+
     document.getElementById('result-content').innerHTML = `
       ${unlockBanner}${diffBanner}${meteorBanner}
-      <div class="result-card"><h2>📊 생존 결과</h2>
+
+      <div class="result-card"><h2>📊 결과</h2>
         <div class="row"><span>생존 시간</span><strong>${minutes}분 ${seconds}초</strong></div>
-        <div class="row"><span>${byMeteor ? '운석 사망 개체' : '최종 개체'}</span><strong>${resultPopulation}마리</strong></div>
+        <div class="row"><span>${byMeteor ? '운석 사망 개체' : '최종 개체 수'}</span><strong>${resultPopulation}마리</strong></div>
         <div class="row"><span>세대</span><strong>${group.generation}세대</strong></div>
-        <div class="row"><span>전쟁 승리</span><strong>${group.wins}회</strong></div>
-        <div class="row"><span>포섭 / 빼앗김</span>
-          <span><strong class="good">+${group.recruited}</strong> / <strong class="bad">-${group.recruitedAway}</strong></span>
-        </div>
+        <div class="row"><span>보스 처치</span><strong>${this.achieveData.bossKills || 0}마리</strong></div>
+        <div class="row"><span>전쟁 승리 / 포섭</span><strong>${group.wins}회 / +${group.recruited}마리</strong></div>
       </div>
 
-      <div class="result-card"><h2>🗺️ 지형별 이벤트 발생</h2>
-        ${hotTerrainHtml}
-      </div>
-
-      <div class="result-card"><h2>🔬 돌연변이 보급 현황 <small style="font-size:11px;color:var(--ink-soft);font-family:Nunito">(최종 집단 기준 · 상위 6종)</small></h2>
-        ${geneChangeHtml}
-        <div class="row" style="margin-top:6px;padding-top:6px;border-top:1px solid var(--ink-faint)">
-          <span>유전적 다양성</span><strong>${(finalDiversity * 100).toFixed(0)}%</strong>
-        </div>
-        ${(LAB_BUFFS && LAB_BUFFS.geneVisLevel >= 3) ? `
-        <div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--ink-faint)">
-          <div style="font-size:11px;font-weight:800;color:var(--ink-soft);margin-bottom:6px">📈 대립유전자 변화 그래프</div>
-          <div style="display:flex;flex-wrap:wrap;gap:6px">
-            ${[['color','🔴 몸색'],['speed','⚡ 속도'],['poison','☠️ 독성'],['armor','🛡️ 갑옷'],['charm','💗 매력']].map(([g,label])=>
-              `<button onclick="showAlleleGraph('${g}')" style="font-size:12px;padding:4px 10px;border-radius:999px;border:1.5px solid var(--leaf-dk);background:rgba(61,138,58,.12);color:var(--leaf-dk);font-weight:800;cursor:pointer">${label}</button>`
-            ).join('')}
-          </div>
-        </div>` : ''}
-      </div>
-
-      <div class="result-card"><h2>🔬 돌연변이 기록</h2>
-        <div style="font-size:11px;font-weight:800;color:var(--ink-soft);margin-bottom:6px">📥 이번 게임 획득 (${gainedList.length}종)</div>
+      <div class="result-card"><h2>🧬 돌연변이</h2>
+        <div style="font-size:11px;font-weight:800;color:var(--ink-soft);margin-bottom:6px">이번 런 획득 (${gainedList.length}종)</div>
         ${gainedList.length
-          ? `<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px">
+          ? `<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px">
               ${gainedList.map(m => `<span style="font-size:12px;padding:3px 9px;border-radius:999px;
                 background:${m.type==='good' ? 'rgba(61,138,58,.12)' : m.type==='bad' ? 'rgba(249,101,88,.12)' : 'rgba(196,158,224,.15)'};
                 color:${mutTypeColor(m.type)};font-weight:800;border:1.5px solid ${mutTypeColor(m.type)}40">
                 ${mutBadge(m.type)} ${m.name}</span>`).join('')}
              </div>`
-          : '<div class="label" style="margin-bottom:10px;font-size:12px">획득한 돌연변이 없음</div>'}
-        <div style="font-size:11px;font-weight:800;color:var(--ink-soft);margin-bottom:6px">🧬 최종 보유 (${finalList.length}종)</div>
-        ${finalList.length
-          ? finalList.map(({mut:m, pct}) => `
-            <div class="row">
-              <span style="display:flex;align-items:center;gap:5px;font-size:12px">
-                ${mutBadge(m.type)}
-                <span style="color:${mutTypeColor(m.type)};font-weight:800">${m.name}</span>
-              </span>
-              <strong style="color:${mutTypeColor(m.type)}">${pct.toFixed(0)}%</strong>
-            </div>`).join('')
-          : '<div class="label" style="font-size:12px">없음</div>'}
+          : '<div style="color:var(--ink-soft);font-size:12px;margin-bottom:12px">획득 없음</div>'}
+        <div style="font-size:11px;font-weight:800;color:var(--ink-soft);margin-bottom:6px">최종 보급률 (상위 4종)</div>
+        ${geneChangeHtml || '<div style="color:var(--ink-soft);font-size:12px">없음</div>'}
+        ${(LAB_BUFFS && LAB_BUFFS.geneVisLevel >= 3) ? `
+        <div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--ink-faint);display:flex;flex-wrap:wrap;gap:6px">
+          ${[['color','🔴 몸색'],['speed','⚡ 속도'],['poison','☠️ 독성'],['armor','🛡️ 갑옷'],['charm','💗 매력']].map(([g,label])=>
+            `<button onclick="showAlleleGraph('${g}')" style="font-size:12px;padding:4px 10px;border-radius:999px;border:1.5px solid var(--leaf-dk);background:rgba(61,138,58,.12);color:var(--leaf-dk);font-weight:800;cursor:pointer">${label}</button>`
+          ).join('')}
+        </div>` : ''}
       </div>
 
-      <div class="result-card"><h2>🏆 도전과제 ${doneAch.length}/${ACHIEVEMENTS.length}</h2>
-        ${doneAch.length
-          ? doneAch.map(a => `<div class="row"><span>${a.name}</span><strong class="good">+${a.bonus}</strong></div>`).join('')
-          : '<div class="row"><span class="label">달성한 도전과제 없음</span></div>'}
-      </div>
+      ${doneAch.length ? `<div class="result-card"><h2>🏆 도전과제 달성</h2>${achRows}</div>` : ''}
 
-      <div class="result-card"><h2>점수 구성</h2>
-        <div class="row"><span>기본 점수</span><strong>${(score - diversityBonus - achieveBonus - meteorDeathBonus).toLocaleString()}</strong></div>
-        ${byMeteor ? `<div class="row"><span>운석 사망 보너스</span><strong class="good">+${meteorDeathBonus.toLocaleString()}</strong></div>` : ''}
-        ${this.bossBonus ? `<div class="row"><span>보스 처치 보너스</span><strong class="good">+${this.bossBonus.toLocaleString()}</strong></div>` : ''}
-        <div class="row"><span>다양성 보너스</span><strong class="good">+${diversityBonus}</strong></div>
-        <div class="row"><span>도전과제 보너스</span><strong class="good">+${achieveBonus}</strong></div>
-      </div>
       <div class="score">${score.toLocaleString()}점</div>
       <div style="text-align:center;margin-top:12px">
         <button id="result-register-btn" class="big-btn sky" type="button"
