@@ -2350,15 +2350,34 @@ function showMutationPicker(child, naturalMutId, scene) {
       return `${labels[k]||k} ${sign}${v}`;
     }).join(' · ');
   };
+
+  // 다음 보스 안전조건 힌트: 현재 대기 중인 다음 보스 파악
+  const _sc = window._arenaScene;
+  const _nextBossForHint = (() => {
+    if (!_sc || !_sc._waveList) return null;
+    if (_sc.bossPhase !== 'idle') return _sc.activeBoss; // 경고 중인 보스
+    const idx = _sc._waveIdx;
+    if (idx >= _sc._waveList.length) return null;
+    return bossById(_sc._waveList[idx]);
+  })();
+
   optsEl.innerHTML = candidates.map(mid => {
     const m = mutationById(mid);
     const ico  = m ? (_mutIco[m.type] || '🧬') : '🧬';
     const name = m ? m.name : mid;
     const desc = m ? _mutEffectDesc(m.effects) : '';
+    // 다음 보스 안전조건에 해당하는지 확인
+    const isBossHint = _nextBossForHint && (() => {
+      const testInd = Object.assign(Object.create(Object.getPrototypeOf(child)), child);
+      const fakeMuts = [...(child.mutations||[]), mid];
+      testInd.mutations = fakeMuts;
+      try { return _nextBossForHint.safe(testInd) && !_nextBossForHint.safe(child); } catch(e){ return false; }
+    })();
+    const badge = isBossHint ? `<span style="display:inline-block;margin-left:6px;font-size:10px;padding:2px 7px;border-radius:999px;background:rgba(251,191,36,.18);border:1.5px solid #fbbf24;color:#fbbf24;font-weight:900">${_nextBossForHint.ico} 안전조건</span>` : '';
     return `<div class="mut-pick-option" onclick="resolveMutationPick('${mid}')">
       <span class="mut-ico">${ico}</span>
       <div class="mut-info">
-        <div class="mut-name">${name}</div>
+        <div class="mut-name">${name}${badge}</div>
         <div class="mut-desc">${desc}</div>
       </div>
     </div>`;
@@ -2470,7 +2489,7 @@ const TERRAIN = {
 const TERRAIN_LIST = Object.values(TERRAIN);
 
 // ── 보스 위협 시스템 ─────────────────────────────────
-const BOSS_WARN_TIME = 100000;      // 경고 카운트다운 100초
+const BOSS_WARN_TIME = 60000;       // 경고 카운트다운 60초
 const BOSS_RETREAT_TIME = 90000;    // 중간보스 퇴각 제한 90초
 const BOSS_RANGE = 240;             // 보스 공격범위(거리)
 const BOSS_MIN_POP = 3;             // 이 미만으로 떨어지면 게임오버
@@ -2550,8 +2569,8 @@ const BOSS_VISUAL = {
 };
 
 // 10분 기준 보스 등장 시각(ms)과 슬롯
-const WAVE_FIRST_AT = 50000;   // 첫 보스 경고 시작 시각 (50초)
-const WAVE_COOLDOWN = 55000;   // 보스 처치 후 다음 경고까지 대기 (55초)
+const WAVE_FIRST_AT = 90000;   // 첫 보스 경고 시작 시각 (90초)
+const WAVE_COOLDOWN = 75000;   // 보스 처치 후 다음 경고까지 대기 (75초)
 const WAVE_HP = [37500, 55000, 105000]; // 1·2·3번째 보스 HP (난이도 배율 전)
 
 // ── 날씨 시스템 ──────────────────────────────────
@@ -3676,6 +3695,8 @@ class ArenaScene extends Phaser.Scene {
     this.gainedMutationsThisGame = new Set();
     // 첫 돌연변이 보장: 3번 번식해도 못 얻으면 4번째 확정
     this._breedsWithoutMutation = 0;
+    // 이번 런 최대 개체수 추적 (패인 분석용)
+    this._peakPopulation = 0;
     // 지형별 이벤트 발생 횟수 추적
     this.terrainEventCount = {};
     // 황금 슬라임 등장 조건 추적 (BB/RR + 유전자 3종 100% 달성)
@@ -4858,6 +4879,7 @@ class ArenaScene extends Phaser.Scene {
     this.updateHud();
     // 집단 위기 경고 (3마리 이하)
     const aliveCount = this.player.individuals.filter(i => !i.dead).length;
+    if (aliveCount > this._peakPopulation) this._peakPopulation = aliveCount;
     if (aliveCount <= 3 && !this._crisisWarned && !this.gameOver) {
       this._crisisWarned = true;
       this.cameras.main.flash(400, 220, 30, 30);
@@ -5690,7 +5712,12 @@ resolveBoss(win, reason) {
     this.bossBonus = (this.bossBonus || 0) + score;
     // ── 연구소 재화 드롭 (바닥 아이템 산란) ──
     this.spawnCurrencyDrops(bx, by, slot, boss.hidden);
-    this.showMessage(`🏆 ${boss.name} 처치! +${score}점`, true);
+    // 격파 보상: 식량+100, 전 개체 HP 20% 회복 (bos4 추가 회복은 기존대로)
+    this.player.food += 100;
+    for (const ind of this.player.individuals) {
+      if (!ind.dead) ind.hp = Math.min(ind.stats.hp, ind.hp + ind.stats.hp * 0.20);
+    }
+    this.showMessage(`🏆 ${boss.name} 처치! +${score}점\n🍖 식량+100 · 전 개체 HP+20% 회복`, true);
     if (this.showToast) this.showToast(`🏆 ${boss.name} 처치 +${score}`, 'ach');
     if (navigator.vibrate) navigator.vibrate([80,40,120]);
     this.cameras.main.flash(220, 255, 240, 180);
@@ -6406,6 +6433,23 @@ resolveBoss(win, reason) {
             </div>
           </div>
         </div>` : '';
+    // 패인 분석 (운석/보스 와이프 공통)
+    const _causeLines = [];
+    if (endingType === 'meteor') {
+      const peakPop = this._peakPopulation || group.count;
+      const finalPop = group.count;
+      if (finalPop <= 5) _causeLines.push('⚠️ 개체 수가 너무 적었습니다 (최대 ' + peakPop + '마리 → 최종 ' + finalPop + '마리)');
+      if (this._waveIdx === 0) _causeLines.push('⚠️ 첫 번째 보스에 도달하지 못했습니다');
+      else _causeLines.push('📊 ' + this._waveIdx + '/3 보스 처치 후 멸종');
+      if (this.gainedMutationsThisGame.size === 0) _causeLines.push('⚠️ 이번 런에서 돌연변이를 한 번도 얻지 못했습니다');
+      else _causeLines.push('🧬 돌연변이 ' + this.gainedMutationsThisGame.size + '종 획득');
+    }
+    const defeatAnalysis = _causeLines.length
+      ? `<div class="result-card" style="border-color:rgba(239,68,68,.4);background:rgba(239,68,68,.06)">
+          <h2 style="font-size:13px">🔍 이번 런 분석</h2>
+          ${_causeLines.map(l=>`<div class="row"><span>${l}</span></div>`).join('')}
+        </div>` : '';
+
     const meteorBanner = endingType === 'meteor'
       ? `<div class="result-card panel" style="background:rgba(120,20,20,.6);border-color:#ef4444">
           <h2 style="color:#fca5a5">☄️ 운석 충돌 — 전체 멸종</h2>
@@ -6490,7 +6534,13 @@ resolveBoss(win, reason) {
       : '';
 
     document.getElementById('result-content').innerHTML = `
-      ${unlockBanner}${diffBanner}${meteorBanner}
+      ${unlockBanner}${diffBanner}${meteorBanner}${defeatAnalysis}
+      ${(loadStats().totalGames <= 1) ? `<div class="result-card" style="border-color:rgba(99,102,241,.5);background:rgba(99,102,241,.08);text-align:center">
+        <div style="font-size:22px;margin-bottom:6px">🌳</div>
+        <div style="font-weight:900;font-size:14px;margin-bottom:4px">계통수에서 집단을 강화해보세요!</div>
+        <div style="font-size:12px;color:var(--ink-soft);margin-bottom:10px">돌연변이 선택지 확대, 보스 저항, 유전 분석 등 다양한 업그레이드가 있습니다.</div>
+        <button class="big-btn lilac" style="font-size:13px;padding:8px 20px" onclick="document.getElementById('result').style.display='none';openLab()">🌳 계통수 열기</button>
+      </div>` : ''}
 
       <div class="result-card"><h2>📊 결과</h2>
         <div class="row"><span>생존 시간</span><strong>${minutes}분 ${seconds}초</strong></div>
@@ -7010,7 +7060,7 @@ function renderBossDex() {
             ? `<span style="font-size:10px;padding:1px 5px;border-radius:99px;background:${diffColors[i]};color:#fff;font-weight:800">${d.ico}${d.name}</span>`
             : ''
         ).filter(Boolean).join(' ');
-        return `<div class="boss-card killed">
+        return `<div class="boss-card killed" data-boss-id="${b.id}">
           <div class="boss-ico">${b.ico}</div>
           <div class="boss-info">
             <div class="boss-name" style="display:flex;align-items:center;gap:5px">${b.name} ${typeTag(b)}</div>
@@ -7022,7 +7072,7 @@ function renderBossDex() {
           <div class="boss-badge">✅ 처치</div>
         </div>`;
       }
-      return `<div class="boss-card locked">
+      return `<div class="boss-card locked" data-boss-id="${b.id}">
         <div class="boss-ico">${lockedIco(b)}</div>
         <div class="boss-info">
           <div class="boss-name" style="color:var(--ink-soft);display:flex;align-items:center;gap:5px">${lockedName(b)} ${typeTag(b)}</div>
@@ -7031,6 +7081,18 @@ function renderBossDex() {
         <div class="boss-badge">🔒</div>
       </div>`;
     }).join('');
+
+  // 활성 보스 카드 강조 + 자동 스크롤
+  const sc = window._arenaScene;
+  const activeBossId = sc?.activeBoss?.id || (sc?._waveList && sc._waveIdx < sc._waveList.length ? sc._waveList[sc._waveIdx] : null);
+  if (activeBossId) {
+    const card = list.querySelector(`[data-boss-id="${activeBossId}"]`);
+    if (card) {
+      card.style.outline = '2px solid #fbbf24';
+      card.style.boxShadow = '0 0 0 3px rgba(251,191,36,.25)';
+      setTimeout(() => card.scrollIntoView({ behavior:'smooth', block:'nearest' }), 80);
+    }
+  }
 }
 
 // ── 도전과제 영구 해금 저장소 ─────────────────────────────
