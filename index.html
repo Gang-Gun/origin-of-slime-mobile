@@ -5679,12 +5679,9 @@ resolveBoss(win, reason) {
       this.time.delayedCall(2000, () => this.endGame(endType));
     }
   } else if (reason === 'retreat') {
-    this.showMessage(`${boss.ico} ${boss.name}가 물러갑니다… 30초 후 재도전`, true);
+    this.showMessage(`${boss.ico} ${boss.name}가 물러갑니다… (보상 없음)`, true);
     this.cameras.main.flash(300, 120, 120, 180);
     if (navigator.vibrate) navigator.vibrate([40, 60, 40]);
-    // 퇴각: 같은 보스 30초 후 재등장
-    this._waveFired = false;
-    this._nextBossAt = this.elapsed + 30000;
   }
   this.activeBoss = null;
   this.bossSlot = null;
@@ -7392,10 +7389,10 @@ const Tutorial = (() => {
   // noMask: true → 어두운 오버레이 없이 링만 표시 (이동·식량 단계)
   const STEPS = [
     {
-      ico: '👋',
-      title: '슬라임의 기원',
-      desc: '슬라임 집단을 이끌고 식량을 모아\n번식하며 살아남으세요.\n10분 뒤 운석이 떨어지기 전까지\n집단을 키우는 것이 목표예요!',
-      target: null, cond: null, nextLabel: '시작하기 →',
+      ico: '🎯',
+      title: '목표',
+      desc: '보스 3마리를 순서대로 처치하면 승리!\n상단 ⚔️ 0/3 이 진행도예요.\n\n보스에게는 안전 개체가 있어요.\n안전 조건을 갖춘 개체만 살아남고\n나머지는 도태됩니다.',
+      target: null, cond: null, nextLabel: '알겠어요 →',
     },
     {
       ico: '🕹️',
@@ -7420,12 +7417,24 @@ const Tutorial = (() => {
     {
       ico: '🥚',
       title: '번식',
-      desc: '식량이 충분하면 아래 🥚 버튼이 켜져요.\n눌러서 자손을 낳으세요!\n자손은 부모 형질을 이어받고\n가끔 돌연변이가 생겨요.',
+      desc: '식량이 충분하면 🥚 버튼이 켜져요.\n눌러서 자손을 낳으세요!\n번식할 때 가끔 돌연변이가 생겨요.',
       target: '#breed-btn',
       noMask: true,
       cond: (scene) => scene.player && scene.player.generation >= 1,
       condLabel: '🥚 번식 버튼을 눌러보세요',
       nextLabel: '탄생! 🌱',
+    },
+    {
+      ico: '🧬',
+      title: '돌연변이',
+      desc: '번식 후 돌연변이 선택창이 뜨면\n원하는 능력을 골라요!\n\n돌연변이는 집단 전체에 퍼질수록 강해져요.\n보스 안전 조건도 돌연변이로 충족할 수 있어요.\n처음엔 거부도 가능해요.',
+      target: null, cond: null, nextLabel: '다음 →',
+    },
+    {
+      ico: '👹',
+      title: '보스 대비법',
+      desc: '보스 경고가 뜨면 도감에서 안전 조건 확인!\n\n⚔️ 번식을 계속해 조건을 갖춘 개체를 늘리고\n💨 보스가 오면 도망치며 번식하세요.\n\n안전 조건 없는 개체는 도태되니\n집단 전체가 준비되도록 번식하세요!',
+      target: null, cond: null, nextLabel: '시작! →',
     },
   ];
 
