@@ -2547,11 +2547,9 @@ const BOSS_VISUAL = {
 };
 
 // 10분 기준 보스 등장 시각(ms)과 슬롯
-// 웨이브 순서 고정 (난이도 오름차순: 단일→복합→최종)
-const WAVE_BOSS_ORDER = ['sand','charmer','spore','gale','glacier','lava','steel','siren','plague','primordial'];
-const WAVE_BOSS_HP    = [25000, 28000, 31000, 34000, 38000, 43000, 58000, 68000, 80000, 130000];
-const WAVE_FIRST_AT   = 50000;   // 첫 보스 경고 시작 시각 (50초)
-const WAVE_COOLDOWN   = 55000;   // 보스 처치 후 다음 경고까지 대기 (55초)
+const WAVE_FIRST_AT = 50000;   // 첫 보스 경고 시작 시각 (50초)
+const WAVE_COOLDOWN = 55000;   // 보스 처치 후 다음 경고까지 대기 (55초)
+const WAVE_HP = [37500, 55000, 105000]; // 1·2·3번째 보스 HP (난이도 배율 전)
 
 // ── 날씨 시스템 ──────────────────────────────────
 const WEATHERS = {
@@ -3669,6 +3667,7 @@ class ArenaScene extends Phaser.Scene {
     this._waveIdx = 0;
     this._nextBossAt = WAVE_FIRST_AT;
     this._waveFired = false;
+    this._waveList = this._rollWaveList();
     this.initTerrainDanger();
     this.tutorialActive = false; // 튜토리얼 진행 중 — 사망 시스템 일시 정지
     this.bossPhase = 'idle';   // idle | warning | chase
@@ -4773,15 +4772,15 @@ class ArenaScene extends Phaser.Scene {
       }
     }
     // 웨이브 보스 스케줄 체크
-    if (!this.tutorialActive && this.bossPhase === 'idle' && !this._waveFired && this._waveIdx < WAVE_BOSS_ORDER.length && this.elapsed >= this._nextBossAt) {
+    if (!this.tutorialActive && this.bossPhase === 'idle' && !this._waveFired && this._waveIdx < this._waveList.length && this.elapsed >= this._nextBossAt) {
       this._waveFired = true;
-      const isFinal = this._waveIdx === WAVE_BOSS_ORDER.length - 1;
-      let bossId = WAVE_BOSS_ORDER[this._waveIdx];
+      const isFinal = this._waveIdx === this._waveList.length - 1;
+      let bossId = this._waveList[this._waveIdx];
       if (isFinal && this._goldenConditionMet) bossId = 'golden';
       const slot = isFinal ? 'final' : 'mid';
       this.startBossWarning(bossById(bossId), slot);
       const hpMult = getDiffConfig().bossHpMult;
-      this._dueBossHp = Math.round(WAVE_BOSS_HP[this._waveIdx] * hpMult);
+      this._dueBossHp = Math.round(WAVE_HP[this._waveIdx] * hpMult);
     }
     if (this.bossPhase === 'warning') this.bossWarningTick();
     if (this.bossPhase === 'chase') this.bossChaseTick(dt);
@@ -5631,6 +5630,15 @@ bossCombatTick(dt) {
   if (this.showToast) this.showToast(msg, 'warn');
 }
 
+_rollWaveList() {
+  const single = BOSS_ROSTER.filter(b => !b.hidden && !b.final && !b.reqText.includes('+'));
+  const dual   = BOSS_ROSTER.filter(b => !b.hidden && !b.final &&  b.reqText.includes('+'));
+  const final  = BOSS_ROSTER.find(b => b.final);
+  const pick1  = single[Math.floor(Math.random() * single.length)];
+  const pick2  = dual[Math.floor(Math.random() * dual.length)];
+  return [pick1.id, pick2.id, final.id];
+}
+
 resolveBoss(win, reason) {
   const boss = this.activeBoss, slot = this.bossSlot;
   const bx = this.bossEntity ? this.bossEntity.x : this.player.x;
@@ -5680,8 +5688,8 @@ resolveBoss(win, reason) {
     this._waveIdx++;
     this._waveFired = false;
     this._nextBossAt = this.elapsed + WAVE_COOLDOWN;
-    const next = WAVE_BOSS_ORDER[this._waveIdx];
-    const nextBoss = bossById(next);
+    const nextId = this._waveList[this._waveIdx];
+    const nextBoss = nextId ? bossById(nextId) : null;
     if (nextBoss) this.showMessage(`✅ 처치! 다음: ${nextBoss.ico} ${nextBoss.name} (${Math.round(WAVE_COOLDOWN/1000)}초 후)`, true);
   }
 }
@@ -6201,8 +6209,8 @@ resolveBoss(win, reason) {
 
     // 웨이브 진행도 표시
     const waveEl = document.getElementById('boss-wave-counter');
-    if (waveEl) {
-      const total = WAVE_BOSS_ORDER.length;
+    if (waveEl && this._waveList) {
+      const total = this._waveList.length;
       const done  = this._waveIdx;
       const cur   = this.activeBoss;
       if (cur) {
