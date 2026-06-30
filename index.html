@@ -560,7 +560,7 @@ canvas { display: block; image-rendering: pixelated; }
 
 /* ─── 이벤트 메시지 ─── */
 #event-message {
-  position: absolute; top: 22%; left: 50%; transform: translate(-50%,-50%); width: min(340px,88vw);
+  position: absolute; top: 34%; left: 50%; transform: translate(-50%,-50%); width: min(340px,88vw);
   display: none; padding: 15px 20px; text-align: center; line-height: 1.65; white-space: pre-line;
   font-family:'Jua',sans-serif; font-size:15px; color:var(--ink);
   background: var(--glass); border: 2px solid var(--glass-bdr);
@@ -573,7 +573,7 @@ canvas { display: block; image-rendering: pixelated; }
 #event-message.tutorial-mode { top: 80%; }
 /* 보스 등장 중: 화면 중앙·상단 보스 UI를 가리지 않게 왼쪽으로 정렬 */
 #event-message.boss-mode {
-  top: 30%; left: 12px; transform: none; transform-origin: left center;
+  top: 38%; left: 12px; transform: none; transform-origin: left center;
   width: min(280px, 56vw); text-align: left; line-height: 1.5;
 }
 #event-message.boss-mode.show { animation: msgPopLeft .35s cubic-bezier(.34,1.56,.64,1); }
@@ -908,9 +908,9 @@ canvas { display: block; image-rendering: pixelated; }
   #boss-banner { top: 116px; right: 100px; }
   #boss-hp { bottom: 84px; }
   #next-boss-hint { top: 116px; right: 100px; }
-  #event-message { top: 55%; font-size: 13px; padding: 12px 16px; width: min(280px, 52vw); }
-  #event-message.tutorial-mode { top: 74%; }
-  #event-message.boss-mode { top: 40%; left: 8px; width: min(220px, 56vw); }
+  #event-message { top: 58%; font-size: 13px; padding: 12px 16px; width: min(280px, 52vw); }
+  #event-message.tutorial-mode { top: 76%; }
+  #event-message.boss-mode { top: 46%; left: 8px; width: min(220px, 56vw); }
   #dex-sheet, #event-dex-sheet { max-height: 82vh; }
   #leaderboard-panel { width: 175px; font-size: 10px; top: 8px; left: 8px; padding: 8px 10px; }
   #leaderboard-panel .lb-list-wrap { max-height: 130px; }
@@ -1462,7 +1462,8 @@ body { image-rendering: pixelated; }
   /* 캔버스/HUD를 사이드 패널 안쪽으로 밀기 */
   #game-container { margin-left: 230px; margin-right: 200px; width: calc(100vw - 430px) !important; }
   #hud            { left: 230px !important; right: 200px !important; }
-  #boss-banner, #next-boss-hint { left: 238px !important; right: 208px !important; }
+  /* position:fixed라 뷰포트 기준 — HUD(left:230, right:200) + 내부 여백(left:8, right:62) 합산 */
+  #boss-banner, #next-boss-hint { left: 238px !important; right: 262px !important; }
   #combat-pulse   { left: 230px; right: 200px; }
 
   /* 타이틀 화면은 사이드 패널 숨김 */
