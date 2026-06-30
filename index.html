@@ -1606,12 +1606,12 @@ body { image-rendering: pixelated; }
 <!-- ── PC 오른쪽 사이드 패널 ── -->
 <div id="pc-panel-right" class="pc-side-panel" style="display:none">
   <div class="pc-widget-title">키보드 단축키</div>
-  <div class="pc-key-row"><span class="pc-key">B</span><span>번식</span></div>
-  <div class="pc-key-row"><span class="pc-key">Esc</span><span>일시정지</span></div>
-  <div class="pc-key-row"><span class="pc-key">D</span><span>도감</span></div>
-  <div class="pc-key-row"><span class="pc-key">L</span><span>계통수</span></div>
+  <div class="pc-key-row"><span class="pc-key">WASD</span><span>이동</span></div>
+  <div class="pc-key-row"><span class="pc-key">B</span><span>번식/도망</span></div>
+  <div class="pc-key-row"><span class="pc-key">Tab</span><span>도감</span></div>
+  <div class="pc-key-row"><span class="pc-key">Q</span><span>계통수</span></div>
   <div class="pc-key-row"><span class="pc-key">M</span><span>음소거</span></div>
-  <div class="pc-key-row"><span class="pc-key">F</span><span>전체화면</span></div>
+  <div class="pc-key-row"><span class="pc-key">Esc</span><span>일시정지</span></div>
   <div class="pc-key-row"><span class="pc-key">1</span><span>1× 속도</span></div>
   <div class="pc-key-row"><span class="pc-key">2</span><span>1.5× 속도</span></div>
   <div class="pc-key-row"><span class="pc-key">3</span><span>2× 속도</span></div>
@@ -7862,15 +7862,26 @@ function toggleOptionsBgm(btn) {
 }
 function closeOptionsModal() { document.getElementById('options-modal').classList.remove('open'); }
 // ── 키보드 단축키 (PC) ──────────────────────────────────────────────
+// 이동키(WASD)와 충돌 방지: 게임 실행 중 단일 알파벳 단축키 사용 금지
+// 도감(Tab), 계통수(Q), 소리(M — 이동 키 아님), 속도(1/2/3)만 허용
 document.addEventListener('keydown', e => {
   if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
   const sc = window._arenaScene;
+  const gameActive = sc && !sc.gameOver && document.getElementById('hud').style.display !== 'none';
   const modalOpen = document.querySelector('.dex-modal.open, #options-modal.open, #pause-modal.open, #mutation-picker.open, #lab-modal.open');
+  const paused = sc && sc._paused;
   switch (e.key) {
+    case 'Tab':
+      // Tab: 도감 (WASD와 겹치지 않음)
+      if (!modalOpen) { openDex(); e.preventDefault(); } break;
+    case 'q': case 'Q':
+      // Q: 계통수 (게임 중 이동 키 아님)
+      if (!modalOpen) { openLab(); e.preventDefault(); } break;
     case 'b': case 'B':
-      if (sc && !modalOpen) { sc.handleAction(); e.preventDefault(); } break;
+      // B: 번식/도망 (이동 키 아님, 게임 중만)
+      if (sc && !modalOpen && !paused) { sc.handleAction(); e.preventDefault(); } break;
     case ' ':
-      if (sc && !modalOpen) { sc.handleAction(); e.preventDefault(); } break;
+      if (sc && !modalOpen && !paused) { sc.handleAction(); e.preventDefault(); } break;
     case 'Escape':
       if (document.getElementById('mutation-picker').classList.contains('open')) {
         resolveMutationPick(null); e.preventDefault(); break;
@@ -7885,14 +7896,12 @@ document.addEventListener('keydown', e => {
         closeLab(); e.preventDefault(); break;
       }
       if (sc) { togglePause(); e.preventDefault(); } break;
-    case 'd': case 'D':
-      if (!modalOpen) { openDex(); e.preventDefault(); } break;
-    case 'l': case 'L':
-      if (!modalOpen) { openLab(); e.preventDefault(); } break;
     case 'm': case 'M':
+      // M: 음소거 (이동 키 아님)
       toggleMute(); e.preventDefault(); break;
     case 'f': case 'F':
-      if (!modalOpen) { toggleFullscreen(); e.preventDefault(); } break;
+      // F: 전체화면 — 게임 중 비활성 (F키 연타 실수 방지), 일시정지/타이틀에서만
+      if (!gameActive || paused || modalOpen) { toggleFullscreen(); e.preventDefault(); } break;
     case '1': case '2': case '3':
       if (sc && !modalOpen) {
         const speeds = [1, 1.5, 2]; const s = speeds[parseInt(e.key) - 1];
