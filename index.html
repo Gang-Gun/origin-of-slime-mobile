@@ -275,7 +275,7 @@ canvas { display: block; image-rendering: pixelated; }
 
 /* ─── 우측 버튼 (일시정지 아래) ─── */
 #right-btns {
-  position: absolute; top: 102px; right: 9px;
+  position: absolute; top: 88px; right: 9px;
   display: flex; flex-direction: column; gap: 5px;
   pointer-events: auto;
 }
@@ -292,7 +292,7 @@ canvas { display: block; image-rendering: pixelated; }
 
 /* ─── 현황 패널 ─── */
 #stats {
-  position: absolute; top: 102px; right: 62px;
+  position: absolute; top: 88px; right: 62px;
   width: min(240px, calc(100vw - 80px));
   max-height: calc(100vh - 180px); overflow-y: auto; overflow-x: hidden;
   padding: 14px 12px; font-size: 12.5px; line-height: 1.7;
@@ -468,11 +468,12 @@ canvas { display: block; image-rendering: pixelated; }
 
 /* ─── 전투 배너 ─── */
 #battle-banner {
-  position: absolute; top: 102px; left: 50%; transform: translateX(-50%); display: none;
-  padding: 7px 20px; font-family:'Jua',sans-serif; font-size:15px; color:#fff; white-space:nowrap;
+  position: absolute; top: 88px; left: 50%; transform: translateX(-50%); display: none;
+  padding: 6px 18px; font-family:'Jua',sans-serif; font-size:14px; color:#fff; white-space:nowrap;
   background: linear-gradient(170deg, #ff9483, var(--coral));
   border: 2px solid rgba(255,255,255,.85); border-radius: 999px;
   box-shadow: 0 5px 14px rgba(201,64,47,.4); animation: wobble .7s ease-in-out infinite;
+  z-index: 27;
 }
 @keyframes wobble { 0%,100%{transform:translateX(-50%) rotate(-1.5deg)} 50%{transform:translateX(-50%) rotate(1.5deg)} }
 
@@ -506,8 +507,9 @@ canvas { display: block; image-rendering: pixelated; }
   text-align:center; backdrop-filter:blur(8px); white-space:nowrap; line-height:1.3;
   animation: toastIn .35s cubic-bezier(.34,1.56,.64,1), toastOut .4s ease 3.2s forwards;
 }
-.toast-mut { color: var(--px-green-d, #2a6328); }
-.toast-ach { color: var(--px-gold-d, #b5731c); }
+.toast-mut  { color: var(--px-green-d, #2a6328); }
+.toast-ach  { color: var(--px-gold-d, #b5731c); }
+.toast-warn { color: #c0392b; border-color: rgba(192,57,43,.5) !important; background: rgba(255,240,238,.95) !important; }
 @keyframes toastIn  { from{transform:translateY(-24px) scale(.9);opacity:0} to{transform:translateY(0) scale(1);opacity:1} }
 @keyframes toastOut { to{transform:translateY(-16px) scale(.9);opacity:0} }
 
@@ -527,7 +529,7 @@ canvas { display: block; image-rendering: pixelated; }
   100% { opacity: 0; transform: translateY(-22px); }
 }
 
-#boss-banner { position:fixed; top:102px; left:8px; right:62px; transform:none; z-index:26;
+#boss-banner { position:fixed; top:130px; left:8px; right:62px; transform:none; z-index:26;
   display:none; padding:10px 16px; border-radius:12px; background:rgba(120,20,20,.92);
   color:#fff; font-family:'Jua',sans-serif; font-size:14px; text-align:center; max-width:none;
   box-shadow:0 4px 14px rgba(0,0,0,.35); pointer-events:auto; line-height:1.4; }
@@ -547,7 +549,7 @@ canvas { display: block; image-rendering: pixelated; }
 #boss-banner.boss-collapsed #boss-banner-text { display:none; }
 #boss-banner.boss-collapsed #boss-collapse-btn { display:none; }
 #boss-banner.boss-collapsed::after { content:'⚔️'; font-size:20px; }
-#boss-hp { position:fixed; top:158px; left:50%; transform:translateX(-50%); z-index:26;
+#boss-hp { position:fixed; top:auto; bottom:100px; left:50%; transform:translateX(-50%); z-index:26;
   display:none; width:min(300px,80vw); height:16px; border-radius:999px;
   background:rgba(0,0,0,.4); overflow:hidden; }
 #boss-hp.show { display:block; }
@@ -866,12 +868,15 @@ canvas { display: block; image-rendering: pixelated; }
   .chip strong { font-size: 12px; }
   #env-badge { padding: 3px 7px; font-size: 15px; }
   #pause-btn { width: 36px; height: 36px; font-size: 15px; }
-  #right-btns { top: 98px; right: 7px; gap: 4px; }
+  #right-btns { top: 84px; right: 7px; gap: 4px; }
   #stats-toggle, #dex-toggle { width: 40px; height: 40px; font-size: 9px; }
-  #stats { top: 98px; right: 56px; font-size: 11.5px; padding: 10px; max-height: calc(100vh - 180px); width: min(220px, calc(100vw - 72px)); }
+  #stats { top: 84px; right: 56px; font-size: 11.5px; padding: 10px; max-height: calc(100vh - 180px); width: min(220px, calc(100vw - 72px)); }
   #bottom-bar { padding: 7px 8px; gap: 6px; border-radius: 15px; left:7px; right:7px; bottom:7px; }
   .action-btn { min-width: 56px; padding: 8px 10px; font-size: 12px; }
-  #battle-banner { top: 100px; font-size: 12.5px; padding: 6px 14px; }
+  #battle-banner { top: 84px; font-size: 12.5px; padding: 5px 14px; }
+  #boss-banner { top: 122px; }
+  #boss-hp { bottom: 96px; }
+  #next-boss-hint { top: 122px; }
   .meter { height: 10px; }
 }
 
@@ -884,13 +889,13 @@ canvas { display: block; image-rendering: pixelated; }
   #pause-btn { width: 34px; height: 34px; font-size: 14px; }
 
   /* 우측 버튼: 하단 패널 왼쪽에 배치 */
-  #right-btns { top: 82px; right: 102px; flex-direction: column; gap: 4px; }
+  #right-btns { top: 78px; right: 102px; flex-direction: column; gap: 4px; }
   #stats-toggle, #dex-toggle { width: 38px; height: 38px; font-size: 9px; }
-  #stats { top: 82px; right: 148px; width: min(200px, 38vw); max-height: calc(100vh - 96px); font-size: 11px; padding: 10px; }
+  #stats { top: 78px; right: 148px; width: min(200px, 38vw); max-height: calc(100vh - 96px); font-size: 11px; padding: 10px; }
 
   /* 하단 바 → 우측 세로 패널 (번식 버튼만) */
   #bottom-bar {
-    left: auto; right: 7px; bottom: 7px; top: 82px;
+    left: auto; right: 7px; bottom: 7px; top: 78px;
     width: 88px; flex-direction: column; align-items: stretch;
     gap: 6px; padding: 8px 7px; border-radius: 16px;
   }
@@ -899,7 +904,10 @@ canvas { display: block; image-rendering: pixelated; }
   .meter { height: 9px; }
   .action-btn { min-width: 0; width: 100%; padding: 10px 5px; font-size: 12px; border-radius: 10px; flex-direction: row; gap: 4px; }
 
-  #battle-banner { top: 82px; font-size: 12px; padding: 5px 12px; }
+  #battle-banner { top: 78px; font-size: 12px; padding: 5px 12px; }
+  #boss-banner { top: 116px; right: 100px; }
+  #boss-hp { bottom: 84px; }
+  #next-boss-hint { top: 116px; right: 100px; }
   #event-message { top: 55%; font-size: 13px; padding: 12px 16px; width: min(280px, 52vw); }
   #event-message.tutorial-mode { top: 74%; }
   #event-message.boss-mode { top: 40%; left: 8px; width: min(220px, 56vw); }
@@ -1426,6 +1434,95 @@ body { image-rendering: pixelated; }
   #game-progress-bar-area { padding-top: 13px !important; }
   #game-progress-time { font-size: 9px !important; min-width: 52px !important; padding: 1px 4px !important; }
 }
+
+/* ═══════════════════════════════════════════
+   PC 와이드스크린 레이아웃 (≥1080px)
+   ═══════════════════════════════════════════ */
+@media (min-width: 1080px) {
+  /* 사이드 패널 공통 */
+  .pc-side-panel {
+    display: flex !important;
+    flex-direction: column;
+    gap: 10px;
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    z-index: 30;
+    padding: 12px 10px;
+    overflow-y: auto;
+    pointer-events: auto;
+    background: rgba(253,246,227,0.72);
+    backdrop-filter: blur(12px);
+    border: 1.5px solid rgba(255,255,255,0.85);
+    box-shadow: 2px 0 16px rgba(100,75,55,0.12);
+  }
+  #pc-panel-left  { left: 0; width: 230px; border-right: 1.5px solid rgba(255,255,255,0.7); }
+  #pc-panel-right { right: 0; width: 200px; border-left: 1.5px solid rgba(255,255,255,0.7); }
+
+  /* 캔버스/HUD를 사이드 패널 안쪽으로 밀기 */
+  #game-container { margin-left: 230px; margin-right: 200px; width: calc(100vw - 430px) !important; }
+  #hud            { left: 230px !important; right: 200px !important; }
+  #boss-banner, #next-boss-hint { left: 238px !important; right: 208px !important; }
+  #combat-pulse   { left: 230px; right: 200px; }
+
+  /* 타이틀 화면은 사이드 패널 숨김 */
+  #title-screen ~ #pc-panel-left,
+  #title-screen ~ #pc-panel-right { display: none !important; }
+
+  /* 리더보드 패널을 왼쪽 사이드바 안으로 흡수 */
+  #leaderboard-panel {
+    position: static !important;
+    width: 100% !important;
+    box-shadow: none !important;
+    border-radius: 12px !important;
+  }
+}
+
+/* PC 사이드 패널 내부 위젯 */
+.pc-widget-title {
+  font-family: 'Jua', sans-serif;
+  font-size: 11px;
+  color: var(--ink-soft);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  border-bottom: 1px solid var(--ink-faint);
+  padding-bottom: 4px;
+  margin-bottom: 2px;
+}
+.pc-key-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--ink);
+  padding: 3px 0;
+}
+.pc-key {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 22px;
+  padding: 0 5px;
+  background: var(--glass);
+  border: 1.5px solid var(--ink-faint);
+  border-radius: 5px;
+  font-size: 11px;
+  font-family: monospace;
+  font-weight: 900;
+  color: var(--ink-soft);
+  flex-shrink: 0;
+}
+.pc-inf-badge {
+  display: inline-block;
+  background: linear-gradient(135deg,#2a1a4a,#4a2a7a);
+  color: #c8a0ff;
+  border-radius: 6px;
+  padding: 2px 8px;
+  font-size: 10px;
+  font-weight: 900;
+  margin-top: 2px;
+}
 </style>
   <!-- Firebase SDK (순위표용) -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -1467,10 +1564,11 @@ body { image-rendering: pixelated; }
 <div id="title-screen">
   <h1>슬라임의 기원<span class="en">Origin of Slime</span></h1>
   <div id="title-menu">
-    <button id="start-btn" class="big-btn" type="button" onclick="openDiffSelect()">🌱 게임 시작</button>
-    <button type="button" class="big-btn sky" onclick="openDex()">📖 도감</button>
-    <button type="button" class="big-btn lilac" onclick="openLab()">🌳 계통수</button>
-    <button type="button" class="big-btn lilac" onclick="openOptionsModal()">⚙️ 옵션</button>
+    <button id="start-btn" class="big-btn" type="button" onclick="openDiffSelect()" data-i18n="start">🌱 게임 시작</button>
+    <button id="infinite-btn" type="button" class="big-btn" style="background:linear-gradient(135deg,#2a1a4a,#4a2a7a);border-color:rgba(160,80,255,.5);color:#c8a0ff;display:none" onclick="startInfiniteMode()" data-i18n="infinite">♾️ 무한 생존</button>
+    <button type="button" class="big-btn sky" onclick="openDex()" data-i18n="dex">📖 도감</button>
+    <button type="button" class="big-btn lilac" onclick="openLab()" data-i18n="lab">🌳 계통수</button>
+    <button type="button" class="big-btn lilac" onclick="openOptionsModal()" data-i18n="options">⚙️ 옵션</button>
   </div>
 </div>
 <div id="stats-modal" style="display:none;position:fixed;inset:0;z-index:90;background:rgba(20,14,36,.7);backdrop-filter:blur(8px);align-items:center;justify-content:center">
@@ -1490,7 +1588,38 @@ body { image-rendering: pixelated; }
   </div>
 </div>
 
+<!-- ── PC 왼쪽 사이드 패널 ── -->
+<div id="pc-panel-left" class="pc-side-panel" style="display:none">
+  <div class="pc-widget-title">순위표</div>
+  <div id="pc-lb-mirror" style="font-size:11px;line-height:1.6;color:var(--ink)"></div>
+  <div class="pc-widget-title" style="margin-top:6px">게임 정보</div>
+  <div id="pc-game-info" style="font-size:12px;line-height:1.8;color:var(--ink)">
+    <div>⏱ <span id="pc-elapsed">0:00</span></div>
+    <div>🍖 식량: <span id="pc-food">-</span></div>
+    <div>👥 개체: <span id="pc-pop">-</span></div>
+    <div>🌱 세대: <span id="pc-gen">-</span></div>
+  </div>
+</div>
+
 <div id="game-container"></div>
+
+<!-- ── PC 오른쪽 사이드 패널 ── -->
+<div id="pc-panel-right" class="pc-side-panel" style="display:none">
+  <div class="pc-widget-title">키보드 단축키</div>
+  <div class="pc-key-row"><span class="pc-key">B</span><span>번식</span></div>
+  <div class="pc-key-row"><span class="pc-key">Esc</span><span>일시정지</span></div>
+  <div class="pc-key-row"><span class="pc-key">D</span><span>도감</span></div>
+  <div class="pc-key-row"><span class="pc-key">L</span><span>계통수</span></div>
+  <div class="pc-key-row"><span class="pc-key">M</span><span>음소거</span></div>
+  <div class="pc-key-row"><span class="pc-key">F</span><span>전체화면</span></div>
+  <div class="pc-key-row"><span class="pc-key">1</span><span>1× 속도</span></div>
+  <div class="pc-key-row"><span class="pc-key">2</span><span>1.5× 속도</span></div>
+  <div class="pc-key-row"><span class="pc-key">3</span><span>2× 속도</span></div>
+  <div class="pc-widget-title" style="margin-top:8px" data-i18n="next_boss">다음 보스</div>
+  <div id="pc-next-boss" style="font-size:12px;color:var(--ink)" data-i18n="waiting">대기 중…</div>
+  <div class="pc-widget-title" style="margin-top:8px" data-i18n="cur_mode">현재 모드</div>
+  <div id="pc-mode-badge" style="font-size:12px;color:var(--ink)" data-i18n="mode_normal">일반</div>
+</div>
 
 <div id="hud">
   <!-- 상단 바: 지형 · 핵심 수치 · 날씨 · 타이머 · 일시정지 -->
@@ -1574,7 +1703,7 @@ body { image-rendering: pixelated; }
   <div id="toast-ach" class="toast-stack"></div>
   <div id="event-message"><span id="evt-text"></span><button id="evt-collapse-btn" aria-label="접기">−</button></div>
   <div id="boss-banner" onclick="toggleBossBanner()"><span id="boss-banner-text"></span><button id="boss-dex-btn" onclick="event.stopPropagation();openDex('boss')" style="margin-top:6px;display:block;width:100%;background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.4);border-radius:8px;color:#fff;font-family:'Jua',sans-serif;font-size:12px;padding:4px 0;cursor:pointer">📖 도감에서 확인</button><button id="boss-collapse-btn" onclick="event.stopPropagation();toggleBossBanner()">−</button></div>
-  <div id="next-boss-hint" style="display:none;position:fixed;top:102px;left:8px;right:62px;transform:none;z-index:25;background:rgba(20,14,36,.82);border:1.5px solid rgba(110,99,132,.4);border-radius:12px;padding:6px 14px;font-size:11.5px;font-weight:800;color:#fff;text-align:center;white-space:nowrap;backdrop-filter:blur(6px);overflow:hidden;text-overflow:ellipsis"></div>
+  <div id="next-boss-hint" style="display:none;position:fixed;top:130px;left:8px;right:62px;transform:none;z-index:25;background:rgba(20,14,36,.82);border:1.5px solid rgba(110,99,132,.4);border-radius:12px;padding:6px 14px;font-size:11.5px;font-weight:800;color:#fff;text-align:center;white-space:nowrap;backdrop-filter:blur(6px);overflow:hidden;text-overflow:ellipsis"></div>
   <div id="boss-arrow"></div>
   <div id="boss-hp"><div id="boss-hp-fill"></div><span id="boss-hp-label"></span></div>
 </div>
@@ -1664,7 +1793,20 @@ body { image-rendering: pixelated; }
       <button class="pause-btn pause-settings" style="width:auto;padding:8px 14px;font-size:13px"
         onclick="localStorage.removeItem('gpa_tutorial_done');closeOptionsModal();alert('초기화 완료. 다음 게임 시작 시 튜토리얼이 표시됩니다.')">초기화</button>
     </div>
-    <button class="pause-btn pause-home" style="margin-top:4px" onclick="closeOptionsModal()">✕ 닫기</button>
+    <div class="setting-row" style="border-top:1px solid rgba(239,68,68,.25);padding-top:12px;margin-top:4px;flex-direction:column;align-items:flex-start;gap:6px">
+      <span style="color:var(--coral);font-size:13px">⚠️ 계정 초기화</span>
+      <span style="font-size:11px;color:var(--ink-soft);line-height:1.4">계통수 해금·통계·업적 등 모든 진행 데이터를 삭제합니다.</span>
+      <button class="pause-btn" style="width:100%;background:rgba(239,68,68,.15);border:1.5px solid rgba(239,68,68,.5);color:#ef4444;font-size:13px;padding:10px"
+        onclick="resetAccount()">🗑️ 전체 데이터 초기화</button>
+    </div>
+    <div class="setting-row" style="border-top:1px solid var(--ink-faint);padding-top:12px;margin-top:4px">
+      <span data-i18n="opt_lang">🌐 언어</span>
+      <div style="display:flex;gap:6px">
+        <button class="pause-btn pause-settings" id="lang-ko-btn" style="width:auto;padding:6px 12px;font-size:13px" onclick="setLang('ko');_syncLangBtns()">한국어</button>
+        <button class="pause-btn pause-settings" id="lang-en-btn" style="width:auto;padding:6px 12px;font-size:13px" onclick="setLang('en');_syncLangBtns()">English</button>
+      </div>
+    </div>
+    <button class="pause-btn pause-home" style="margin-top:4px" onclick="closeOptionsModal()" data-i18n="close">✕ 닫기</button>
   </div>
 </div>
 
@@ -1819,6 +1961,76 @@ body { image-rendering: pixelated; }
 <script>
 'use strict';
 
+// ═══════════════════════════════════════════════════════════
+//  i18n — 한국어 / English 번역 시스템
+// ═══════════════════════════════════════════════════════════
+const TRANSLATIONS = {
+  ko: {
+    title: '슬라임의 기원', title_en: 'Origin of Slime',
+    start: '🌱 게임 시작', dex: '📖 도감', lab: '🌳 계통수', options: '⚙️ 옵션',
+    infinite: '♾️ 무한 생존',
+    breed: '번식', flee: '도망', pause: '일시정지', resume: '계속',
+    opt_title: '⚙️ 옵션', opt_bgm: '🎵 배경음', opt_sfx: '🔊 효과음',
+    opt_fullscreen: '⛶ 전체화면', opt_mutpick: '🧬 돌연변이 선택',
+    opt_tutorial: '📖 튜토리얼 초기화', opt_reset: '⚠️ 계정 초기화',
+    opt_reset_desc: '계통수 해금·통계·업적 등 모든 진행 데이터를 삭제합니다.',
+    opt_reset_btn: '🗑️ 전체 데이터 초기화',
+    opt_lang: '🌐 언어', close: '✕ 닫기',
+    food: '식량', pop: '개체', gen: '세대',
+    breed_ok: '🥚 번식 가능', breed_no: '번식 불가',
+    mode_normal: '일반', mode_infinite: '♾️ 무한 생존',
+    kb_breed: '번식', kb_pause: '일시정지', kb_dex: '도감',
+    kb_lab: '계통수', kb_mute: '음소거', kb_fs: '전체화면',
+    next_boss: '다음 보스', cur_mode: '현재 모드',
+    waiting: '대기 중…', all_done: '✅ 모든 보스 처치',
+    inf_ongoing: '♾️ 계속 진행 중',
+  },
+  en: {
+    title: 'Origin of Slime', title_en: '',
+    start: '🌱 Start Game', dex: '📖 Compendium', lab: '🌳 Gene Tree', options: '⚙️ Options',
+    infinite: '♾️ Infinite Survival',
+    breed: 'Breed', flee: 'Flee', pause: 'Pause', resume: 'Resume',
+    opt_title: '⚙️ Options', opt_bgm: '🎵 BGM', opt_sfx: '🔊 SFX',
+    opt_fullscreen: '⛶ Fullscreen', opt_mutpick: '🧬 Mutation Choice',
+    opt_tutorial: '📖 Reset Tutorial', opt_reset: '⚠️ Reset Account',
+    opt_reset_desc: 'Deletes all progress: gene tree unlocks, stats, achievements.',
+    opt_reset_btn: '🗑️ Reset All Data',
+    opt_lang: '🌐 Language', close: '✕ Close',
+    food: 'Food', pop: 'Pop', gen: 'Gen',
+    breed_ok: '🥚 Can Breed', breed_no: 'Cannot Breed',
+    mode_normal: 'Normal', mode_infinite: '♾️ Infinite Survival',
+    kb_breed: 'Breed', kb_pause: 'Pause', kb_dex: 'Compendium',
+    kb_lab: 'Gene Tree', kb_mute: 'Mute', kb_fs: 'Fullscreen',
+    next_boss: 'Next Boss', cur_mode: 'Mode',
+    waiting: 'Waiting…', all_done: '✅ All Bosses Defeated',
+    inf_ongoing: '♾️ Ongoing',
+  }
+};
+let _lang = localStorage.getItem('gpa_lang') || 'ko';
+function T(key) { return (TRANSLATIONS[_lang] || TRANSLATIONS.ko)[key] || TRANSLATIONS.ko[key] || key; }
+function setLang(lang) {
+  _lang = lang;
+  localStorage.setItem('gpa_lang', lang);
+  applyI18n();
+}
+function applyI18n() {
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    if (key) el.textContent = T(key);
+  });
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+    el.placeholder = T(el.getAttribute('data-i18n-placeholder'));
+  });
+  // 타이틀 화면
+  const h1 = document.querySelector('#title-screen h1');
+  if (h1) {
+    h1.childNodes[0].textContent = T('title');
+    const en = h1.querySelector('.en');
+    if (en) en.textContent = T('title_en');
+  }
+  document.documentElement.lang = _lang;
+}
+
 // ══════════════════════════════════════════════════════
 // ▶ Firebase 설정 — Firebase Console에서 발급받은 값으로 교체
 // ══════════════════════════════════════════════════════
@@ -1867,18 +2079,29 @@ function _startLeaderboardListener() {
         return;
       }
       const medals = ['🥇','🥈','🥉'];
-      list.innerHTML = snap.docs.map((doc, i) => {
+      const rows = snap.docs.map((doc, i) => {
         const d = doc.data();
         const rank = medals[i] || `${i + 1}.`;
-        return `<li>
+        return { rank, name: d.name || '이름 없음', score: d.score, gen: d.generations, mut: d.mutations, date: d.date };
+      });
+      list.innerHTML = rows.map(r => `<li>
           <div class="lb-top">
-            <span class="lb-rank">${rank}</span>
-            <span class="lb-name">${escHtml(d.name || '이름 없음')}</span>
-            <span class="lb-score">${Number(d.score).toLocaleString()}점</span>
+            <span class="lb-rank">${r.rank}</span>
+            <span class="lb-name">${escHtml(r.name)}</span>
+            <span class="lb-score">${Number(r.score).toLocaleString()}점</span>
           </div>
-          <div class="lb-sub">세대 ${escHtml(String(d.generations ?? '?'))} · 돌연변이 ${escHtml(String(d.mutations ?? '?'))}종 · ${escHtml(String(d.date ?? ''))}</div>
-        </li>`;
-      }).join('');
+          <div class="lb-sub">세대 ${escHtml(String(r.gen ?? '?'))} · 돌연변이 ${escHtml(String(r.mut ?? '?'))}종 · ${escHtml(String(r.date ?? ''))}</div>
+        </li>`).join('');
+      // PC 사이드바 미러 업데이트
+      const mirror = document.getElementById('pc-lb-mirror');
+      if (mirror) {
+        mirror.innerHTML = rows.slice(0, 5).map(r =>
+          `<div style="display:flex;justify-content:space-between;gap:4px;padding:2px 0;border-bottom:1px solid var(--ink-faint)">
+            <span>${r.rank} ${escHtml(r.name)}</span>
+            <span style="color:var(--coral);font-weight:900">${Number(r.score).toLocaleString()}</span>
+          </div>`
+        ).join('') || '<div style="color:var(--ink-soft);font-size:11px">아직 기록 없음</div>';
+      }
     }, err => {
       console.warn('[Leaderboard] 구독 오류:', err);
     });
@@ -2068,6 +2291,25 @@ const LAB_NODE_DEFS = [
   // 게임 속도 계열
   { id:'spd1', t:'ess', parent:'eroot', ico:'⚡', name:'가속 I',  costType:'ess', costAmt:2,  effect:'설정에서 1.5× 속도 토글 해금' },
   { id:'spd2', t:'ess', parent:'spd1',  ico:'⚡', name:'가속 II', costType:'ess', costAmt:6,  effect:'설정에서 2× 속도 토글 해금' },
+
+  // ── 특수 이벤트 계열 (정수) ──
+  { id:'event1', t:'ess', parent:'eroot', ico:'🎭', name:'이벤트 해금 I',  costType:'ess', costAmt:2, effect:'게임 중 "풍요의 봄" 이벤트 발생 (식량 +150)' },
+  { id:'event2', t:'ess', parent:'event1',ico:'🎭', name:'이벤트 해금 II', costType:'ess', costAmt:5, effect:'"돌연변이 폭풍" 이벤트 발생 (전 개체 돌연변이 발생률 3배 30초)' },
+  { id:'event3', t:'ess', parent:'event2',ico:'🎭', name:'이벤트 해금 III',costType:'ess', costAmt:10,effect:'"긴급 피난" 이벤트 발생 (보스 등장 시 즉시 안전 지형으로 텔레포트)' },
+
+  // ── 무한모드 해금 계열 (정수) ──
+  { id:'inf1', t:'ess', parent:'eroot', ico:'♾️', name:'무한 생존 I', costType:'ess', costAmt:3, effect:'제목 화면에서 무한 생존 모드 해금 (운석 없음, 보스 무한 출현)' },
+  { id:'inf2', t:'ess', parent:'inf1',  ico:'♾️', name:'무한 생존 II',costType:'ess', costAmt:8, effect:'무한 모드 보스 HP 증가 속도 -25% (더 오래 생존 가능)' },
+
+  // ── 파편 트리 새 계열: 돌연변이 촉진 ──
+  { id:'mut1', t:'frag', parent:'froot', ico:'🔬', name:'진화 촉진 I',   costType:'frag', costAmt:10, effect:'기본 돌연변이 발생률 +2%' },
+  { id:'mut2', t:'frag', parent:'mut1',  ico:'🔬', name:'진화 촉진 II',  costType:'frag', costAmt:22, effect:'기본 돌연변이 발생률 +4% (누적)' },
+  { id:'mut3', t:'frag', parent:'mut2',  ico:'🔬', name:'진화 촉진 III', costType:'frag', costAmt:42, effect:'기본 돌연변이 발생률 +7% (누적)' },
+
+  // ── 파편 트리 새 계열: 식량 효율 ──
+  { id:'food1', t:'frag', parent:'froot', ico:'🍖', name:'대사 효율 I',  costType:'frag', costAmt:8,  effect:'집단 식량 소비 -8%' },
+  { id:'food2', t:'frag', parent:'food1', ico:'🍖', name:'대사 효율 II', costType:'frag', costAmt:18, effect:'집단 식량 소비 -16% (누적)' },
+  { id:'food3', t:'frag', parent:'food2', ico:'🍖', name:'대사 효율 III',costType:'frag', costAmt:35, effect:'집단 식량 소비 -25% (누적)' },
 ];
 
 // Build lookup map
@@ -2113,7 +2355,13 @@ function computeLabBuffs() {
     mutationChoices: has('pick4')?5 : has('pick3')?4 : has('pick2')?3 : has('pick1')?2 : 0,
     geneVisLevel: has('vis3')?3 : has('vis2')?2 : has('vis1')?1 : 0,
     maxPopBonus: (has('cap1')?10:0) + (has('cap2')?20:0) + (has('cap3')?35:0) + (has('cap4')?55:0) + (has('cap5')?80:0),
-    gameSpeedUnlock: has('spd2') ? 2 : has('spd1') ? 1.5 : 0, // 0=미해금, 1.5/2=해금된 최대 배율
+    gameSpeedUnlock: has('spd2') ? 2 : has('spd1') ? 1.5 : 0,
+    // 새 계열
+    specialEvents: has('event3') ? 3 : has('event2') ? 2 : has('event1') ? 1 : 0,
+    infiniteMode:  has('inf1'),
+    infiniteBossSlowdown: has('inf2') ? 0.75 : 1.0,
+    mutRateBonus:  (has('mut1')?0.02:0) + (has('mut2')?0.04:0) + (has('mut3')?0.07:0),
+    foodNeedMult:  1 * (has('food1')?0.92:1) * (has('food2')?0.84/0.92:1) * (has('food3')?0.75/0.84:1),
   };
 }
 computeLabBuffs();
@@ -2253,6 +2501,7 @@ function openLab() {
 }
 function closeLab() {
   document.getElementById('lab-modal').classList.remove('open');
+  _refreshTitleButtons();
 }
 function switchLabTab(type, btn) {
   _labActiveTab = type;
@@ -2368,10 +2617,12 @@ function showMutationPicker(child, naturalMutId, scene) {
     const desc = m ? _mutEffectDesc(m.effects) : '';
     // 다음 보스 안전조건에 해당하는지 확인
     const isBossHint = _nextBossForHint && (() => {
-      const testInd = Object.assign(Object.create(Object.getPrototypeOf(child)), child);
-      const fakeMuts = [...(child.mutations||[]), mid];
-      testInd.mutations = fakeMuts;
-      try { return _nextBossForHint.safe(testInd) && !_nextBossForHint.safe(child); } catch(e){ return false; }
+      try {
+        const fakeMuts = [...(child.mutations||[]), mid];
+        // plain object proxy — prototype getter 방식 피함 (strict mode TypeError 방지)
+        const fakeInd = { mutations: fakeMuts, stats: child.stats, genes: child.genes, mutationGenes: child.mutationGenes };
+        return _nextBossForHint.safe(fakeInd) && !_nextBossForHint.safe(child);
+      } catch(e){ return false; }
     })();
     const badge = isBossHint ? `<span style="display:inline-block;margin-left:6px;font-size:10px;padding:2px 7px;border-radius:999px;background:rgba(251,191,36,.18);border:1.5px solid #fbbf24;color:#fbbf24;font-weight:900">${_nextBossForHint.ico} 안전조건</span>` : '';
     return `<div class="mut-pick-option" onclick="resolveMutationPick('${mid}')">
@@ -2432,6 +2683,7 @@ const DIFFICULTIES = [
     aiGeneQuality:'h', aiMutExtra:3 },
 ];
 let CURRENT_DIFFICULTY = 0; // 0~3, startGame()에서 설정
+let GAME_MODE = 'normal'; // 'normal' | 'infinite'
 function getMaxUnlockedDiff() {
   return Math.min(3, parseInt(localStorage.getItem('gpa_diff_max') || '0', 10));
 }
@@ -2520,6 +2772,18 @@ const BOSS_ROSTER = [
     safe:i=> (getGenotypeLabel(i,'color')==='RR'||(i.mutations||[]).includes('regeneration')) && (getGenotypeLabel(i,'poison')==='PP'||(i.mutations||[]).includes('poison_gland')) },
   { id:'siren',  name:'심연 세이렌', ico:'🌊', reqText:'파란색 몸·빠른 다리 + 지배 페로몬·화려한 무늬·매력 몸', refuge:'desert', refugeText:'🏜️ 사막',
     safe:i=> (getGenotypeLabel(i,'color')==='BB'||(i.mutations||[]).includes('fast_legs')) && (getGenotypeLabel(i,'charm')==='CC'||(i.mutations||[]).includes('pheromone')||(i.mutations||[]).includes('bright_pattern')) },
+  // ── 추가 보스 5종 ──────────────────────────────────────────────────
+  { id:'crystal',    name:'수정 군주',      ico:'💎', reqText:'단단한 껍질·두꺼운 털 / 방어 12 이상', refuge:'snow', refugeText:'❄️ 눈밭',
+    safe:i=> (i.mutations||[]).includes('hard_shell') || (i.mutations||[]).includes('thick_fur') || i.stats.defense > 12 },
+  { id:'vortex',     name:'소용돌이 폭풍',  ico:'🌀', reqText:'빠른 다리·야시증 / 속도 110 이상', refuge:'river', refugeText:'💧 강가',
+    safe:i=> (i.mutations||[]).includes('fast_legs') || (i.mutations||[]).includes('night_vision') || i.stats.speed > 110 },
+  { id:'void_shadow',name:'심연의 그림자',  ico:'🌑', reqText:'독성 분비·독성 이빨·산성 타액 / 공격 22 이상', refuge:'forest', refugeText:'🌳 숲',
+    safe:i=> (i.mutations||[]).includes('poison_gland') || (i.mutations||[]).includes('venomous_bite') || (i.mutations||[]).includes('acid_spit') || i.stats.attack > 22 },
+  { id:'ancient',    name:'고대 파수꾼',    ico:'🗿', reqText:'지배 페로몬·자기장 / 매력 20 이상', refuge:'plain', refugeText:'🌿 초원',
+    safe:i=> (i.mutations||[]).includes('pheromone') || (i.mutations||[]).includes('magnetism') || i.stats.charm > 20 },
+  { id:'leviathan',  name:'거대 리바이어던',ico:'🐋', reqText:'(재생 능력·두꺼운 털·HP 150↑) + (태양 피부·반향 탐지·수집 6↑)', refuge:'swamp', refugeText:'🐸 독성늪',
+    safe:i=> ((i.mutations||[]).includes('regeneration')||(i.mutations||[]).includes('thick_fur')||i.stats.hp>150) &&
+             ((i.mutations||[]).includes('solar_skin')||(i.mutations||[]).includes('echolocation')||i.stats.gather>6) },
   // 히든 — 황금 슬라임 (유전자 3종 이상이 100% 완전 고정된 적 있으면 최종 슬롯 대체)
   { id:'golden', name:'황금 슬라임', ico:'✨', hidden:true,
     spawnText:'돌연변이 3종 이상이 집단의 70% 이상에 보급된 런에서 최종 보스 대체(동시 충족 불필요)',
@@ -2564,8 +2828,13 @@ const BOSS_VISUAL = {
   steel:      { shape:'armored',     pal:{d:0x4a5a6a,m:0x8a9aaa,l:0xc2d2e2,a:0x5a6a7a}, parts:['shellPlates','legs'],        eyes:1, eyeCol:0x1a2a3a },
   plague:     { shape:'draconic',    pal:{d:0x5a1a1a,m:0xa83a2a,l:0xe0604a,a:0x6fcf4a}, parts:['wings','lavaCracks','poisonDrips'], eyes:2, eyeCol:0xffd23f },
   siren:      { shape:'tentacled',   pal:{d:0x1a3a5a,m:0x2f6f9a,l:0x6fb0d8,a:0xaef0ff}, parts:['tentacles','lure'],          eyes:2, eyeCol:0xaef0ff },
-  primordial: { shape:'amorphous',   pal:{d:0x2a2030,m:0x7a4aa0,l:0xffffff,a:0xffffff}, parts:['prism','multiEyes'],         eyes:5, eyeCol:0xffffff, prism:true },
-  golden:     { shape:'amorphous',   pal:{d:0x7a5a10,m:0xe0b020,l:0xfff0a0,a:0xffffff}, parts:['prism','multiEyes'],         eyes:5, eyeCol:0xfff6c0, prism:true },
+  primordial:  { shape:'amorphous',   pal:{d:0x2a2030,m:0x7a4aa0,l:0xffffff,a:0xffffff}, parts:['prism','multiEyes'],           eyes:5, eyeCol:0xffffff, prism:true },
+  golden:      { shape:'amorphous',   pal:{d:0x7a5a10,m:0xe0b020,l:0xfff0a0,a:0xffffff}, parts:['prism','multiEyes'],           eyes:5, eyeCol:0xfff6c0, prism:true },
+  crystal:     { shape:'crystalline', pal:{d:0x3a5a7a,m:0x6a9aba,l:0xc8e8ff,a:0xffffff}, parts:['iceCrown','shellPlates'],      eyes:2, eyeCol:0xaef0ff },
+  vortex:      { shape:'sleek',       pal:{d:0x2a3a5a,m:0x4a6a9a,l:0x8ab8e8,a:0xdcf8ff}, parts:['streaks','legs'],              eyes:2, eyeCol:0x2af8ff },
+  void_shadow: { shape:'amorphous',   pal:{d:0x1a0a2a,m:0x3a1a5a,l:0x7a3aa0,a:0xa040f0}, parts:['multiEyes','poisonDrips'],    eyes:4, eyeCol:0x6a1aff },
+  ancient:     { shape:'bulky',       pal:{d:0x5a4a3a,m:0x8a7a6a,l:0xc8b8a8,a:0xe8d8c8}, parts:['heavyBrows','shellPlates'],   eyes:2, eyeCol:0xffb850 },
+  leviathan:   { shape:'bulky',       pal:{d:0x1a3a4a,m:0x2a6a7a,l:0x4a9aaa,a:0x7ad8e8}, parts:['lavaCracks','spores'],        eyes:3, eyeCol:0x00ffff },
 };
 
 // 10분 기준 보스 등장 시각(ms)과 슬롯
@@ -2884,12 +3153,24 @@ const MUTATIONS = [
   { id: 'low_fertility', name: '낮은 번식력', type: 'bad', effects: { fertility: -0.4 } },
   { id: 'frail_body', name: '약한 체질', type: 'bad', effects: { hp: -25 } },
   { id: 'timid', name: '겁 많은 성향', type: 'bad', effects: { attack: -2, charm: -3, speed: 5 } },
-  { id: 'bad_metabolism', name: '불완전 대사', type: 'bad', effects: { hp: -10, speed: -5, gather: -2, fertility: -0.2, foodNeed: 0.5 } }
+  { id: 'bad_metabolism', name: '불완전 대사', type: 'bad', effects: { hp: -10, speed: -5, gather: -2, fertility: -0.2, foodNeed: 0.5 } },
+  // ── 추가 돌연변이 10종 ──────────────────────────────────────────────
+  { id: 'acid_spit',    name: '산성 타액',  type: 'good', effects: { attack: 6 } },
+  { id: 'thick_fur',    name: '두꺼운 털',  type: 'good', effects: { hp: 20, defense: 3 } },
+  { id: 'echolocation', name: '반향 탐지',  type: 'good', effects: { gather: 3, speed: 10 } },
+  { id: 'solar_skin',   name: '태양 피부',  type: 'good', effects: { gather: 4, foodNeed: -0.2 } },
+  { id: 'venomous_bite',name: '독성 이빨',  type: 'dual', effects: { attack: 8, fertility: -0.3 } },
+  { id: 'camouflage',   name: '위장술',     type: 'dual', effects: { defense: 4, charm: -5 } },
+  { id: 'magnetism',    name: '자기장',     type: 'dual', effects: { charm: 12, attack: -3 } },
+  { id: 'deep_roots',   name: '뿌리 감각',  type: 'dual', effects: { defense: 4, foodNeed: -0.3, speed: -20 } },
+  { id: 'night_vision', name: '야시증',     type: 'dual', effects: { speed: 15, gather: 2, hp: -10 } },
+  { id: 'brittle_bones',name: '약한 뼈',    type: 'bad',  effects: { hp: -25, defense: -2 } }
 ];
 // 외형에 직접 반영되는 시그니처 돌연변이(스케일 전용 2종 포함)
 const MUTATION_SIG_IDS = new Set([
   'large_body','small_body','hard_shell','bright_pattern','strong_jaw',
   'poison_gland','regeneration','fast_legs','pheromone',
+  'thick_fur','venomous_bite','camouflage','acid_spit',
 ]);
 function signatureMutations(mutations) {
   return (mutations || []).filter(id => MUTATION_SIG_IDS.has(id)).sort();
@@ -3098,7 +3379,9 @@ class Individual {
     const parentExpressed = new Set([...parentA.mutations, ...parentB.mutations]);
 
     // 새 돌연변이 발생 (신규 변이)
-    const mutationRollRate = clamp((parentA.stats.mutationRate + parentB.stats.mutationRate) / 2, 0, MAX_STATS.mutationRate);
+    const _sc = window._arenaScene;
+    const _mutStormActive = _sc && _sc._specialEventMutStormUntil && _sc.elapsed < _sc._specialEventMutStormUntil;
+    const mutationRollRate = clamp(((parentA.stats.mutationRate + parentB.stats.mutationRate) / 2) * (_mutStormActive ? 3 : 1), 0, MAX_STATS.mutationRate);
     let newMutationCount = 0;
     const newlyGained = [];
     const forceOne = guaranteeMutation;
@@ -3188,7 +3471,9 @@ class Group {
   }
 
   need() {
-    return this.individuals.reduce((sum, individual) => sum + individual.stats.foodNeed, 0);
+    const base = this.individuals.reduce((sum, individual) => sum + individual.stats.foodNeed, 0);
+    const mult = (this.isPlayer && LAB_BUFFS && LAB_BUFFS.foodNeedMult) || 1;
+    return mult === 1 ? base : base * mult;
   }
 
   surplus() {
@@ -3616,22 +3901,88 @@ class AudioManager {
   }
 
   startBgm() {
-    if (this._bgm) return;
-    this._bgm = new window.Audio('assets/bgm.mp3');
-    this._bgm.loop = true;
-    this._bgm.volume = parseInt(localStorage.getItem('gpa_bgm_vol') ?? '45') / 100;
-    this._bgm.muted = this.muted;
-    if (localStorage.getItem('gpa_bgm_off') !== '1') this._bgm.play().catch(() => {});
+    if (this._bgm || this._synthBgmActive) return;
+    const audio = new window.Audio('assets/bgm.mp3');
+    audio.loop = true;
+    audio.volume = parseInt(localStorage.getItem('gpa_bgm_vol') ?? '45') / 100;
+    audio.muted = this.muted;
+    if (localStorage.getItem('gpa_bgm_off') !== '1') {
+      audio.play().then(() => { this._bgm = audio; }).catch(() => this._startSynthBgm());
+    } else {
+      this._bgm = audio; // 저장만
+    }
+  }
+
+  // Web Audio 합성 BGM: 자연/생태 테마 펜타토닉 멜로디 루프
+  _startSynthBgm() {
+    if (!this.ctx || this._synthBgmActive || localStorage.getItem('gpa_bgm_off') === '1') return;
+    this._synthBgmActive = true;
+    const vol = parseInt(localStorage.getItem('gpa_bgm_vol') ?? '45') / 100 * 0.5;
+
+    // 펜타토닉 음계 C장조: C4 D4 E4 G4 A4 C5 D5 E5
+    const NOTES = [261.63, 293.66, 329.63, 392.00, 440.00, 523.25, 587.33, 659.25];
+    // 멜로디 패턴 (인덱스)
+    const MELODY = [0,2,4,2,5,3,4,2, 1,3,5,3,6,4,5,3, 0,4,2,4,3,1,2,0];
+    const BPM = 90, BEAT = 60 / BPM;
+    let step = 0;
+
+    const bgmGain = this.ctx.createGain();
+    bgmGain.gain.value = this.muted ? 0 : vol;
+    bgmGain.connect(this.ctx.destination);
+    this._synthBgmGain = bgmGain;
+
+    // 베이스 패드 (지속 화음)
+    const bassPad = (freq, v) => {
+      const o = this.ctx.createOscillator();
+      const g = this.ctx.createGain();
+      o.type = 'sine'; o.frequency.value = freq / 2;
+      g.gain.value = v; o.connect(g); g.connect(bgmGain); o.start();
+      return o;
+    };
+    this._synthOscs = [bassPad(261.63, 0.08), bassPad(392.00, 0.05), bassPad(523.25, 0.04)];
+
+    // 멜로디 스케줄러
+    const scheduleMelody = () => {
+      if (!this._synthBgmActive || !this.ctx) return;
+      const now = this.ctx.currentTime;
+      const freq = NOTES[MELODY[step % MELODY.length]];
+      const o = this.ctx.createOscillator();
+      const g = this.ctx.createGain();
+      o.type = 'triangle'; o.frequency.value = freq;
+      g.gain.setValueAtTime(0, now);
+      g.gain.linearRampToValueAtTime(vol * 0.4, now + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.001, now + BEAT * 0.85);
+      o.connect(g); g.connect(bgmGain);
+      o.start(now); o.stop(now + BEAT);
+      step++;
+      this._synthBgmTimer = setTimeout(scheduleMelody, BEAT * 900);
+    };
+    scheduleMelody();
+  }
+
+  _stopSynthBgm() {
+    this._synthBgmActive = false;
+    if (this._synthBgmTimer) clearTimeout(this._synthBgmTimer);
+    if (this._synthBgmGain) { try { this._synthBgmGain.gain.value = 0; } catch(e){} }
+    if (this._synthOscs) { for (const o of this._synthOscs) { try { o.stop(); } catch(e){} } }
+    this._synthOscs = null; this._synthBgmGain = null;
   }
   stopBgm() {
-    if (!this._bgm) return;
-    this._bgm.pause();
-    this._bgm.currentTime = 0;
-    this._bgm = null;
+    if (this._bgm) { this._bgm.pause(); this._bgm.currentTime = 0; this._bgm = null; }
+    this._stopSynthBgm();
   }
-  pauseBgm()  { if (this._bgm) this._bgm.pause(); }
+  pauseBgm() {
+    if (this._bgm) this._bgm.pause();
+    if (this._synthBgmGain) { try { this._synthBgmGain.gain.value = 0; } catch(e){} }
+  }
   resumeBgm() {
-    if (this._bgm && localStorage.getItem('gpa_bgm_off') !== '1') this._bgm.play().catch(() => {});
+    if (localStorage.getItem('gpa_bgm_off') === '1') return;
+    if (this._bgm) this._bgm.play().catch(() => {});
+    if (this._synthBgmGain && !this.muted) {
+      const vol = parseInt(localStorage.getItem('gpa_bgm_vol') ?? '45') / 100 * 0.5;
+      try { this._synthBgmGain.gain.value = vol; } catch(e){}
+    }
+    if (!this._bgm && !this._synthBgmActive) this._startSynthBgm();
   }
   setMuted(m) {
     this.muted = m;
@@ -3699,6 +4050,10 @@ class ArenaScene extends Phaser.Scene {
     this._peakPopulation = 0;
     // 지형별 이벤트 발생 횟수 추적
     this.terrainEventCount = {};
+    // 특수 이벤트 타이머
+    this._specialEventNextAt = 90000 + Math.random() * 60000; // 90~150초 사이 첫 발생
+    this._specialEventMutStormUntil = 0; // 돌연변이 폭풍 만료 시각
+    this._specialEventLevel = (LAB_BUFFS && LAB_BUFFS.specialEvents) || 0;
     // 황금 슬라임 등장 조건 추적 (BB/RR + 유전자 3종 100% 달성)
     this._genesMaxedEver = new Set();
     this._goldenConditionMet = false;
@@ -4395,6 +4750,9 @@ class ArenaScene extends Phaser.Scene {
         if (LAB_BUFFS.gatherBonus > 0) {
           ind.stats.gather = Math.min(ind.stats.gather + LAB_BUFFS.gatherBonus, 100);
         }
+        if (LAB_BUFFS.mutRateBonus > 0) {
+          ind.stats.mutationRate = Math.min(ind.stats.mutationRate + LAB_BUFFS.mutRateBonus, MAX_STATS.mutationRate);
+        }
       }
       // 플레이어는 e등급 대립유전자 품질로 시작
       if (group.isPlayer) {
@@ -4813,13 +5171,15 @@ class ArenaScene extends Phaser.Scene {
     // 웨이브 보스 스케줄 체크
     if (!this.tutorialActive && this.bossPhase === 'idle' && !this._waveFired && this._waveIdx < this._waveList.length && this.elapsed >= this._nextBossAt) {
       this._waveFired = true;
-      const isFinal = this._waveIdx === this._waveList.length - 1;
+      const isFinal = GAME_MODE !== 'infinite' && this._waveIdx === this._waveList.length - 1;
       let bossId = this._waveList[this._waveIdx];
       if (isFinal && this._goldenConditionMet) bossId = 'golden';
       const slot = isFinal ? 'final' : 'mid';
       this.startBossWarning(bossById(bossId), slot);
       const hpMult = getDiffConfig().bossHpMult;
-      this._dueBossHp = Math.round(WAVE_HP[this._waveIdx] * hpMult);
+      const baseHp = WAVE_HP[Math.min(this._waveIdx, WAVE_HP.length - 1)];
+      const infMult = GAME_MODE === 'infinite' ? (this._infiniteHpMult || 1.0) : 1.0;
+      this._dueBossHp = Math.round(baseHp * hpMult * infMult);
     }
     if (this.bossPhase === 'warning') this.bossWarningTick();
     if (this.bossPhase === 'chase') this.bossChaseTick(dt);
@@ -4829,10 +5189,12 @@ class ArenaScene extends Phaser.Scene {
       this.meteorWarned = true;
       this.startMeteorWarning();
     }
-    if (this.elapsed >= METEOR_TIME + _labMB && !this.meteorActive && this.bossPhase === 'idle') {
+    if (GAME_MODE !== 'infinite' && this.elapsed >= METEOR_TIME + _labMB && !this.meteorActive && this.bossPhase === 'idle') {
       return this.triggerMeteor();
     }
     if (!this.player.individuals.length) return this.endGame();
+    // ── 특수 이벤트 틱 ──
+    if (this._specialEventLevel > 0 && !this.gameOver) this._tickSpecialEvent();
     this.movePlayer(dt);
     for (const ai of this.aiGroups) ai.aiTick(dt);
     this.moveIndividuals(gameDt);
@@ -5338,7 +5700,19 @@ class ArenaScene extends Phaser.Scene {
   }
 
   handleBreed() {
-    if (!this.player.canBreed()) return;
+    if (!this.player.canBreed()) {
+      // 실패 이유 피드백
+      const g = this.player;
+      const bc = LAB_BUFFS ? Math.max(1, Math.round(10 * LAB_BUFFS.breedCostMult)) : 10;
+      const minFood = bc * 10;
+      let reason = '';
+      if (g.state !== 'normal') reason = '⚔️ 전투 또는 보스 교전 중 번식 불가';
+      else if (g.count < 5) reason = `👥 개체 5마리 필요 (현재 ${g.count}마리)`;
+      else if (g.surplus() < minFood) reason = `🍖 식량 부족 (필요 ${minFood}, 현재 ${Math.floor(g.food)})`;
+      else if (g.count >= g._maxPop()) reason = `🏟️ 개체 한도 초과 (최대 ${g._maxPop()}마리)`;
+      if (reason) this.showToast(reason, 'warn');
+      return;
+    }
     // 첫 돌연변이 보장: 3번 연속으로 돌연변이 없으면 다음 번식 때 확정 발생
     if (this._breedsWithoutMutation >= 3 && this.gainedMutationsThisGame.size === 0) {
       this.player._guaranteeNextMutation = true;
@@ -5685,6 +6059,39 @@ bossCombatTick(dt) {
   if (this.showToast) this.showToast(msg, 'warn');
 }
 
+_tickSpecialEvent() {
+  if (this.elapsed < this._specialEventNextAt) return;
+  const lvl = this._specialEventLevel;
+  const events = [];
+  if (lvl >= 1) events.push('abundance');
+  if (lvl >= 2) events.push('mut_storm');
+  if (lvl >= 3 && this.bossPhase !== 'idle') events.push('evacuation');
+  if (!events.length) return;
+  const picked = events[Math.floor(Math.random() * events.length)];
+  this._specialEventNextAt = this.elapsed + 90000 + Math.random() * 60000;
+  if (picked === 'abundance') {
+    this.player.food = Math.min(this.player.food + 150, 9999);
+    this.showMessage('🌸 풍요의 봄! 식량 +150', true);
+    this.showToast('🌸 +150 식량', 'ach');
+  } else if (picked === 'mut_storm') {
+    this._specialEventMutStormUntil = this.elapsed + 30000;
+    this.showMessage('🌪️ 돌연변이 폭풍! 30초간 돌연변이 확률 3배', true);
+    this.showToast('🌪️ 돌연변이 폭풍 30초', 'ach');
+  } else if (picked === 'evacuation') {
+    // 보스 경고 중 피난: 플레이어를 보스 피난 지형 근처로 이동
+    const refuge = this.activeBoss && this.activeBoss.refuge;
+    if (refuge) {
+      const tiles = this._terrainTiles ? (this._terrainTiles[refuge] || []) : [];
+      if (tiles.length) {
+        const t = tiles[Math.floor(Math.random() * tiles.length)];
+        this.player.x = t.px; this.player.y = t.py;
+        this.showMessage(`🚁 긴급 피난! ${this.activeBoss.refugeText}(으)로 이동`, true);
+      }
+    }
+  }
+  this.cameras.main.flash(300, 255, 255, 200);
+}
+
 _rollWaveList() {
   const single = BOSS_ROSTER.filter(b => !b.hidden && !b.final && !b.reqText.includes('+'));
   const dual   = BOSS_ROSTER.filter(b => !b.hidden && !b.final &&  b.reqText.includes('+'));
@@ -5731,10 +6138,25 @@ resolveBoss(win, reason) {
     this.checkAchievements();
     // 최종 슬롯 처치 → 2초 후 엔딩 (황금 슬라임이 중간 슬롯이면 엔딩 없음)
     if (slot === 'final') {
-      this.cameras.main.flash(600, 255, 255, 180);
-      const endType = boss.id === 'golden' ? 'golden' : 'primordial';
-      this._newlyUnlockedDiff = unlockNextDiff(CURRENT_DIFFICULTY);
-      this.time.delayedCall(2000, () => this.endGame(endType));
+      if (GAME_MODE === 'infinite') {
+        // 무한 모드: 최종 보스도 처치 후 다음 웨이브로
+        this.cameras.main.flash(400, 255, 220, 180);
+        this._waveIdx++;
+        this._waveFired = false;
+        this._infiniteWave = (this._infiniteWave || 1) + 1;
+        this._infiniteHpMult = 1 + (this._infiniteWave - 1) * 0.10;
+        const infSlowdown = (LAB_BUFFS && LAB_BUFFS.infiniteBossSlowdown) || 1.0;
+        this._nextBossAt = this.elapsed + WAVE_COOLDOWN * infSlowdown;
+        const normalBosses = BOSS_ROSTER.filter(b => !b.final);
+        const next = normalBosses[Math.floor(Math.random() * normalBosses.length)];
+        this._waveList.push(next.id);
+        this.showMessage(`🌈 ${boss.name} 처치! 무한 ${this._infiniteWave}웨이브 시작!`, true);
+      } else {
+        this.cameras.main.flash(600, 255, 255, 180);
+        const endType = boss.id === 'golden' ? 'golden' : 'primordial';
+        this._newlyUnlockedDiff = unlockNextDiff(CURRENT_DIFFICULTY);
+        this.time.delayedCall(2000, () => this.endGame(endType));
+      }
     }
   } else if (reason === 'retreat') {
     this.showMessage(`${boss.ico} ${boss.name}가 물러갑니다… (보상 없음)`, true);
@@ -5747,10 +6169,23 @@ resolveBoss(win, reason) {
   if (win && slot !== 'final') {
     this._waveIdx++;
     this._waveFired = false;
-    this._nextBossAt = this.elapsed + WAVE_COOLDOWN;
+    const infSlowdown = (LAB_BUFFS && LAB_BUFFS.infiniteBossSlowdown) || 1.0;
+    this._nextBossAt = this.elapsed + WAVE_COOLDOWN * infSlowdown;
+    // 무한 모드: 웨이브 끝나면 다음 보스 자동 추가 (난이도 점진 상승)
+    if (GAME_MODE === 'infinite' && this._waveIdx >= this._waveList.length) {
+      const normalBosses = BOSS_ROSTER.filter(b => !b.final);
+      const next = normalBosses[Math.floor(Math.random() * normalBosses.length)];
+      this._waveList.push(next.id);
+      this._infiniteWave = (this._infiniteWave || 1) + 1;
+      // HP scaling: +10% per extra wave beyond 3
+      this._infiniteHpMult = 1 + (this._infiniteWave - 1) * 0.10;
+    }
     const nextId = this._waveList[this._waveIdx];
     const nextBoss = nextId ? bossById(nextId) : null;
-    if (nextBoss) this.showMessage(`✅ 처치! 다음: ${nextBoss.ico} ${nextBoss.name} (${Math.round(WAVE_COOLDOWN/1000)}초 후)`, true);
+    if (nextBoss) {
+      const infLabel = GAME_MODE === 'infinite' ? ` [무한 ${this._infiniteWave || 1}웨이브]` : '';
+      this.showMessage(`✅ 처치! 다음: ${nextBoss.ico} ${nextBoss.name} (${Math.round(WAVE_COOLDOWN * infSlowdown / 1000)}초 후)${infLabel}`, true);
+    }
   }
 }
 
@@ -5885,13 +6320,15 @@ resolveBoss(win, reason) {
 
   // 도전과제 등 토스트 알림
   showToast(text, kind = 'ach') {
-    // kind: 'mut'=돌연변이(왼쪽 아래) / 'ach'=도전과제(오른쪽 아래)
-    const wrap = document.getElementById(kind === 'mut' ? 'toast-mut' : 'toast-ach');
+    // kind: 'mut'=돌연변이(왼쪽 아래) / 'ach'=도전과제(오른쪽 아래) / 'warn'=경고(오른쪽 아래 빨강)
+    const wrapId = kind === 'mut' ? 'toast-mut' : 'toast-ach';
+    const wrap = document.getElementById(wrapId);
     if (!wrap) return;
     const el = document.createElement('div');
-    el.className = 'toast toast-' + kind; el.textContent = text;
+    el.className = 'toast toast-' + (kind === 'warn' ? 'warn' : kind);
+    el.textContent = text;
     wrap.appendChild(el);
-    setTimeout(() => el.remove(), 3700);
+    setTimeout(() => el.remove(), kind === 'warn' ? 2800 : 3700);
   }
 
   showAlleleChangeCard(terrain, before, after) {
@@ -6097,16 +6534,23 @@ resolveBoss(win, reason) {
     const terrain = this.terrainAt(group.x, group.y);
     const setText = (id, value) => { const el = document.getElementById(id); if (el) el.textContent = value; };
 
-    // 상단 칩: 남은 시간 표시 추가
+    // 상단 칩: 무한 모드는 경과시간, 일반 모드는 남은시간 표시
     const remainMs = Math.max(0, METEOR_TIME + ((LAB_BUFFS&&LAB_BUFFS.meteorBonus)||0) - this.elapsed);
-    const rm = Math.floor(remainMs / 60000), rs = Math.floor((remainMs % 60000) / 1000);
+    let timerStr;
+    if (GAME_MODE === 'infinite') {
+      const em = Math.floor(this.elapsed / 60000), es = Math.floor((this.elapsed % 60000) / 1000);
+      timerStr = `♾️${em}:${String(es).padStart(2,'0')}`;
+    } else {
+      const rm = Math.floor(remainMs / 60000), rs = Math.floor((remainMs % 60000) / 1000);
+      timerStr = `${rm}:${String(rs).padStart(2,'0')}`;
+    }
     setText('c-count', group.count);
     setText('c-food', Math.floor(group.food));
-    setText('c-gen', `${rm}:${String(rs).padStart(2,'0')}`); // 세대→남은시간
+    setText('c-gen', timerStr);
 
     // 현황 패널 (간소화)
     setText('s-count', group.count);
-    setText('s-breed', canBreed ? '🥚 번식 가능' : '번식 불가');
+    setText('s-breed', canBreed ? T('breed_ok') : T('breed_no'));
     document.getElementById('s-breed').className = canBreed ? 'good' : 'bad';
     setText('s-hp', group.average('hp').toFixed(0));
     setText('s-attack', group.average('attack').toFixed(0));
@@ -6140,6 +6584,58 @@ resolveBoss(win, reason) {
       actionBtn.innerHTML = '🥚<br>번식';
       actionBtn.classList.remove('flee-mode');
       actionBtn.disabled = !canBreed;
+      // 번식 불가 이유 tooltip
+      if (!canBreed) {
+        const bc = LAB_BUFFS ? Math.max(1, Math.round(10 * LAB_BUFFS.breedCostMult)) : 10;
+        const minFood = bc * 10;
+        if (group.state !== 'normal')      actionBtn.title = '전투/보스 교전 중 번식 불가';
+        else if (group.count < 5)          actionBtn.title = `개체 5마리 필요 (현재 ${group.count})`;
+        else if (group.surplus() < minFood) actionBtn.title = `식량 부족 (${Math.floor(group.food)}/${minFood})`;
+        else if (group.count >= group._maxPop()) actionBtn.title = `한도 초과 (최대 ${group._maxPop()})`;
+        else actionBtn.title = '';
+      } else {
+        actionBtn.title = '';
+      }
+    }
+    // 무한 모드 웨이브 표시
+    if (GAME_MODE === 'infinite' && this._infiniteWave > 1) {
+      const waveEl = document.getElementById('diff-badge-name');
+      if (waveEl) waveEl.textContent = `♾️ ${this._infiniteWave}웨이브`;
+    }
+    // 돌연변이 폭풍 활성 표시
+    if (this._specialEventMutStormUntil && this.elapsed < this._specialEventMutStormUntil) {
+      const rem = Math.ceil((this._specialEventMutStormUntil - this.elapsed) / 1000);
+      const timerEl = document.getElementById('c-gen');
+      if (timerEl && !timerEl.dataset.stormInterval) {
+        timerEl.dataset.stormBg = timerEl.style.background || '';
+        timerEl.style.background = 'rgba(160,80,255,.2)';
+      }
+      timerEl && (timerEl.dataset.stormInterval = '1');
+    } else {
+      const timerEl = document.getElementById('c-gen');
+      if (timerEl && timerEl.dataset.stormInterval) {
+        timerEl.style.background = timerEl.dataset.stormBg || '';
+        delete timerEl.dataset.stormInterval;
+      }
+    }
+
+    // PC 사이드 패널 업데이트
+    if (window.innerWidth >= 1080) {
+      const el = id => document.getElementById(id);
+      const em = Math.floor(this.elapsed / 60000), es = Math.floor((this.elapsed % 60000) / 1000);
+      if (el('pc-elapsed')) el('pc-elapsed').textContent = `${em}:${String(es).padStart(2,'0')}`;
+      if (el('pc-food'))    el('pc-food').textContent = Math.floor(group.food);
+      if (el('pc-pop'))     el('pc-pop').textContent = group.count;
+      if (el('pc-gen'))     el('pc-gen').textContent = group.generation;
+      if (el('pc-next-boss') && this._waveList) {
+        const allDone = this._waveIdx >= this._waveList.length;
+        if (allDone) {
+          el('pc-next-boss').textContent = GAME_MODE === 'infinite' ? T('inf_ongoing') : T('all_done');
+        } else {
+          const nb = bossById(this._waveList[this._waveIdx]);
+          el('pc-next-boss').innerHTML = nb ? `${nb.ico} ${nb.name}<br><span style="font-size:10px;color:var(--ink-soft)">${nb.reqText}</span>` : '—';
+        }
+      }
     }
 
     // 전쟁 타이머
@@ -6822,24 +7318,40 @@ function openDiffSelect() {
 function closeDiffSelect() {
   document.getElementById('diff-modal').style.display = 'none';
 }
-function startGame(diffIndex = 0) {
+function startGame(diffIndex = 0, mode = 'normal') {
   CURRENT_DIFFICULTY = diffIndex ?? 0;
+  GAME_MODE = mode;
   enterFullscreen();
   stopLeaderboard();
   if (game) return;
   Audio.init(); Audio.resume(); Audio.startBgm();
   document.getElementById('title-screen').style.display = 'none';
   document.getElementById('hud').style.display = 'block';
+  // PC 와이드스크린 사이드 패널 표시
+  if (window.innerWidth >= 1080) {
+    document.getElementById('pc-panel-left').style.display = 'flex';
+    document.getElementById('pc-panel-right').style.display = 'flex';
+    document.getElementById('pc-mode-badge').textContent = GAME_MODE === 'infinite' ? T('mode_infinite') : T('mode_normal');
+    document.getElementById('pc-mode-badge').className = GAME_MODE === 'infinite' ? 'pc-inf-badge' : '';
+    // Phaser 캔버스 컨테이너 너비 조정 (Phaser.Scale.NONE이라 수동 조정 필요)
+    const gc = document.getElementById('game-container');
+    gc.style.width = (window.innerWidth - 430) + 'px';
+  }
   const _db = document.getElementById('diff-badge');
   const _dc = getDiffConfig();
-  if (CURRENT_DIFFICULTY > 0) {
+  if (GAME_MODE === 'infinite') {
+    document.getElementById('diff-badge-ico').textContent = '♾️';
+    document.getElementById('diff-badge-name').textContent = '무한';
+    _db.style.display = '';
+  } else if (CURRENT_DIFFICULTY > 0) {
     document.getElementById('diff-badge-ico').textContent = _dc.ico;
     document.getElementById('diff-badge-name').textContent = _dc.name;
     _db.style.display = '';
   } else {
     _db.style.display = 'none';
   }
-  const width = Math.max(window.innerWidth || 800, 400);
+  const _isPc = window.innerWidth >= 1080;
+  const width = Math.max((_isPc ? window.innerWidth - 430 : window.innerWidth) || 800, 400);
   const height = Math.max(window.innerHeight || 600, 500);
   game = new Phaser.Game({
     type: Phaser.AUTO,
@@ -6857,6 +7369,16 @@ function startGame(diffIndex = 0) {
       height
     }
   });
+}
+
+function startInfiniteMode() {
+  startGame(CURRENT_DIFFICULTY, 'infinite');
+}
+
+function _refreshTitleButtons() {
+  computeLabBuffs();
+  const infBtn = document.getElementById('infinite-btn');
+  if (infBtn) infBtn.style.display = (LAB_BUFFS && LAB_BUFFS.infiniteMode) ? '' : 'none';
 }
 
 function toggleStatsPanel() {
@@ -7328,6 +7850,54 @@ function toggleOptionsBgm(btn) {
   if (p) p.classList.toggle('on', !off);
 }
 function closeOptionsModal() { document.getElementById('options-modal').classList.remove('open'); }
+// ── 키보드 단축키 (PC) ──────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+  const sc = window._arenaScene;
+  const modalOpen = document.querySelector('.dex-modal.open, #options-modal.open, #pause-modal.open, #mutation-picker.open, #lab-modal.open');
+  switch (e.key) {
+    case 'b': case 'B':
+      if (sc && !modalOpen) { sc.handleAction(); e.preventDefault(); } break;
+    case ' ':
+      if (sc && !modalOpen) { sc.handleAction(); e.preventDefault(); } break;
+    case 'Escape':
+      if (document.getElementById('mutation-picker').classList.contains('open')) {
+        resolveMutationPick(null); e.preventDefault(); break;
+      }
+      if (document.getElementById('dex-modal') && document.getElementById('dex-modal').classList.contains('open')) {
+        closeDex(); e.preventDefault(); break;
+      }
+      if (document.getElementById('options-modal').classList.contains('open')) {
+        closeOptionsModal(); e.preventDefault(); break;
+      }
+      if (document.getElementById('lab-modal').classList.contains('open')) {
+        closeLab(); e.preventDefault(); break;
+      }
+      if (sc) { togglePause(); e.preventDefault(); } break;
+    case 'd': case 'D':
+      if (!modalOpen) { openDex(); e.preventDefault(); } break;
+    case 'l': case 'L':
+      if (!modalOpen) { openLab(); e.preventDefault(); } break;
+    case 'm': case 'M':
+      toggleMute(); e.preventDefault(); break;
+    case 'f': case 'F':
+      if (!modalOpen) { toggleFullscreen(); e.preventDefault(); } break;
+    case '1': case '2': case '3':
+      if (sc && !modalOpen) {
+        const speeds = [1, 1.5, 2]; const s = speeds[parseInt(e.key) - 1];
+        if (s && sc.tweens) { sc._gameSpeed = s; sc.tweens.timeScale = s; sc.physics && (sc.physics.world.timeScale = 1/s); }
+      } break;
+  }
+});
+
+function resetAccount() {
+  if (!confirm('⚠️ 정말 초기화하시겠습니까?\n\n계통수 해금, 통계, 업적, 리더보드 연동 등\n모든 진행 데이터가 삭제됩니다.\n\n이 작업은 되돌릴 수 없습니다.')) return;
+  const keysToRemove = Object.keys(localStorage).filter(k => k.startsWith('gpa_'));
+  keysToRemove.forEach(k => localStorage.removeItem(k));
+  closeOptionsModal();
+  alert('✅ 초기화 완료. 페이지를 새로고침합니다.');
+  location.reload();
+}
 function toggleOptionsMutPick(btn) {
   btn.classList.toggle('on');
   localStorage.setItem('gpa_mutpick_off', btn.classList.contains('on') ? '0' : '1');
@@ -7773,8 +8343,20 @@ const ContextHint = (() => {
 })();
 
 // 페이지 로드 시 순위표 초기화
+function _syncLangBtns() {
+  const ko = document.getElementById('lang-ko-btn');
+  const en = document.getElementById('lang-en-btn');
+  if (ko) ko.style.fontWeight = _lang === 'ko' ? '900' : '700';
+  if (ko) ko.style.borderColor = _lang === 'ko' ? 'var(--leaf-dk)' : '';
+  if (en) en.style.fontWeight = _lang === 'en' ? '900' : '700';
+  if (en) en.style.borderColor = _lang === 'en' ? 'var(--leaf-dk)' : '';
+}
+
 window.addEventListener('DOMContentLoaded', () => {
   initLeaderboard();
+  _refreshTitleButtons();
+  applyI18n();
+  _syncLangBtns();
 });
 
 // ── Feature 4: 누적 통계 ────────────────────────────────────────────
