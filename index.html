@@ -2642,6 +2642,15 @@ function showMutationPicker(child, naturalMutId, scene) {
     if (chosenId) {
       child.mutationGenes[chosenId] = ['M','m'];
       child.newlyGained = [chosenId];
+      // 선택 확정 시 토스트 표시 (handleBreed에서는 중복 방지를 위해 표시 안 함)
+      const _sc2 = window._arenaScene;
+      if (_sc2) {
+        const _m = mutationById(chosenId);
+        if (_m) {
+          const _ico = _m.type === 'good' ? '✅' : _m.type === 'bad' ? '❌' : '🔵';
+          setTimeout(() => _sc2.showToast(`🧬 ${_ico} ${_m.name}`, 'mut'), 80);
+        }
+      }
     } else {
       child.newlyGained = [];
       child.newMutationCount = 0;
@@ -5727,13 +5736,15 @@ class ArenaScene extends Phaser.Scene {
     Audio.sfxBreed();
     ContextHint.show('first_breed','🥚','자손이 태어났어요!\n부모의 특성을 물려받고\n가끔 돌연변이로 새 능력이 생겨요.\n🔬 돌연변이가 쌓일수록 집단이 강해집니다!');
     this.burst(this.player.x, this.player.y, 0xffb4a2, 12, 70);
-    // 돌연변이 토스트
-    gained.forEach((id, i) => {
-      const m = mutationById(id);
-      if (!m) return;
-      const ico = m.type === 'good' ? '✅' : m.type === 'bad' ? '❌' : '🔵';
-      setTimeout(() => this.showToast(`🧬 ${ico} ${m.name}`, 'mut'), i * 350);
-    });
+    // 돌연변이 토스트: 선택창 OFF일 때만 즉시 표시 (ON이면 resolveMutationPick에서 처리)
+    if (localStorage.getItem('gpa_mutpick_off') === '1') {
+      gained.forEach((id, i) => {
+        const m = mutationById(id);
+        if (!m) return;
+        const ico = m.type === 'good' ? '✅' : m.type === 'bad' ? '❌' : '🔵';
+        setTimeout(() => this.showToast(`🧬 ${ico} ${m.name}`, 'mut'), i * 350);
+      });
+    }
   }
 
   tryFleeBattle() {
