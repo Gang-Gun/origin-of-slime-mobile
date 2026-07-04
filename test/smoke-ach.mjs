@@ -2,9 +2,10 @@
 import { readFileSync } from 'node:fs';
 
 const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
-const m = /<script\b(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/i.exec(html);
-if (!m) { console.error('인라인 스크립트를 찾지 못함'); process.exit(1); }
-const code = m[1];
+// 가장 긴 인라인 스크립트 = 메인 게임 스크립트 (앞쪽의 짧은 가드 스크립트는 건너뜀)
+const scripts = [...html.matchAll(/<script\b(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/gi)].map(m => m[1]);
+if (!scripts.length) { console.error('인라인 스크립트를 찾지 못함'); process.exit(1); }
+const code = scripts.reduce((a, b) => (b.length > a.length ? b : a), '');
 
 const stub = new Proxy(function(){}, {
   get(_t, p){ if (p === Symbol.toPrimitive) return () => 0; if (p === 'toString') return () => ''; return stub; },
@@ -37,7 +38,7 @@ try {
 const fail = (msg) => { console.error('✗ ' + msg); process.exitCode = 1; };
 
 // 1) 모든 ACHIEVEMENTS 항목에 cat 필드 존재
-const VALID_CATS = new Set(['생존','집단','세대','전투','포섭','식량','유전자','지형']);
+const VALID_CATS = new Set(['생존','집단','세대','전투','포섭','식량','유전자','지형','돌연변이','보스']);
 for (const a of api.ACHIEVEMENTS) {
   if (!a.cat) fail(`${a.id}: cat 필드 없음`);
   else if (!VALID_CATS.has(a.cat)) fail(`${a.id}: cat 값 "${a.cat}" 불명 (유효: ${[...VALID_CATS].join('/')})`);

@@ -1,8 +1,9 @@
 import { readFileSync } from 'node:fs';
 const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
-const m = /<script\b(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/i.exec(html);
-if (!m) { console.error('인라인 스크립트 없음'); process.exit(1); }
-const code = m[1];
+// 가장 긴 인라인 스크립트 = 메인 게임 스크립트 (앞쪽의 짧은 가드 스크립트는 건너뜀)
+const scripts = [...html.matchAll(/<script\b(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/gi)].map(m => m[1]);
+if (!scripts.length) { console.error('인라인 스크립트를 찾지 못함'); process.exit(1); }
+const code = scripts.reduce((a, b) => (b.length > a.length ? b : a), '');
 const stub = new Proxy(function(){}, { get(_t,p){ if(p===Symbol.toPrimitive) return ()=>0; if(p==='toString') return ()=>''; return stub; }, apply(){return stub;}, construct(){return stub;}, has(){return true;} });
 const Phaser = { Scene: class {}, Game: class { constructor(){} }, AUTO:0, Scale: stub };
 let api;
@@ -28,6 +29,6 @@ for (const b of api.BOSS_ROSTER) {
   if (!v.pal || ['d','m','l','a'].some(k => typeof v.pal[k] !== 'number')) fail('팔레트 불완전: '+b.id);
   if (!v.shape || !Array.isArray(v.parts)) fail('shape/parts 누락: '+b.id);
 }
-if (Object.keys(api.BOSS_VISUAL).length !== 10) fail('BOSS_VISUAL 개수 != 10');
+if (Object.keys(api.BOSS_VISUAL).length !== api.BOSS_ROSTER.length) fail(`BOSS_VISUAL 개수(${Object.keys(api.BOSS_VISUAL).length}) != BOSS_ROSTER 개수(${api.BOSS_ROSTER.length})`);
 if (process.exitCode) console.error('smoke-visual FAILED');
 else console.log('smoke-visual ok — type판정/시그니처/키 정상');

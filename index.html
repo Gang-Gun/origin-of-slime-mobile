@@ -4,9 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no, maximum-scale=1">
 <title>슬라임의 기원 | Origin of Slime</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Jua&family=Nunito:wght@600;800;900&display=swap" rel="stylesheet">
+<!-- 폰트 로컬 번들 (오프라인/스팀 실행 지원) -->
+<link href="assets/fonts/fonts.css" rel="stylesheet">
 <style>
 /* ════════════════════════════════════════════
    파스텔 자연 생태 테마 — Origin of Slime
@@ -921,7 +920,7 @@ canvas { display: block; image-rendering: pixelated; }
    ════════════════════════════════════════════ */
 @font-face {
   font-family: 'Galmuri11';
-  src: url('https://cdn.jsdelivr.net/gh/quiple/galmuri@latest/dist/Galmuri11.woff2') format('woff2');
+  src: url('assets/fonts/Galmuri11.woff2') format('woff2');
   font-display: swap;
 }
 :root {
@@ -1525,9 +1524,7 @@ body { image-rendering: pixelated; }
   margin-top: 2px;
 }
 </style>
-  <!-- Firebase SDK (순위표용) -->
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <!-- Firebase SDK(순위표)는 화면 표시를 막지 않도록 initLeaderboard()에서 동적 로드 -->
 </head>
 <body>
 <!-- SVG gradient defs for lab currency icons -->
@@ -1958,7 +1955,20 @@ body { image-rendering: pixelated; }
   </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
+<script src="assets/vendor/phaser.min.js"></script>
+<script>
+// Phaser 로드 실패 시(파일 손상 등) 빈 화면 대신 안내를 표시
+if (typeof Phaser === 'undefined') {
+  document.addEventListener('DOMContentLoaded', () => {
+    document.body.innerHTML =
+      '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;gap:12px;text-align:center;padding:20px">' +
+      '<div style="font-size:48px">😢</div>' +
+      '<h1 style="font-size:20px">게임 엔진을 불러오지 못했습니다</h1>' +
+      '<p style="font-size:14px;color:#6e6384">게임 파일이 손상되었을 수 있습니다.<br>Steam 라이브러리에서 "게임 파일 무결성 확인"을 실행해 주세요.</p>' +
+      '</div>';
+  });
+}
+</script>
 <script>
 'use strict';
 
@@ -2057,8 +2067,35 @@ function initFirebase() {
   }
 }
 
+// ── Firebase SDK 동적 로드 (오프라인이면 순위표만 조용히 비활성화) ──
+function _loadScriptOnce(src) {
+  return new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = src;
+    s.onload = resolve;
+    s.onerror = () => reject(new Error('script load failed: ' + src));
+    document.head.appendChild(s);
+  });
+}
+let _fbSdkPromise = null;
+function _ensureFirebaseSdk() {
+  if (typeof firebase !== 'undefined') return Promise.resolve();
+  if (!_fbSdkPromise) {
+    _fbSdkPromise = _loadScriptOnce('https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js')
+      .then(() => _loadScriptOnce('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js'))
+      .catch(e => { _fbSdkPromise = null; throw e; });
+  }
+  return _fbSdkPromise;
+}
+
 // ── 순위표: 실시간 로드 ──────────────────────────────
-function initLeaderboard() {
+async function initLeaderboard() {
+  try {
+    await _ensureFirebaseSdk();
+  } catch (e) {
+    console.warn('[Leaderboard] Firebase SDK 로드 실패 (오프라인?) — 순위표 비활성화:', e.message);
+    return; // 오프라인: 패널 숨김 유지, 게임은 정상 동작
+  }
   initFirebase();
   if (!_db) return; // Firebase 미설정 시 패널 숨김 유지
   document.getElementById('leaderboard-panel').style.display = 'flex';
@@ -2318,10 +2355,15 @@ const LAB_NODE_MAP = {};
 for (const n of LAB_NODE_DEFS) LAB_NODE_MAP[n.id] = n;
 
 // ── localStorage helpers ────────────────────────────
-function labGetFrag()  { return parseInt(localStorage.getItem('gpa_frag')  || '0', 10); }
-function labGetEss()   { return parseInt(localStorage.getItem('gpa_ess')   || '0', 10); }
+function labGetFrag()  { const n = parseInt(localStorage.getItem('gpa_frag') || '0', 10); return Number.isFinite(n) ? n : 0; }
+function labGetEss()   { const n = parseInt(localStorage.getItem('gpa_ess')  || '0', 10); return Number.isFinite(n) ? n : 0; }
 function labGetOwned() {
-  try { return JSON.parse(localStorage.getItem('gpa_lab_purchased') || '[]'); }
+  // 저장 데이터가 손상돼 배열이 아니면 빈 배열로 복구
+  // (여기서 배열이 아닌 값이 나오면 computeLabBuffs()의 new Set()이 최상위에서 던져 게임 전체가 부팅 불가)
+  try {
+    const v = JSON.parse(localStorage.getItem('gpa_lab_purchased') || '[]');
+    return Array.isArray(v) ? v : [];
+  }
   catch(e){ return []; }
 }
 function labSaveOwned(arr) { localStorage.setItem('gpa_lab_purchased', JSON.stringify(arr)); }
@@ -2758,8 +2800,6 @@ const BOSS_MIN_POP = 3;             // 이 미만으로 떨어지면 게임오�
 const BOSS_ATK_CD = 800;            // 보스 공격 쿨다운(ms)
 const BOSS_DEFENSE = 5;             // 보스 방어력 (일반 개체 defense 스케일)
 const BOSS_ATK_STAT = 40;           // 보스 공격력 (일반 개체 attack 스케일)
-const HIDDEN_BOSS_CHANCE = 0.03;    // 황금 슬라임 히든 등장 확률 3%
-const DIVERSITY_REQ = 0.6;          // 히든 보스 요구 다양성
 
 const BOSS_ROSTER = [
   // 단일 조건 6 — 돌연변이 보유 또는 능력치 충족 시 안전
@@ -7083,7 +7123,7 @@ resolveBoss(win, reason) {
       <div class="score">${score.toLocaleString()}점</div>
       <div style="text-align:center;margin-top:12px">
         <button id="result-register-btn" class="big-btn sky" type="button"
-          style="font-size:14px;padding:10px 24px"
+          style="font-size:14px;padding:10px 24px${_db ? '' : ';display:none'}"
           onclick="window._arenaScene?._endScoreData && openScoreSubmit(window._arenaScene._endScoreData)">
           🏆 기록 등록
         </button>
@@ -8381,7 +8421,12 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
 // ── Feature 4: 누적 통계 ────────────────────────────────────────────
-function loadStats() { try { return JSON.parse(localStorage.getItem('gpa_stats') || '{}'); } catch { return {}; } }
+function loadStats() {
+  try {
+    const v = JSON.parse(localStorage.getItem('gpa_stats') || '{}');
+    return (v && typeof v === 'object' && !Array.isArray(v)) ? v : {};
+  } catch { return {}; }
+}
 function saveStats(s) { localStorage.setItem('gpa_stats', JSON.stringify(s)); }
 function openStatsModal() {
   const s = loadStats();
