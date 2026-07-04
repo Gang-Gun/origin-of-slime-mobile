@@ -1438,9 +1438,8 @@ body { image-rendering: pixelated; }
    PC 와이드스크린 레이아웃 (≥1080px)
    ═══════════════════════════════════════════ */
 @media (min-width: 1080px) {
-  /* 사이드 패널 공통 */
+  /* 사이드 패널 공통 — 표시 여부는 JS(startGame/_applyResize)가 인라인 스타일로 제어 */
   .pc-side-panel {
-    display: flex !important;
     flex-direction: column;
     gap: 10px;
     position: fixed;
@@ -1464,10 +1463,6 @@ body { image-rendering: pixelated; }
   /* position:fixed라 뷰포트 기준 — HUD(left:230, right:200) + 내부 여백(left:8, right:62) 합산 */
   #boss-banner, #next-boss-hint { left: 238px !important; right: 262px !important; }
   #combat-pulse   { left: 230px; right: 200px; }
-
-  /* 타이틀 화면은 사이드 패널 숨김 */
-  #title-screen ~ #pc-panel-left,
-  #title-screen ~ #pc-panel-right { display: none !important; }
 
   /* 리더보드 패널을 왼쪽 사이드바 안으로 흡수 */
   #leaderboard-panel {
@@ -7910,14 +7905,16 @@ document.addEventListener('keydown', e => {
   const sc = window._arenaScene;
   const gameActive = sc && !sc.gameOver && document.getElementById('hud').style.display !== 'none';
   const modalOpen = document.querySelector('.dex-modal.open, #options-modal.open, #pause-modal.open, #mutation-picker.open, #lab-modal.open');
-  const paused = sc && sc._paused;
+  const paused = _paused; // 일시정지 상태는 모듈 변수 (sc._paused는 존재하지 않음)
   switch (e.key) {
     case 'Tab':
-      // Tab: 도감 (WASD와 겹치지 않음)
-      if (!modalOpen) { openDex(); e.preventDefault(); } break;
+      // Tab: 도감 토글 (WASD와 겹치지 않음)
+      if (document.getElementById('dex-modal').classList.contains('open')) { closeDex(); e.preventDefault(); }
+      else if (!modalOpen) { openDex(); e.preventDefault(); } break;
     case 'q': case 'Q':
-      // Q: 계통수 (게임 중 이동 키 아님)
-      if (!modalOpen) { openLab(); e.preventDefault(); } break;
+      // Q: 계통수 토글 (게임 중 이동 키 아님)
+      if (document.getElementById('lab-modal').classList.contains('open')) { closeLab(); e.preventDefault(); }
+      else if (!modalOpen) { openLab(); e.preventDefault(); } break;
     case 'b': case 'B':
       // B: 번식/도망 (이동 키 아님, 게임 중만)
       if (sc && !modalOpen && !paused) { sc.handleAction(); e.preventDefault(); } break;
@@ -7944,9 +7941,17 @@ document.addEventListener('keydown', e => {
       // F: 전체화면 — 게임 중 비활성 (F키 연타 실수 방지), 일시정지/타이틀에서만
       if (!gameActive || paused || modalOpen) { toggleFullscreen(); e.preventDefault(); } break;
     case '1': case '2': case '3':
+      // 실제 게임 속도는 gpa_speed_val을 매 틱 읽는 방식 — HUD 버튼과 동일 경로 사용
       if (sc && !modalOpen) {
         const speeds = [1, 1.5, 2]; const s = speeds[parseInt(e.key) - 1];
-        if (s && sc.tweens) { sc._gameSpeed = s; sc.tweens.timeScale = s; sc.physics && (sc.physics.world.timeScale = 1/s); }
+        const max = LAB_BUFFS?.gameSpeedUnlock || 0;
+        if (s === 1 || (max && s <= max)) {
+          localStorage.setItem('gpa_speed_val', String(s));
+          refreshSpeedBtn();
+          sc.showToast?.(`⚡ ${s}× 속도`, 'ach');
+        } else {
+          sc.showToast?.('🔒 배속은 계통수 [가속] 해금 후 사용 가능', 'warn');
+        }
       } break;
   }
 });
@@ -8071,7 +8076,25 @@ function _cancelJoystick() {
 }
 
 function _applyResize() {
-  if (game) game.scale.resize(window.innerWidth, window.innerHeight);
+  if (!game) return;
+  // PC 와이드 모드(사이드 패널 표시)는 startGame과 동일한 기준으로 재판정
+  const inGame = document.getElementById('hud').style.display !== 'none';
+  const isPc = inGame && window.innerWidth >= 1080;
+  const left = document.getElementById('pc-panel-left');
+  const right = document.getElementById('pc-panel-right');
+  if (left)  left.style.display  = isPc ? 'flex' : 'none';
+  if (right) right.style.display = isPc ? 'flex' : 'none';
+  if (isPc) {
+    const badge = document.getElementById('pc-mode-badge');
+    if (badge && !badge.textContent) {
+      badge.textContent = GAME_MODE === 'infinite' ? T('mode_infinite') : T('mode_normal');
+      badge.className = GAME_MODE === 'infinite' ? 'pc-inf-badge' : '';
+    }
+  }
+  const gc = document.getElementById('game-container');
+  const w = isPc ? window.innerWidth - 430 : window.innerWidth;
+  if (gc) gc.style.width = isPc ? w + 'px' : '';
+  game.scale.resize(w, window.innerHeight);
 }
 
 // 일반 resize (데스크톱 창 크기 변경 + 모바일 기본)
