@@ -7371,7 +7371,13 @@ function startGame(diffIndex = 0, mode = 'normal') {
   enterFullscreen();
   stopLeaderboard();
   if (game) return;
-  Audio.init(); Audio.resume(); Audio.startBgm();
+  // 자동 재시작(튜토리얼 직후 리로드) 등 사용자 제스처 없이 호출되면
+  // 오디오는 첫 입력 시점으로 미룬다 (자동재생 정책으로 무음 오디오가 생기는 것 방지)
+  if (navigator.userActivation && !navigator.userActivation.hasBeenActive) {
+    document.addEventListener('pointerdown', () => { Audio.init(); Audio.resume(); Audio.startBgm(); }, { once: true });
+  } else {
+    Audio.init(); Audio.resume(); Audio.startBgm();
+  }
   document.getElementById('title-screen').style.display = 'none';
   document.getElementById('hud').style.display = 'block';
   // PC 와이드스크린 사이드 패널 표시
@@ -8364,6 +8370,8 @@ const Tutorial = (() => {
     clearTimeout(playTimer);
     document.getElementById('tutorial-card').classList.remove('tut-playing');
     localStorage.setItem('gpa_tutorial_done', '1');
+    // 리로드 후 타이틀·난이도 선택을 다시 거치지 않고 같은 설정으로 바로 시작
+    try { sessionStorage.setItem('gpa_autostart', JSON.stringify({ diff: CURRENT_DIFFICULTY, mode: GAME_MODE })); } catch {}
 
     if (fromSkip) {
       // 건너뛰기도 새 게임 시작
@@ -8441,6 +8449,22 @@ window.addEventListener('DOMContentLoaded', () => {
   _refreshTitleButtons();
   applyI18n();
   _syncLangBtns();
+  // 튜토리얼 직후 리로드 등에서 같은 설정으로 즉시 게임 재개
+  try {
+    const auto = JSON.parse(sessionStorage.getItem('gpa_autostart') || 'null');
+    sessionStorage.removeItem('gpa_autostart');
+    if (auto && typeof auto.diff === 'number') startGame(auto.diff, auto.mode === 'infinite' ? 'infinite' : 'normal');
+  } catch {}
+});
+
+// ── 창 비활성/숨김 시 자동 일시정지 (PC 표준 동작) ─────────────────
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) return;
+  const sc = window._arenaScene;
+  const inGame = sc && !sc.gameOver && document.getElementById('hud').style.display !== 'none';
+  // 모달이 열려 있으면 씬이 이미 멈춰 있으므로 중복 일시정지하지 않음
+  const modalOpen = document.querySelector('.dex-modal.open, #options-modal.open, #mutation-picker.open, #lab-modal.open');
+  if (inGame && !_paused && !sc.tutorialActive && !modalOpen) togglePause();
 });
 
 // ── Feature 4: 누적 통계 ────────────────────────────────────────────
