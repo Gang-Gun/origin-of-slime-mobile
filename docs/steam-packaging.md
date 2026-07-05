@@ -75,6 +75,7 @@ app.on('window-all-closed', () => app.quit());
 node test/check-syntax.mjs   # 인라인 스크립트 문법 검사
 node test/smoke-ach.mjs      # 도전과제 데이터/저장 왕복
 node test/smoke-boss.mjs     # 보스 로스터·웨이브 추첨·안전 조건
+node test/smoke-evo.mjs      # 진화 게이지 EXP 곡선·후보 추첨 규칙
 node test/smoke-visual.mjs   # 크리처/보스 비주얼 데이터 무결성
 ```
 

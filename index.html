@@ -331,6 +331,14 @@ canvas { display: block; image-rendering: pixelated; }
 .fill { height:100%; width:0%; transition:width .3s cubic-bezier(.4,0,.2,1); border-radius:999px; }
 #food-fill    { background: linear-gradient(90deg, var(--leaf-lt), var(--leaf-dk)); }
 #surplus-fill { background: linear-gradient(90deg, #b8e4f6, var(--sky-dk)); }
+/* 진화 게이지 — 가득 차면 반짝이며 레벨업 임박 알림 */
+.evo-meter { height: 8px; }
+#evo-fill { background: linear-gradient(90deg, #d9b8f2, var(--lilac-dk)); }
+#evo-fill.evo-near-full { animation: evoPulse 0.9s ease-in-out infinite; }
+@keyframes evoPulse {
+  0%,100% { filter: brightness(1); }
+  50%     { filter: brightness(1.45); }
+}
 .action-btn {
   min-width: 64px; border: 2px solid rgba(255,255,255,.85); border-radius: 14px; color: #fff;
   padding: 9px 12px; font-family: 'Jua', sans-serif; font-size: 13px; line-height: 1.3;
@@ -1588,6 +1596,7 @@ body { image-rendering: pixelated; }
   <div class="pc-widget-title" style="margin-top:6px">게임 정보</div>
   <div id="pc-game-info" style="font-size:12px;line-height:1.8;color:var(--ink)">
     <div>⏱ <span id="pc-elapsed">0:00</span></div>
+    <div>🧬 진화: <span id="pc-evo">Lv.1</span></div>
     <div>🍖 식량: <span id="pc-food">-</span></div>
     <div>👥 개체: <span id="pc-pop">-</span></div>
     <div>🌱 세대: <span id="pc-gen">-</span></div>
@@ -1674,6 +1683,8 @@ body { image-rendering: pixelated; }
 
   <div id="bottom-bar">
     <div id="bars">
+      <div class="bar-label"><span>🧬 진화 <b id="b-evolevel">Lv.1</b></span><span id="b-evoexp">0 / 120</span></div>
+      <div class="meter evo-meter"><div class="fill" id="evo-fill"></div></div>
       <div class="bar-label"><span>🍓 식량</span><span><b id="b-food">30</b> · 필요 <b id="b-need">20</b></span></div>
       <div class="meter"><div class="fill" id="food-fill"></div></div>
     </div>
@@ -1851,7 +1862,7 @@ body { image-rendering: pixelated; }
 <!-- Mutation selection picker -->
 <div id="mutation-picker">
   <div id="mutation-picker-card">
-    <h3>🧬 돌연변이 선택</h3>
+    <h3 id="mutation-picker-title">🧬 돌연변이 선택</h3>
     <div id="mutation-picker-sub"></div>
     <div id="mutation-picker-options"></div>
     <button class="mut-skip-btn" id="mutation-skip-btn" onclick="resolveMutationPick(null)">⏭ 건너뛰기</button>
@@ -2607,6 +2618,8 @@ let _mutPickChild = null;
 
 function showMutationPicker(child, naturalMutId, scene) {
   // 돌연변이 발생 시 무조건 선택창 표시 — 확률 체크 없음
+  const titleEl = document.getElementById('mutation-picker-title');
+  if (titleEl) titleEl.textContent = '🧬 돌연변이 선택';
   const nChoices = Math.max(1, LAB_BUFFS.mutationChoices || 0);
   const allMutIds = (typeof MUTATIONS !== 'undefined') ? MUTATIONS.map(m=>m.id) : [];
   const candidates = [naturalMutId];
@@ -2696,7 +2709,7 @@ function showMutationPicker(child, naturalMutId, scene) {
     // 스탯 재계산 (거부 시 제거된 돌연변이 효과 반영)
     child.stats = child.calculateStats();
     child.hp = Math.min(child.hp, child.stats.hp);
-    if (scene && !scene._paused) scene.scene.resume();
+    if (scene && !_paused) scene.scene.resume(); // 일시정지 상태는 모듈 _paused가 관리
   };
 
   document.getElementById('mutation-picker').classList.add('open');
@@ -2707,6 +2720,65 @@ function showMutationPicker(child, naturalMutId, scene) {
 function resolveMutationPick(chosenId) {
   document.getElementById('mutation-picker').classList.remove('open');
   if (_mutPickResolve) { _mutPickResolve(chosenId); _mutPickResolve = null; _mutPickChild = null; }
+}
+
+// ── 레벨업 진화 선택창 — 돌연변이 선택창 UI를 재사용하되 집단 전체에 발현 ──
+function showEvolutionPicker(scene) {
+  const nChoices = Math.max(EVO_CHOICES_BASE, LAB_BUFFS.mutationChoices || 0);
+  const candidates = rollEvolutionCandidates(scene.player, nChoices);
+  if (!candidates.length) {
+    // 모든 형질 보편화(극후반): 식량 보상으로 대체
+    scene.player.food = Math.min(FOOD_CAP, scene.player.food + 150);
+    scene.showToast('🧬 완전 진화! +150 식량', 'ach');
+    return false;
+  }
+  const titleEl = document.getElementById('mutation-picker-title');
+  if (titleEl) titleEl.textContent = `✨ 집단 진화! (Lv.${scene.evoLevel} → Lv.${scene.evoLevel + 1})`;
+  document.getElementById('mutation-picker-sub').textContent = '선택한 형질이 집단 전체에 발현됩니다.';
+  document.getElementById('mutation-skip-btn').style.display = 'none';
+
+  const _mutIco = { good:'✅', dual:'🔵', bad:'❌' };
+  const _effDesc = (effects) => Object.entries(effects || {}).map(([k, v]) => {
+    const labels = { hp:'HP', attack:'공격', defense:'방어', speed:'속도', gather:'채집', charm:'매력', foodNeed:'식량소모', fertility:'번식력', mutationRate:'돌연변이율' };
+    return `${labels[k] || k} ${v > 0 ? '+' : ''}${v}`;
+  }).join(' · ');
+  // 다음 보스 안전조건에 도움이 되면 배지 표시
+  const nextBoss = (() => {
+    if (scene.bossPhase !== 'idle') return scene.activeBoss;
+    if (!scene._waveList || scene._waveIdx >= scene._waveList.length) return null;
+    return bossById(scene._waveList[scene._waveIdx]);
+  })();
+  const rep = scene.player.individuals.find(i => !i.dead);
+  document.getElementById('mutation-picker-options').innerHTML = candidates.map(mid => {
+    const m = mutationById(mid);
+    const helpsBoss = nextBoss && rep && (() => {
+      try {
+        const fake = { mutations: [...(rep.mutations || []), mid], stats: rep.stats, genes: rep.genes, mutationGenes: rep.mutationGenes };
+        return nextBoss.safe(fake) && !nextBoss.safe(rep);
+      } catch (e) { return false; }
+    })();
+    const badge = helpsBoss ? `<span style="display:inline-block;margin-left:6px;font-size:10px;padding:2px 7px;border-radius:999px;background:rgba(251,191,36,.18);border:1.5px solid #fbbf24;color:#b45309;font-weight:900">${nextBoss.ico} 보스 대비</span>` : '';
+    return `<div class="mut-pick-option" onclick="resolveMutationPick('${mid}')">
+      <span class="mut-ico">${_mutIco[m.type] || '🧬'}</span>
+      <div class="mut-info">
+        <div class="mut-name">${m.name}${badge}</div>
+        <div class="mut-desc">${_effDesc(m.effects)}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  _mutPickResolve = (chosenId) => {
+    if (chosenId) {
+      scene._applyEvolution(chosenId);
+    } else {
+      // Esc 등으로 닫힘 — 게이지는 그대로, 다음 틱에 다시 열림
+      scene._evoPickerQueued = true;
+    }
+    if (!_paused) scene.scene.resume();
+  };
+  document.getElementById('mutation-picker').classList.add('open');
+  scene.scene.pause();
+  return true;
 }
 
 const WORLD_W = 5000;
@@ -2952,6 +3024,10 @@ const ACHIEVEMENTS = [
     check:(g,el)=>g.starved===0&&el>=180000 },
 
   // ── 돌연변이 진화 ─────────────────────────────────────
+  { id:'evo_lv3',     cat:'돌연변이', name:'🧬 진화 도약',     desc:'진화 레벨 3 달성', bonus:200,
+    check:(g,el,d)=>(d.evoLevel||1)>=3 },
+  { id:'evo_lv6',     cat:'돌연변이', name:'🦀 수렴 진화',     desc:'진화 레벨 6 달성', bonus:450,
+    check:(g,el,d)=>(d.evoLevel||1)>=6 },
   { id:'red_wave',    cat:'돌연변이', name:'❤️ 생존자들',     desc:'재생 능력·단단한 껍질 돌연변이 개체 10마리 이상', bonus:200,
     check:(g)=>g.individuals.filter(i=>!i.dead&&((i.mutations||[]).includes('regeneration')||(i.mutations||[]).includes('hard_shell'))).length>=10 },
   { id:'blue_wave',   cat:'돌연변이', name:'💙 효율주의자',   desc:'효율 대사·작은 몸집 돌연변이 개체 10마리 이상',   bonus:200,
@@ -3239,6 +3315,29 @@ function creatureTextureKey(individual) {
   const cat = dominantMutationType(individual.mutations);
   return `creature_${body}_${sig.length ? sig.join('.') : 'none'}_${cat}`;
 }
+// ── 진화 게이지 시스템 ──────────────────────────────────
+// 먹이·전투로 EXP를 모아 레벨업 → 진화 3택1 → 집단 전체에 발현 (Everything is Crab식 핵심 루프)
+const EVO_EXP_BASE = 120;      // 레벨 1→2 필요 EXP
+const EVO_EXP_GROWTH = 1.45;   // 레벨당 필요량 배율
+const EVO_CHOICES_BASE = 3;    // 기본 선택지 수 (계통수 pick 노드가 있으면 그 이상)
+const EVO_BATTLE_EXP = 60;     // 전쟁 승리 보상 EXP
+function evoExpNeedFor(level) {
+  return Math.round(EVO_EXP_BASE * Math.pow(EVO_EXP_GROWTH, Math.max(0, level - 1)));
+}
+// 레벨업 진화 후보: 집단 전체가 이미 가진(=보편화된) 형질과 순수 불이익 형질 제외
+function rollEvolutionCandidates(group, n) {
+  const alive = group.individuals.filter(i => !i.dead);
+  const universal = new Set(
+    MUTATIONS.filter(m => alive.length > 0 && alive.every(i => (i.mutations || []).includes(m.id))).map(m => m.id)
+  );
+  const pool = MUTATIONS.filter(m => m.type !== 'bad' && !universal.has(m.id)).map(m => m.id);
+  for (let i = pool.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [pool[i], pool[j]] = [pool[j], pool[i]];
+  }
+  return pool.slice(0, n);
+}
+
 const BASE_STATS = { hp: 100, attack: 10, defense: 3, speed: 80, gather: 5, fertility: 1, charm: 5, foodNeed: 1, mutationRate: 0.08 };
 const MIN_STATS = { hp: 20, attack: 1, defense: 0, speed: 20, gather: 0, fertility: 0.1, charm: 0, foodNeed: 0.2, mutationRate: 0 };
 const MAX_STATS = { hp: 300, attack: 50, defense: 30, speed: 200, gather: 30, fertility: 3, charm: 50, foodNeed: 5, mutationRate: 0.3 };
@@ -4102,6 +4201,10 @@ class ArenaScene extends Phaser.Scene {
     // 황금 슬라임 등장 조건 추적 (BB/RR + 유전자 3종 100% 달성)
     this._genesMaxedEver = new Set();
     this._goldenConditionMet = false;
+    // 진화 게이지 (먹기·전투 → EXP → 레벨업 → 집단 진화 선택)
+    this.evoLevel = 1;
+    this.evoExp = 0;
+    this._evoPickerQueued = false;
     // 보스 위협 상태
     this._waveIdx = 0;
     this._nextBossAt = WAVE_FIRST_AT;
@@ -4121,6 +4224,7 @@ class ArenaScene extends Phaser.Scene {
     this.lastAlleleSnapAt = 0;
     this.recordAlleleSnapshot();
     this.achieveData = {
+      evoLevel: 1,           // 진화 게이지 레벨 (도전과제용)
       hadNeardeath: false,   // 3마리 이하로 떨어진 적 있는지
       volcanoWin: false,     // 화산지대에서 전쟁 승리
       visitedTerrains: new Set(), // 방문한 지형 ID
@@ -5240,6 +5344,8 @@ class ArenaScene extends Phaser.Scene {
     if (!this.player.individuals.length) return this.endGame();
     // ── 특수 이벤트 틱 ──
     if (this._specialEventLevel > 0 && !this.gameOver) this._tickSpecialEvent();
+    // 진화 게이지 가득 참 → 진화 선택창 (다른 모달과 겹치지 않게 틱에서 처리)
+    if (this._evoPickerQueued) this.maybeOpenEvolutionPicker();
     this.movePlayer(dt);
     for (const ai of this.aiGroups) ai.aiTick(dt);
     this.moveIndividuals(gameDt);
@@ -5510,8 +5616,9 @@ class ArenaScene extends Phaser.Scene {
         if (Phaser.Math.Distance.Between(group.x, group.y, food.x, food.y) > COLLECT_RADIUS) continue;
         const gain = Math.max(1, Math.floor(food.amount * gatherBonus * terrain.food * geneMult * weatherFood));
         group.food = Math.min(FOOD_CAP, group.food + gain);
-        // 플레이어 채집 연출
+        // 플레이어 채집 연출 + 진화 EXP (먹을수록 진화 게이지가 찬다)
         if (group.isPlayer) {
+          this.gainEvoExp(gain);
           Audio.sfxCollect();
           this.spawnFloatText(food.x, food.y - 8, `+${gain}`, '#4e9a4a', 16);
           this.burst(food.x, food.y, 0x7cc674, 5, 30);
@@ -5708,7 +5815,12 @@ class ArenaScene extends Phaser.Scene {
       const details = [];
       if (pgRec  > 0) details.push(`포섭 +${pgRec} 🤝`);
       if (envRec > 0) details.push(`빼앗김 -${envRec} 😢`);
-      if (won) details.push('식량 획득 🌾');
+      if (won) {
+        details.push('식량 획득 🌾');
+        // 포식 보상: 전쟁 승리 = 진화 EXP
+        this.gainEvoExp(EVO_BATTLE_EXP);
+        details.push(`진화 +${EVO_BATTLE_EXP} 🧬`);
+      }
       this.showMessage(details.length ? `${result}\n${details.join(' · ')}` : result);
       document.getElementById('battle-banner').style.display = 'none';
       document.getElementById('battle-vignette').classList.remove('active');
@@ -5850,6 +5962,68 @@ class ArenaScene extends Phaser.Scene {
     else this.handleBreed();
   }
 
+  // ── 진화 게이지 ──────────────────────────────────────
+  gainEvoExp(amount) {
+    if (this.gameOver || !(amount > 0)) return;
+    this.evoExp += amount;
+    if (this.evoExp >= evoExpNeedFor(this.evoLevel)) this._evoPickerQueued = true;
+  }
+
+  // 게이지가 가득 찼고 다른 모달이 없으면 진화 선택창 열기 (tick에서 호출)
+  maybeOpenEvolutionPicker() {
+    if (!this._evoPickerQueued || this.gameOver || this.tutorialActive) return;
+    if (document.getElementById('mutation-picker').classList.contains('open')) return;
+    if (this.evoExp < evoExpNeedFor(this.evoLevel)) { this._evoPickerQueued = false; return; }
+    this._evoPickerQueued = false;
+    // 선택창 OFF 옵션: 무작위 후보 자동 발현
+    if (localStorage.getItem('gpa_mutpick_off') === '1') {
+      const auto = rollEvolutionCandidates(this.player, 1)[0];
+      if (auto) { this._applyEvolution(auto); return; }
+    }
+    if (!showEvolutionPicker(this)) {
+      // 후보 없음(완전 진화) — 레벨만 올리고 게이지 소모
+      this.evoExp -= evoExpNeedFor(this.evoLevel);
+      this.evoLevel += 1;
+      if (this.achieveData) this.achieveData.evoLevel = this.evoLevel;
+    }
+  }
+
+  // 선택한 형질을 살아있는 집단 전체에 발현 (동형접합 MM → 자손에게 항상 유전)
+  _applyEvolution(mid) {
+    const m = mutationById(mid);
+    if (!m) return;
+    this.evoExp -= evoExpNeedFor(this.evoLevel);
+    this.evoLevel += 1;
+    if (this.achieveData) this.achieveData.evoLevel = this.evoLevel;
+    for (const ind of this.player.individuals) {
+      if (ind.dead) continue;
+      ind.mutationGenes[mid] = ['M', 'M'];
+      ind.stats = ind.calculateStats();
+      ind.hp = Math.min(ind.hp, ind.stats.hp);
+    }
+    this.gainedMutationsThisGame && this.gainedMutationsThisGame.add(mid);
+    this.refreshGroupTextures(this.player);
+    const ico = m.type === 'good' ? '✅' : m.type === 'bad' ? '❌' : '🔵';
+    this.showToast(`✨ Lv.${this.evoLevel} 집단 진화! ${ico} ${m.name}`, 'mut');
+    this.showMessage(`✨ 집단 진화 — 모든 개체가 [${m.name}]을(를) 얻었습니다`);
+    this.cameras.main.flash(350, 220, 180, 255);
+    this.burst(this.player.x, this.player.y, 0xc49ee0, 22, 110);
+    Audio.sfxAchieve();
+    this._checkGoldenCondition && this._checkGoldenCondition();
+    ContextHint.show('first_evolution', '✨', '집단 진화!\n선택한 형질이 모든 개체에 발현되고\n자손에게도 물려집니다.\n🍓 먹이를 먹을수록 게이지가 빨리 차요!');
+  }
+
+  // 돌연변이 발현 후 외형 갱신: 스프라이트를 새 텍스처로 재생성
+  refreshGroupTextures(group) {
+    for (const ind of group.individuals) {
+      const entry = this.individualSprites.get(ind.id);
+      if (!entry) continue;
+      entry.sprite.destroy();
+      this.individualSprites.delete(ind.id);
+    }
+    this.ensureSprites(group);
+  }
+
   drawJoystick() {
     const joy = this.joystick;
     if (!joy.active) return;
@@ -5894,9 +6068,11 @@ class ArenaScene extends Phaser.Scene {
     const boss = this.activeBoss;
     const remain = Math.max(0, Math.floor((this.bossPhaseUntil - this.elapsed)/1000));
     const g = this.player, n = g.individuals.length || 1;
-    const ready = Math.round(g.individuals.filter(i => boss.safe(i, g)).length / n * 100);
+    const safeCnt = g.individuals.filter(i => boss.safe(i, g)).length;
+    const ready = Math.round(safeCnt / n * 100);
+    const readyCol = ready >= 80 ? '#4ade80' : ready >= 50 ? '#fbbf24' : '#f87171';
     const banner = document.getElementById('boss-banner');
-    document.getElementById('boss-banner-text').innerHTML = `${boss.ico} <b>${boss.name}</b> ${remain}초 후 출현!<br>요구: <b>${boss.reqText}</b><br>대비도 <b>${ready}%</b>`;
+    document.getElementById('boss-banner-text').innerHTML = `${boss.ico} <b>${boss.name}</b> ${remain}초 후 출현!<br>요구: <b>${boss.reqText}</b><br>🛡 안전 <b style="color:${readyCol}">${safeCnt}/${n} (${ready}%)</b> — 조건 미충족 개체는 도태!`;
     if (this.elapsed >= this.bossPhaseUntil) this.spawnBoss();
   }
 
@@ -6171,7 +6347,9 @@ resolveBoss(win, reason) {
     for (const ind of this.player.individuals) {
       if (!ind.dead) ind.hp = Math.min(ind.stats.hp, ind.hp + ind.stats.hp * 0.20);
     }
-    this.showMessage(`🏆 ${boss.name} 처치! +${score}점\n🍖 식량+100 · 전 개체 HP+20% 회복`, true);
+    // 포식 보상: 보스 처치 = 진화 게이지 1레벨 분량
+    this.gainEvoExp(evoExpNeedFor(this.evoLevel));
+    this.showMessage(`🏆 ${boss.name} 처치! +${score}점\n🍖 식량+100 · 전 개체 HP+20% 회복 · 🧬 진화 게이지 충전!`, true);
     if (this.showToast) this.showToast(`🏆 ${boss.name} 처치 +${score}`, 'ach');
     if (navigator.vibrate) navigator.vibrate([80,40,120]);
     this.cameras.main.flash(220, 255, 240, 180);
@@ -6606,7 +6784,17 @@ resolveBoss(win, reason) {
     setText('s-gather', group.average('gather').toFixed(0));
     setText('s-charm', group.average('charm').toFixed(0));
 
-    // 하단 바
+    // 하단 바 — 진화 게이지
+    const evoNeed = evoExpNeedFor(this.evoLevel);
+    setText('b-evolevel', `Lv.${this.evoLevel}`);
+    setText('b-evoexp', `${Math.floor(Math.min(this.evoExp, evoNeed))} / ${evoNeed}`);
+    const evoFill = document.getElementById('evo-fill');
+    if (evoFill) {
+      const evoPct = clamp(this.evoExp / evoNeed * 100, 0, 100);
+      evoFill.style.width = evoPct + '%';
+      evoFill.classList.toggle('evo-near-full', evoPct >= 85);
+    }
+    // 하단 바 — 식량
     const surplusDisplay = Math.max(0, surplus);
     setText('b-food', Math.floor(group.food));
     setText('b-need', need.toFixed(0));
@@ -6671,6 +6859,7 @@ resolveBoss(win, reason) {
       const el = id => document.getElementById(id);
       const em = Math.floor(this.elapsed / 60000), es = Math.floor((this.elapsed % 60000) / 1000);
       if (el('pc-elapsed')) el('pc-elapsed').textContent = `${em}:${String(es).padStart(2,'0')}`;
+      if (el('pc-evo'))     el('pc-evo').textContent = `Lv.${this.evoLevel}`;
       if (el('pc-food'))    el('pc-food').textContent = Math.floor(group.food);
       if (el('pc-pop'))     el('pc-pop').textContent = group.count;
       if (el('pc-gen'))     el('pc-gen').textContent = group.generation;
@@ -6839,8 +7028,14 @@ resolveBoss(win, reason) {
           const waveNum  = this._waveIdx + 1;
           const m = Math.floor(secsLeft / 60), s = secsLeft % 60;
           const timeStr = m > 0 ? `${m}분 ${s}초` : `${s}초`;
+          // 현재 안전 조건을 충족한 개체 수 실시간 표시 (색으로 준비 상태 직관화)
+          const alive = this.player.individuals.filter(i => !i.dead);
+          let safeN = 0;
+          try { safeN = alive.filter(i => nextBoss.safe(i, this.player)).length; } catch (e) {}
+          const ratio = alive.length ? safeN / alive.length : 0;
+          const safeCol = ratio >= 0.8 ? '#4ade80' : ratio >= 0.5 ? '#fbbf24' : '#f87171';
           hintEl.style.display = '';
-          hintEl.innerHTML = `⚔️ <b>${waveNum}/3</b> ${nextBoss.ico} <b>${nextBoss.name}</b> ${timeStr} 후 &nbsp;|&nbsp; 준비: ${nextBoss.reqText}`;
+          hintEl.innerHTML = `⚔️ <b>${waveNum}/3</b> ${nextBoss.ico} <b>${nextBoss.name}</b> ${timeStr} 후 &nbsp;|&nbsp; <span style="color:${safeCol}">🛡 안전 <b>${safeN}/${alive.length}</b></span> &nbsp;|&nbsp; 준비: ${nextBoss.reqText}`;
         } else {
           hintEl.style.display = 'none';
         }
@@ -6926,7 +7121,8 @@ resolveBoss(win, reason) {
       const ach = ACHIEVEMENTS.find(a => a.id === id);
       return sum + (ach ? ach.bonus : 0);
     }, 0);
-    const score = Math.max(0, resultPopulation * 10 + Math.floor(group.food) * 5 + group.wins * 50 + group.recruited * 30 + Math.floor(this.elapsed / 10000) * 5 - group.starved * 10 + diversityBonus + achieveBonus + meteorDeathBonus + (this.bossBonus || 0));
+    const evoBonus = Math.max(0, (this.evoLevel || 1) - 1) * 150; // 진화 레벨당 +150점
+    const score = Math.max(0, resultPopulation * 10 + Math.floor(group.food) * 5 + group.wins * 50 + group.recruited * 30 + Math.floor(this.elapsed / 10000) * 5 - group.starved * 10 + diversityBonus + achieveBonus + meteorDeathBonus + evoBonus + (this.bossBonus || 0));
     // Feature 4: 누적 통계 저장
     {
       const s = loadStats();
@@ -7089,6 +7285,7 @@ resolveBoss(win, reason) {
         <div class="row"><span>생존 시간</span><strong>${minutes}분 ${seconds}초</strong></div>
         <div class="row"><span>${byMeteor ? '운석 사망 개체' : '최종 개체 수'}</span><strong>${resultPopulation}마리</strong></div>
         <div class="row"><span>세대</span><strong>${group.generation}세대</strong></div>
+        <div class="row"><span>🧬 진화 레벨</span><strong>Lv.${this.evoLevel || 1} (+${Math.max(0, (this.evoLevel || 1) - 1) * 150}점)</strong></div>
         <div class="row"><span>보스 처치</span><strong>${this.achieveData.bossKills || 0}마리</strong></div>
         <div class="row"><span>전쟁 승리 / 포섭</span><strong>${group.wins}회 / +${group.recruited}마리</strong></div>
       </div>
@@ -8133,7 +8330,7 @@ const Tutorial = (() => {
     {
       ico: '🎯',
       title: '목표',
-      desc: '보스 3마리를 순서대로 처치하면 승리!\n상단 ⚔️ 0/3 이 진행도예요.\n\n보스에게는 안전 개체가 있어요.\n안전 조건을 갖춘 개체만 살아남고\n나머지는 도태됩니다.',
+      desc: '🍓 먹이를 먹으면 🧬 진화 게이지가 차요.\n가득 차면 새 형질을 골라\n집단 전체가 진화합니다!\n\n보스 3마리를 순서대로 처치하면 승리.\n보스마다 안전 조건이 있어서\n조건을 갖춘 개체만 살아남아요.',
       target: null, cond: null, nextLabel: '알겠어요 →',
     },
     {
