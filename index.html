@@ -2954,6 +2954,20 @@ const BOSS_VISUAL = {
   leviathan:   { shape:'bulky',       pal:{d:0x1a3a4a,m:0x2a6a7a,l:0x4a9aaa,a:0x7ad8e8}, parts:['lavaCracks','spores'],        eyes:3, eyeCol:0x00ffff },
 };
 
+// ── 보스 특수 패턴 ──────────────────────────────────
+// shockwave: 예고 후 광역 내려찍기 / dash: 예고선 방향으로 관통 돌진 / both: 번갈아 사용
+const BOSS_PATTERNS = {
+  lava:'shockwave', sand:'dash', glacier:'shockwave', spore:'shockwave', gale:'dash',
+  charmer:'dash', steel:'dash', plague:'dash', siren:'shockwave', crystal:'shockwave',
+  vortex:'dash', void_shadow:'dash', ancient:'shockwave', leviathan:'shockwave',
+  golden:'both', primordial:'both',
+};
+const BOSS_SPECIAL_FIRST_AT = 6000;  // 교전 시작 후 첫 특수 패턴까지(ms)
+const BOSS_SPECIAL_CD = 8000;        // 이후 쿨다운(ms)
+const BOSS_SPECIAL_WARN = 1100;      // 텔레그래프(예고) 시간(ms)
+const SHOCKWAVE_RADIUS = 300;
+const DASH_HIT_WIDTH = 95;
+
 // 10분 기준 보스 등장 시각(ms)과 슬롯
 const WAVE_FIRST_AT = 90000;   // 첫 보스 경고 시작 시각 (90초)
 const WAVE_COOLDOWN = 75000;   // 보스 처치 후 다음 경고까지 대기 (75초)
@@ -3285,7 +3299,46 @@ const MUTATIONS = [
   { id: 'magnetism',    name: '자기장',     type: 'dual', effects: { charm: 12, attack: -3 } },
   { id: 'deep_roots',   name: '뿌리 감각',  type: 'dual', effects: { defense: 4, foodNeed: -0.3, speed: -20 } },
   { id: 'night_vision', name: '야시증',     type: 'dual', effects: { speed: 15, gather: 2, hp: -10 } },
-  { id: 'brittle_bones',name: '약한 뼈',    type: 'bad',  effects: { hp: -25, defense: -2 } }
+  { id: 'brittle_bones',name: '약한 뼈',    type: 'bad',  effects: { hp: -25, defense: -2 } },
+  // ── 추가 돌연변이 35종 (진화 선택지 다양화) ──────────────────────
+  // 이점 (good) 12종
+  { id: 'crab_claw',      name: '집게발',       type: 'good', effects: { attack: 7, defense: 2 } },
+  { id: 'chitin_layer',   name: '키틴 장갑',    type: 'good', effects: { defense: 4, hp: 5 } },
+  { id: 'keen_eyes',      name: '예리한 눈',    type: 'good', effects: { gather: 3, speed: 5 } },
+  { id: 'adrenal_gland',  name: '아드레날린샘', type: 'good', effects: { speed: 15, attack: 2 } },
+  { id: 'symbiotic_algae',name: '공생 조류',    type: 'good', effects: { foodNeed: -0.3, hp: 5 } },
+  { id: 'iron_stomach',   name: '강철 위장',    type: 'good', effects: { foodNeed: -0.3, gather: 1 } },
+  { id: 'pack_instinct',  name: '무리 본능',    type: 'good', effects: { charm: 6, defense: 1 } },
+  { id: 'rapid_healing',  name: '급속 치유',    type: 'good', effects: { hp: 15, fertility: 0.1 } },
+  { id: 'sixth_sense',    name: '육감',         type: 'good', effects: { speed: 10, gather: 2 } },
+  { id: 'sticky_slime',   name: '끈끈한 점액',  type: 'good', effects: { attack: 3, defense: 2 } },
+  { id: 'spring_legs',    name: '용수철 다리',  type: 'good', effects: { speed: 20 } },
+  { id: 'vital_core',     name: '생명의 핵',    type: 'good', effects: { hp: 20, charm: 2 } },
+  // 양면 (dual) 15종
+  { id: 'molting',        name: '탈피 주기',    type: 'dual', effects: { defense: 6, hp: -10 } },
+  { id: 'oversized_claw', name: '거대 집게',    type: 'dual', effects: { attack: 10, speed: -15, gather: -1 } },
+  { id: 'barbed_shell',   name: '가시 껍질',    type: 'dual', effects: { defense: 5, charm: -4 } },
+  { id: 'biolumin',       name: '생체 발광',    type: 'dual', effects: { charm: 10, defense: -2 } },
+  { id: 'cold_blood',     name: '냉혈 체질',    type: 'dual', effects: { foodNeed: -0.5, speed: -10 } },
+  { id: 'hyper_metab',    name: '과열 대사',    type: 'dual', effects: { speed: 25, foodNeed: 0.5 } },
+  { id: 'burrowing',      name: '굴파기 본능',  type: 'dual', effects: { defense: 4, gather: 2, speed: -15 } },
+  { id: 'gluttony',       name: '폭식가',       type: 'dual', effects: { hp: 25, gather: 2, foodNeed: 0.6 } },
+  { id: 'parasite_spore', name: '기생 포자',    type: 'dual', effects: { attack: 7, hp: -10 } },
+  { id: 'silk_gland',     name: '거미줄샘',     type: 'dual', effects: { gather: 3, charm: 3, speed: -8 } },
+  { id: 'armored_tail',   name: '갑옷 꼬리',    type: 'dual', effects: { defense: 3, hp: 10, speed: -8 } },
+  { id: 'toxic_skin',     name: '독성 피부',    type: 'dual', effects: { attack: 5, charm: -4 } },
+  { id: 'swarm_body',     name: '군체화',       type: 'dual', effects: { fertility: 0.4, hp: -15 } },
+  { id: 'giant_antennae', name: '거대 더듬이',  type: 'dual', effects: { gather: 4, defense: -2 } },
+  { id: 'mimic_pattern',  name: '의태 무늬',    type: 'dual', effects: { defense: 3, charm: 5, attack: -2 } },
+  // 불이익 (bad) 8종 — 자연 돌연변이로만 발생 (진화 선택지에는 안 나옴)
+  { id: 'nearsighted',    name: '근시',         type: 'bad',  effects: { gather: -2, speed: -5 } },
+  { id: 'heavy_bones',    name: '무거운 뼈',    type: 'bad',  effects: { speed: -15 } },
+  { id: 'anemia',         name: '빈혈',         type: 'bad',  effects: { hp: -15, attack: -2 } },
+  { id: 'picky_eater',    name: '편식',         type: 'bad',  effects: { foodNeed: 0.4, gather: -1 } },
+  { id: 'brittle_claw',   name: '무른 집게',    type: 'bad',  effects: { attack: -5 } },
+  { id: 'dull_senses',    name: '둔한 감각',    type: 'bad',  effects: { gather: -3 } },
+  { id: 'thin_membrane',  name: '얇은 막',      type: 'bad',  effects: { defense: -3, hp: -8 } },
+  { id: 'sterile_line',   name: '불임 계통',    type: 'bad',  effects: { fertility: -0.5 } }
 ];
 // 외형에 직접 반영되는 시그니처 돌연변이(스케일 전용 2종 포함)
 const MUTATION_SIG_IDS = new Set([
@@ -6089,7 +6142,9 @@ class ArenaScene extends Phaser.Scene {
     const hpMax = this._dueBossHp || 2500;
     this.bossEntity = { x:sx, y:sy, hp:hpMax, hpMax, sprite, shadow, lastAttackAt: 0,
       moveState:'charge', chargeTimer:0, chargeDuration: 1200 + Math.random()*400,
-      jumpStart:null, jumpTarget:null, jumpProgress:0, jumpDuration:0, jumpHeight:160 };
+      jumpStart:null, jumpTarget:null, jumpProgress:0, jumpDuration:0, jumpHeight:160,
+      nextSpecialAt: this.elapsed + BOSS_SPECIAL_FIRST_AT, special: null, _lastSpecial: null };
+    if (!this.bossFx) this.bossFx = this.add.graphics().setDepth(19);
     this._bossSpawnCount = this.player.individuals.length;
     this._bossSpawnTime  = this.elapsed;
     this.bossPhase = 'chase';
@@ -6102,8 +6157,70 @@ class ArenaScene extends Phaser.Scene {
     this.cameras.main.shake(400, 0.01);
   }
 
+  // 특수 패턴 시작: 텔레그래프 상태로 전환
+  _startBossSpecial(b) {
+    const pat = BOSS_PATTERNS[this.activeBoss.id] || 'shockwave';
+    const type = pat === 'both' ? (b._lastSpecial === 'shockwave' ? 'dash' : 'shockwave') : pat;
+    b._lastSpecial = type;
+    b.moveState = 'special_warn';
+    b.special = { type, fireAt: this.elapsed + BOSS_SPECIAL_WARN };
+    if (type === 'dash') {
+      const dx = this.player.x - b.x, dy = this.player.y - b.y;
+      const d = Math.hypot(dx, dy) || 1;
+      const len = Math.min(750, d + 260);
+      b.special.tx = clamp(b.x + dx / d * len, 60, WORLD_W - 60);
+      b.special.ty = clamp(b.y + dy / d * len, 60, WORLD_H - 60);
+    }
+    this.showToast(`${this.activeBoss.ico} ${type === 'dash' ? '돌진' : '충격파'} 준비!`, 'warn');
+    ContextHint.show('boss_special', '⚠️', '보스가 특수 공격을 준비해요!\n붉은 표시 범위 밖으로 도망치세요!');
+    if (Audio.sfxBattle) Audio.sfxBattle();
+  }
+
+  // 텔레그래프 종료: 충격파 발동 또는 돌진 개시
+  _fireBossSpecial(b) {
+    const sp = b.special;
+    if (sp.type === 'shockwave') {
+      let kills = 0, hits = 0;
+      for (const i of this.player.individuals) {
+        if (i.dead) continue;
+        if (Math.hypot(i.x - b.x, i.y - b.y) <= SHOCKWAVE_RADIUS) {
+          hits++;
+          if (this._applyBossHit(i, this.activeBoss.safe(i, this.player), 0.9)) kills++;
+        }
+      }
+      this.player.individuals = this.player.individuals.filter(i => !i.dead);
+      this.burst(b.x, b.y, 0xff5030, 30, SHOCKWAVE_RADIUS * 0.8);
+      this.cameras.main.shake(450, 0.04);
+      this.cameras.main.flash(120, 255, 60, 40, false);
+      if (navigator.vibrate) navigator.vibrate(200);
+      if (Audio.sfxQuake) Audio.sfxQuake();
+      if (hits) this.showToast(`${this.activeBoss.ico} 충격파! ${kills > 0 ? kills + '마리 도태' : hits + '마리 피해'}!`, 'warn');
+      b.moveState = 'charge';
+      b.chargeTimer = 0;
+      b.chargeDuration = 1400 + Math.random() * 600;
+      b.nextSpecialAt = this.elapsed + BOSS_SPECIAL_CD + Math.random() * 3000;
+    } else {
+      b.moveState = 'dashing';
+      sp.sx = b.x; sp.sy = b.y;
+      sp.progress = 0;
+      sp.hit = new Set();
+      sp.kills = 0;
+      if (Audio.sfxQuake) Audio.sfxQuake();
+    }
+  }
+
   bossChaseTick(dt) {
     const b = this.bossEntity; if (!b) return;
+    if (this.bossFx) this.bossFx.clear();
+    // 특수 상태 중에도 슬라임 공격으로 죽을 수 있음
+    if (b.hp <= 0) { this.resolveBoss(true); return; }
+
+    // 특수 패턴 트리거: 대기(charge) 중 + 쿨다운 경과 + 플레이어가 사거리권일 때
+    if (b.moveState === 'charge' && this.elapsed >= b.nextSpecialAt) {
+      const pd = Math.hypot(this.player.x - b.x, this.player.y - b.y);
+      if (pd <= 650) this._startBossSpecial(b);
+      else b.nextSpecialAt = this.elapsed + 1500; // 멀면 잠시 뒤 재시도
+    }
 
     if (b.moveState === 'charge') {
       // ── 기 모으기: 제자리에서 납작해지며 진동 ──
@@ -6143,6 +6260,63 @@ class ArenaScene extends Phaser.Scene {
         b.jumpProgress = 0;
         if (!b._chargePlayed) b.sprite.clearTint();
         if (navigator.vibrate) navigator.vibrate(55);
+      }
+
+    } else if (b.moveState === 'special_warn') {
+      // ── 특수 패턴 텔레그래프: 붉은 위험 범위 표시 + 보스 진동 ──
+      const sp = b.special;
+      const t = clamp(1 - Math.max(0, sp.fireAt - this.elapsed) / BOSS_SPECIAL_WARN, 0, 1);
+      if (this.bossFx) {
+        const blink = 0.45 + 0.35 * Math.abs(Math.sin(t * 14));
+        if (sp.type === 'shockwave') {
+          this.bossFx.fillStyle(0xff3030, 0.10 + 0.10 * t);
+          this.bossFx.fillCircle(b.x, b.y, SHOCKWAVE_RADIUS);
+          this.bossFx.lineStyle(4, 0xff3030, blink);
+          this.bossFx.strokeCircle(b.x, b.y, SHOCKWAVE_RADIUS);
+          this.bossFx.lineStyle(3, 0xffa040, 0.9);
+          this.bossFx.strokeCircle(b.x, b.y, SHOCKWAVE_RADIUS * t); // 안쪽에서 차오르는 링
+        } else {
+          this.bossFx.lineStyle(DASH_HIT_WIDTH * 2, 0xff3030, 0.12 + 0.10 * t);
+          this.bossFx.lineBetween(b.x, b.y, sp.tx, sp.ty);
+          this.bossFx.lineStyle(3, 0xff3030, blink);
+          this.bossFx.lineBetween(b.x, b.y, sp.tx, sp.ty);
+        }
+      }
+      b.sprite.setTint(0xff5544);
+      b.sprite.setPosition(b.x + (Math.random() - 0.5) * 7, b.y);
+      if (b.shadow) b.shadow.setPosition(b.x, b.y + 10);
+      if (this.elapsed >= sp.fireAt) { b.sprite.clearTint(); b.sprite.setPosition(b.x, b.y); this._fireBossSpecial(b); }
+
+    } else if (b.moveState === 'dashing') {
+      // ── 돌진: 예고선 방향으로 빠르게 관통, 경로상 개체 타격(개체당 1회) ──
+      const sp = b.special;
+      sp.progress = Math.min(1, sp.progress + dt / 420);
+      b.x = sp.sx + (sp.tx - sp.sx) * sp.progress;
+      b.y = sp.sy + (sp.ty - sp.sy) * sp.progress;
+      b.sprite.setPosition(b.x, b.y);
+      b.sprite.scaleX = 2.6; b.sprite.scaleY = 1.6; // 납작하게 질주
+      if (b.shadow) { b.shadow.setPosition(b.x, b.y + 10); b.shadow.setScale(1); }
+      if (this.bossFx) {
+        this.bossFx.lineStyle(DASH_HIT_WIDTH * 2, 0xff6040, 0.18);
+        this.bossFx.lineBetween(b.x, b.y, sp.tx, sp.ty);
+      }
+      for (const i of this.player.individuals) {
+        if (i.dead || sp.hit.has(i.id)) continue;
+        if (Math.hypot(i.x - b.x, i.y - b.y) <= DASH_HIT_WIDTH) {
+          sp.hit.add(i.id);
+          if (this._applyBossHit(i, this.activeBoss.safe(i, this.player), 0.8)) sp.kills++;
+        }
+      }
+      if (sp.progress >= 1) {
+        this.player.individuals = this.player.individuals.filter(i => !i.dead);
+        this.cameras.main.shake(300, 0.03);
+        if (navigator.vibrate) navigator.vibrate(120);
+        if (sp.hit.size) this.showToast(`${this.activeBoss.ico} 돌진! ${sp.kills > 0 ? sp.kills + '마리 도태' : sp.hit.size + '마리 피해'}!`, 'warn');
+        this.tweens.add({ targets: b.sprite, scaleX: 2.0, scaleY: 2.0, duration: 220, ease: 'Back.Out' });
+        b.moveState = 'charge';
+        b.chargeTimer = 0;
+        b.chargeDuration = 1400 + Math.random() * 600;
+        b.nextSpecialAt = this.elapsed + BOSS_SPECIAL_CD + Math.random() * 3000;
       }
 
     } else {
@@ -6201,7 +6375,8 @@ class ArenaScene extends Phaser.Scene {
     if (playerNear && !inGrace) {
       _bb.textContent = `${this.activeBoss.ico} ${this.activeBoss.name} 전투 중!`;
       _bb.style.display = 'block';
-      this.bossCombatTick(dt);
+      // 특수 패턴(텔레그래프·돌진) 중에는 기본 공격 중지 — 회피 기회 제공
+      if (b.moveState !== 'special_warn' && b.moveState !== 'dashing') this.bossCombatTick(dt);
     } else {
       _bb.style.display = 'none';
     }
@@ -6212,9 +6387,30 @@ class ArenaScene extends Phaser.Scene {
   if (this.elapsed >= this.bossPhaseUntil) this.resolveBoss(false, 'retreat');
   }
 
+// ── 보스 피해 공식 ─────────────────────────────────────
+// 안전 조건 = 무적이 아니라 "피해 70% 감소". 불안전 개체는 원피해(대부분 1방)지만
+// 고HP·고방어 빌드는 한 번 버틸 수 있다. 웨이브가 진행될수록 원피해 상승.
+_bossRawHit(mult = 1) {
+  return BOSS_ATK_STAT * (4 + Math.min(this._waveIdx || 0, 4)) * mult; // w0:160 w1:200 w2:240
+}
+// 개체에게 보스 타격 적용. 죽었으면 true 반환.
+_applyBossHit(ind, safe, mult = 1) {
+  let dmg = this._bossRawHit(mult);
+  if (safe) dmg *= 0.3;                                 // 안전 조건: 피해 70% 감소
+  if (LAB_BUFFS && LAB_BUFFS.bossDmgHalf) dmg *= 0.5;   // 계통수 저항 III: 보스 피해 -50%
+  const hpBefore = ind.hp;
+  ind.takeHit(dmg);
+  // 계통수 보스저항 I: 안전 개체는 체력이 넉넉했다면 한 방에 죽지 않음 (1 HP 잔류)
+  if (safe && LAB_BUFFS && LAB_BUFFS.bossResist1 && ind.dead && hpBefore > ind.stats.hp * 0.3) {
+    ind.hp = 1;
+    ind.dead = false;
+  }
+  return ind.dead;
+}
+
 // 보스 전투: 일반 집단전과 동일한 쿨다운 방식
 // - 슬라임 공격: moveIndividuals에서 개체별 ATTACK_COOLDOWN마다 처리
-// - 보스 공격: BOSS_ATK_CD마다 가장 가까운 (불안전) 개체 1마리 타격
+// - 보스 공격: BOSS_ATK_CD마다 가장 가까운 개체 최대 10마리 타격
 bossCombatTick(dt) {
   const boss = this.activeBoss, b = this.bossEntity;
 
@@ -6244,7 +6440,7 @@ bossCombatTick(dt) {
 
   // 보스는 오직 플레이어 집단만 공격 (AI 집단은 무시)
   // 범위 내 플레이어 개체를 가까운 순으로 최대 10마리 공격
-  // 불안전 개체: 즉사 / 안전 개체: takeHit(BOSS_ATK_STAT) — 일반 전투와 동일한 공식
+  // 불안전 개체: 원피해(대부분 도태) / 안전 개체: 피해 70% 감소 — _applyBossHit 참고
   const allSlimes = (this.player.individuals.length > 0 ? this.player.individuals : [])
     .filter(i => Math.hypot(b.x - i.x, b.y - i.y) <= BOSS_RANGE + 120)
     .map(i => ({ i, g: this.player, safe: boss.safe(i, this.player) }));
@@ -6256,13 +6452,7 @@ bossCombatTick(dt) {
 
   let killed = 0;
   for (const { i, safe } of targets) {
-    if (!safe) {
-      i.dead = true;
-      killed++;
-    } else {
-      i.takeHit(BOSS_ATK_STAT);
-      if (i.hp <= 0) { i.dead = true; killed++; }
-    }
+    if (this._applyBossHit(i, safe)) killed++;
   }
 
   const affectedGroups = new Set(targets.map(({ g }) => g));
@@ -6278,7 +6468,7 @@ bossCombatTick(dt) {
   this.cameras.main.flash(100, 255, 40, 40, false);
   if (navigator.vibrate) navigator.vibrate(180);
   this.tweens.add({ targets: b.sprite, scaleX: 3.8, scaleY: 2.8, duration: 80, yoyo: true, ease: 'Power3' });
-  const msg = killed > 0 ? `${boss.ico} ${killed}마리 즉사!` : `${boss.ico} ${hitCount}마리 피해!`;
+  const msg = killed > 0 ? `${boss.ico} ${killed}마리 도태!` : `${boss.ico} ${hitCount}마리 피해!`;
   if (this.showToast) this.showToast(msg, 'warn');
 }
 
@@ -6329,6 +6519,7 @@ resolveBoss(win, reason) {
   const bx = this.bossEntity ? this.bossEntity.x : this.player.x;
   const by = this.bossEntity ? this.bossEntity.y : this.player.y;
   if (this.bossEntity) { this.bossEntity.sprite.destroy(); if (this.bossEntity.shadow) this.bossEntity.shadow.destroy(); this.bossEntity = null; }
+  if (this.bossFx) this.bossFx.clear(); // 특수 패턴 텔레그래프 잔상 제거
   document.getElementById('boss-hp').classList.remove('show');
   document.getElementById('boss-banner').classList.remove('show');
   document.getElementById('boss-arrow').classList.remove('show');
@@ -7838,6 +8029,7 @@ function renderBossDex() {
             <div class="boss-name" style="display:flex;align-items:center;gap:5px">${b.name} ${typeTag(b)}</div>
             ${diffBadges ? `<div style="display:flex;gap:4px;flex-wrap:wrap;margin:3px 0">${diffBadges}</div>` : ''}
             <div class="boss-req" style="margin-top:3px">🛡️ 안전조건: ${b.reqText}</div>
+            <div class="boss-req">⚔️ 특수 패턴: ${(BOSS_PATTERNS[b.id] === 'both') ? '💥 충격파 + 💨 돌진' : (BOSS_PATTERNS[b.id] === 'dash') ? '💨 돌진 (예고선 밖으로 피하세요)' : '💥 충격파 (붉은 원 밖으로 피하세요)'}</div>
             <div class="boss-req">📍 추천 진화 장소: ${b.refugeText}</div>
             ${b.spawnText ? `<div class="boss-req" style="color:#fbbf24">⚡ 등장 조건: ${b.spawnText}</div>` : ''}
           </div>

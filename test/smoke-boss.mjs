@@ -21,7 +21,7 @@ let api;
 try {
   const factory = new Function(
     'Phaser','document','window','navigator','localStorage','firebase','requestAnimationFrame',
-    code + '\n;return { BOSS_ROSTER, bossById, WAVE_HP, WAVE_FIRST_AT, WAVE_COOLDOWN, getGenotypeLabel };'
+    code + '\n;return { BOSS_ROSTER, bossById, WAVE_HP, WAVE_FIRST_AT, WAVE_COOLDOWN, getGenotypeLabel, BOSS_PATTERNS };'
   );
   api = factory(Phaser, stub, stub, stub, stub, stub, function(){return 0;});
 } catch (e) {
@@ -83,6 +83,14 @@ try {
 } catch (e) {
   fail('safe 평가 중 예외: ' + e.message + ' (합성 개체 형태 확인 필요)');
 }
+
+// 3.5) 특수 패턴 — 모든 보스에 유효한 패턴 배정
+for (const b of api.BOSS_ROSTER) {
+  const p = api.BOSS_PATTERNS[b.id];
+  if (!['shockwave', 'dash', 'both'].includes(p)) fail(`${b.id} 특수 패턴 누락/불명: ${p}`);
+}
+if ((api.BOSS_PATTERNS.golden !== 'both') || (api.BOSS_PATTERNS.primordial !== 'both'))
+  fail('최종/히든 보스는 both 패턴이어야 함');
 
 // 4) 웨이브 스케줄 상수 — 보스 3마리(단일→복합→최종) HP 오름차순
 if (!Array.isArray(api.WAVE_HP) || api.WAVE_HP.length !== 3) fail(`WAVE_HP 길이 ${api.WAVE_HP?.length} (기대 3)`);
