@@ -18,7 +18,7 @@ const Phaser = { Scene: class {}, Game: class { constructor(){} }, AUTO: 0, Scal
 let api;
 try {
   api = new Function('Phaser','document','window','navigator','localStorage','firebase','requestAnimationFrame',
-    code + '\n;return { evoExpNeedFor, rollEvolutionCandidates, MUTATIONS, EVO_EXP_BASE, EVO_CHOICES_BASE, EVO_BATTLE_EXP, ACHIEVEMENTS };'
+    code + '\n;return { evoExpNeedFor, rollEvolutionCandidates, MUTATIONS, EVO_EXP_BASE, EVO_CHOICES_BASE, EVO_BATTLE_EXP, EVO_KILL_EXP, ACHIEVEMENTS };'
   )(Phaser, stub, stub, stub, stub, stub, function(){return 0;});
 } catch (e) {
   console.error('스크립트 부팅 실패:', e.name, e.message);
@@ -34,6 +34,7 @@ for (let lv = 1; lv < 12; lv++) {
 }
 if (api.EVO_CHOICES_BASE < 2) fail('기본 선택지가 2개 미만');
 if (!(api.EVO_BATTLE_EXP > 0)) fail('전쟁 승리 EXP가 0 이하');
+if (!(api.EVO_KILL_EXP > 0)) fail('전투 처치 EXP가 0 이하');
 
 // 2) 후보 추첨 — 불이익(bad) 형질과 집단 보편화 형질 제외
 const badIds = new Set(api.MUTATIONS.filter(m => m.type === 'bad').map(m => m.id));

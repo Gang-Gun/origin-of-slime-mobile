@@ -2967,6 +2967,16 @@ const BOSS_SPECIAL_CD = 8000;        // 이후 쿨다운(ms)
 const BOSS_SPECIAL_WARN = 1100;      // 텔레그래프(예고) 시간(ms)
 const SHOCKWAVE_RADIUS = 300;
 const DASH_HIT_WIDTH = 95;
+// 2페이즈: 복합 조건·최종·히든 보스는 HP 50% 이하에서 강화된다
+// (양 패턴 교대 사용, 공격 주기 -30%, 피해 +25%, 특수 패턴 빈도 증가)
+function bossHasPhase2(boss) {
+  return !!(boss && (boss.final || boss.hidden || boss.reqText.includes('+')));
+}
+const PHASE2_HP_RATIO = 0.5;
+const PHASE2_DMG_MULT = 1.25;
+const PHASE2_ATK_CD_MULT = 0.7;
+const PHASE2_SPECIAL_CD_MULT = 0.6;
+const PHASE2_CHARGE_MULT = 0.72;
 
 // 10분 기준 보스 등장 시각(ms)과 슬롯
 const WAVE_FIRST_AT = 90000;   // 첫 보스 경고 시작 시각 (90초)
@@ -3369,11 +3379,13 @@ function creatureTextureKey(individual) {
   return `creature_${body}_${sig.length ? sig.join('.') : 'none'}_${cat}`;
 }
 // ── 진화 게이지 시스템 ──────────────────────────────────
-// 먹이·전투로 EXP를 모아 레벨업 → 진화 3택1 → 집단 전체에 발현 (Everything is Crab식 핵심 루프)
+// 전투(전쟁 처치·승리·보스 처치)로만 EXP를 모아 레벨업 → 진화 3택1 → 집단 전체에 발현
+// (Everything is Crab식 "사냥해서 진화" 루프 — 채집은 식량만, 진화는 오직 전투)
 const EVO_EXP_BASE = 120;      // 레벨 1→2 필요 EXP
-const EVO_EXP_GROWTH = 1.45;   // 레벨당 필요량 배율
+const EVO_EXP_GROWTH = 1.35;   // 레벨당 필요량 배율
 const EVO_CHOICES_BASE = 3;    // 기본 선택지 수 (계통수 pick 노드가 있으면 그 이상)
-const EVO_BATTLE_EXP = 60;     // 전쟁 승리 보상 EXP
+const EVO_BATTLE_EXP = 80;     // 전쟁 승리 보상 EXP
+const EVO_KILL_EXP = 12;       // 전쟁 중 적 개체 처치당 EXP
 function evoExpNeedFor(level) {
   return Math.round(EVO_EXP_BASE * Math.pow(EVO_EXP_GROWTH, Math.max(0, level - 1)));
 }
@@ -3907,6 +3919,15 @@ class Battle {
     if (this.isPlayerBattle) {
       Audio.sfxHit();
       if (this.onHit) this.onHit(target.x, target.y);
+      // 포식: 플레이어 개체가 적을 처치하면 진화 EXP (전투가 유일한 진화 동력)
+      if (target.dead) {
+        const pg = this.groupA.isPlayer ? this.groupA : (this.groupB.isPlayer ? this.groupB : null);
+        const sc = window._arenaScene;
+        if (pg && attacker.groupId === pg.id && sc) {
+          sc.gainEvoExp(EVO_KILL_EXP);
+          if (sc.spawnFloatText) sc.spawnFloatText(target.x, target.y - 12, `+${EVO_KILL_EXP} 🧬`, '#9b6fc4', 14);
+        }
+      }
     }
   }
 
@@ -5669,9 +5690,8 @@ class ArenaScene extends Phaser.Scene {
         if (Phaser.Math.Distance.Between(group.x, group.y, food.x, food.y) > COLLECT_RADIUS) continue;
         const gain = Math.max(1, Math.floor(food.amount * gatherBonus * terrain.food * geneMult * weatherFood));
         group.food = Math.min(FOOD_CAP, group.food + gain);
-        // 플레이어 채집 연출 + 진화 EXP (먹을수록 진화 게이지가 찬다)
+        // 플레이어 채집 연출 (진화 EXP는 전투로만 획득)
         if (group.isPlayer) {
-          this.gainEvoExp(gain);
           Audio.sfxCollect();
           this.spawnFloatText(food.x, food.y - 8, `+${gain}`, '#4e9a4a', 16);
           this.burst(food.x, food.y, 0x7cc674, 5, 30);
@@ -6063,7 +6083,7 @@ class ArenaScene extends Phaser.Scene {
     this.burst(this.player.x, this.player.y, 0xc49ee0, 22, 110);
     Audio.sfxAchieve();
     this._checkGoldenCondition && this._checkGoldenCondition();
-    ContextHint.show('first_evolution', '✨', '집단 진화!\n선택한 형질이 모든 개체에 발현되고\n자손에게도 물려집니다.\n🍓 먹이를 먹을수록 게이지가 빨리 차요!');
+    ContextHint.show('first_evolution', '✨', '집단 진화!\n선택한 형질이 모든 개체에 발현되고\n자손에게도 물려집니다.\n⚔️ 전투에서 이길수록 게이지가 빨리 차요!');
   }
 
   // 돌연변이 발현 후 외형 갱신: 스프라이트를 새 텍스처로 재생성
@@ -6143,8 +6163,10 @@ class ArenaScene extends Phaser.Scene {
     this.bossEntity = { x:sx, y:sy, hp:hpMax, hpMax, sprite, shadow, lastAttackAt: 0,
       moveState:'charge', chargeTimer:0, chargeDuration: 1200 + Math.random()*400,
       jumpStart:null, jumpTarget:null, jumpProgress:0, jumpDuration:0, jumpHeight:160,
-      nextSpecialAt: this.elapsed + BOSS_SPECIAL_FIRST_AT, special: null, _lastSpecial: null };
+      nextSpecialAt: this.elapsed + BOSS_SPECIAL_FIRST_AT, special: null, _lastSpecial: null, phase2: false };
     if (!this.bossFx) this.bossFx = this.add.graphics().setDepth(19);
+    const _hpFill = document.getElementById('boss-hp-fill');
+    if (_hpFill) _hpFill.style.background = ''; // 이전 보스의 2페이즈 색 초기화
     this._bossSpawnCount = this.player.individuals.length;
     this._bossSpawnTime  = this.elapsed;
     this.bossPhase = 'chase';
@@ -6157,9 +6179,26 @@ class ArenaScene extends Phaser.Scene {
     this.cameras.main.shake(400, 0.01);
   }
 
+  // 2페이즈 돌입: 복합·최종·히든 보스 전용 강화 상태
+  _enterBossPhase2(b) {
+    b.phase2 = true;
+    b.nextSpecialAt = Math.min(b.nextSpecialAt, this.elapsed + 2500); // 곧바로 특수 패턴
+    this.showMessage(`🔥 ${this.activeBoss.name} 2페이즈! 더 빠르고 강해집니다`, true);
+    this.showToast(`🔥 ${this.activeBoss.name} 2페이즈!`, 'warn');
+    ContextHint.show('boss_phase2', '🔥', '보스가 2페이즈에 돌입했어요!\n두 특수 패턴을 모두 쓰고\n공격이 훨씬 빨라집니다. 집중하세요!');
+    this.cameras.main.shake(500, 0.03);
+    this.cameras.main.flash(250, 255, 80, 30, false);
+    this.burst(b.x, b.y, 0xff3020, 26, 150);
+    if (navigator.vibrate) navigator.vibrate([100, 60, 100]);
+    if (Audio.sfxMeteor) Audio.sfxMeteor();
+    const fill = document.getElementById('boss-hp-fill');
+    if (fill) fill.style.background = 'linear-gradient(90deg,#ff7a1a,#ff2020)';
+  }
+
   // 특수 패턴 시작: 텔레그래프 상태로 전환
   _startBossSpecial(b) {
-    const pat = BOSS_PATTERNS[this.activeBoss.id] || 'shockwave';
+    // 2페이즈에서는 어떤 보스든 양 패턴을 교대로 사용
+    const pat = b.phase2 ? 'both' : (BOSS_PATTERNS[this.activeBoss.id] || 'shockwave');
     const type = pat === 'both' ? (b._lastSpecial === 'shockwave' ? 'dash' : 'shockwave') : pat;
     b._lastSpecial = type;
     b.moveState = 'special_warn';
@@ -6197,8 +6236,8 @@ class ArenaScene extends Phaser.Scene {
       if (hits) this.showToast(`${this.activeBoss.ico} 충격파! ${kills > 0 ? kills + '마리 도태' : hits + '마리 피해'}!`, 'warn');
       b.moveState = 'charge';
       b.chargeTimer = 0;
-      b.chargeDuration = 1400 + Math.random() * 600;
-      b.nextSpecialAt = this.elapsed + BOSS_SPECIAL_CD + Math.random() * 3000;
+      b.chargeDuration = (1400 + Math.random() * 600) * (b.phase2 ? PHASE2_CHARGE_MULT : 1);
+      b.nextSpecialAt = this.elapsed + (BOSS_SPECIAL_CD + Math.random() * 3000) * (b.phase2 ? PHASE2_SPECIAL_CD_MULT : 1);
     } else {
       b.moveState = 'dashing';
       sp.sx = b.x; sp.sy = b.y;
@@ -6214,6 +6253,17 @@ class ArenaScene extends Phaser.Scene {
     if (this.bossFx) this.bossFx.clear();
     // 특수 상태 중에도 슬라임 공격으로 죽을 수 있음
     if (b.hp <= 0) { this.resolveBoss(true); return; }
+
+    // 2페이즈 돌입 체크 (복합·최종·히든 보스, HP 50% 이하)
+    if (!b.phase2 && bossHasPhase2(this.activeBoss) && b.hp <= b.hpMax * PHASE2_HP_RATIO) {
+      this._enterBossPhase2(b);
+    }
+    // 2페이즈 오라: 보스 발밑에 맥동하는 붉은 기운
+    if (b.phase2 && this.bossFx) {
+      const pulse = 0.22 + 0.10 * Math.sin(this.elapsed / 140);
+      this.bossFx.fillStyle(0xff3020, pulse);
+      this.bossFx.fillEllipse(b.x, b.y + 12, 150, 52);
+    }
 
     // 특수 패턴 트리거: 대기(charge) 중 + 쿨다운 경과 + 플레이어가 사거리권일 때
     if (b.moveState === 'charge' && this.elapsed >= b.nextSpecialAt) {
@@ -6315,8 +6365,8 @@ class ArenaScene extends Phaser.Scene {
         this.tweens.add({ targets: b.sprite, scaleX: 2.0, scaleY: 2.0, duration: 220, ease: 'Back.Out' });
         b.moveState = 'charge';
         b.chargeTimer = 0;
-        b.chargeDuration = 1400 + Math.random() * 600;
-        b.nextSpecialAt = this.elapsed + BOSS_SPECIAL_CD + Math.random() * 3000;
+        b.chargeDuration = (1400 + Math.random() * 600) * (b.phase2 ? PHASE2_CHARGE_MULT : 1);
+        b.nextSpecialAt = this.elapsed + (BOSS_SPECIAL_CD + Math.random() * 3000) * (b.phase2 ? PHASE2_SPECIAL_CD_MULT : 1);
       }
 
     } else {
@@ -6358,7 +6408,7 @@ class ArenaScene extends Phaser.Scene {
         }
         b.moveState      = 'charge';
         b.chargeTimer    = 0;
-        b.chargeDuration = 1200 + Math.random() * 700;
+        b.chargeDuration = (1200 + Math.random() * 700) * (b.phase2 ? PHASE2_CHARGE_MULT : 1);
         if (b.shadow) { b.shadow.setScale(1); b.shadow.setAlpha(0.35); b.shadow.setPosition(b.x, b.y + 10); }
       }
     }
@@ -6366,7 +6416,7 @@ class ArenaScene extends Phaser.Scene {
     // HP 바 갱신
     const pct = Math.max(0, b.hp / b.hpMax * 100);
     document.getElementById('boss-hp-fill').style.width = pct + '%';
-    document.getElementById('boss-hp-label').textContent = `${this.activeBoss.ico} ${this.activeBoss.name}  ${Math.ceil(b.hp)}/${b.hpMax}`;
+    document.getElementById('boss-hp-label').textContent = `${this.activeBoss.ico} ${this.activeBoss.name}${b.phase2 ? ' 🔥2페이즈' : ''}  ${Math.ceil(b.hp)}/${b.hpMax}`;
     const _bb = document.getElementById('battle-banner');
     const inGrace = this._bossFleeGraceUntil && this.elapsed < this._bossFleeGraceUntil;
     // 보스는 플레이어만 상대 — 플레이어 개체가 사거리 안이고 회피 유예가 아닐 때만 전투 활성 (멀면 번식 가능)
@@ -6396,6 +6446,7 @@ _bossRawHit(mult = 1) {
 // 개체에게 보스 타격 적용. 죽었으면 true 반환.
 _applyBossHit(ind, safe, mult = 1) {
   let dmg = this._bossRawHit(mult);
+  if (this.bossEntity && this.bossEntity.phase2) dmg *= PHASE2_DMG_MULT; // 2페이즈: 피해 +25%
   if (safe) dmg *= 0.3;                                 // 안전 조건: 피해 70% 감소
   if (LAB_BUFFS && LAB_BUFFS.bossDmgHalf) dmg *= 0.5;   // 계통수 저항 III: 보스 피해 -50%
   const hpBefore = ind.hp;
@@ -6418,9 +6469,10 @@ bossCombatTick(dt) {
   if (b.hp <= 0) { this.resolveBoss(true); return; }
 
   const now = Date.now();
+  const atkCd = b.phase2 ? BOSS_ATK_CD * PHASE2_ATK_CD_MULT : BOSS_ATK_CD; // 2페이즈: 공격 주기 -30%
 
   // 공격 직전 350ms: 충전 연출
-  const timeToAtk = BOSS_ATK_CD - (now - b.lastAttackAt);
+  const timeToAtk = atkCd - (now - b.lastAttackAt);
   if (timeToAtk <= 350 && !b._chargePlayed) {
     b._chargePlayed = true;
     b.sprite.setTint(0xff4444);
@@ -6433,7 +6485,7 @@ bossCombatTick(dt) {
     });
   }
 
-  if (now - b.lastAttackAt < BOSS_ATK_CD) return;
+  if (now - b.lastAttackAt < atkCd) return;
   b.lastAttackAt = now;
   b._chargePlayed = false;
   b.sprite.clearTint();
@@ -8030,6 +8082,7 @@ function renderBossDex() {
             ${diffBadges ? `<div style="display:flex;gap:4px;flex-wrap:wrap;margin:3px 0">${diffBadges}</div>` : ''}
             <div class="boss-req" style="margin-top:3px">🛡️ 안전조건: ${b.reqText}</div>
             <div class="boss-req">⚔️ 특수 패턴: ${(BOSS_PATTERNS[b.id] === 'both') ? '💥 충격파 + 💨 돌진' : (BOSS_PATTERNS[b.id] === 'dash') ? '💨 돌진 (예고선 밖으로 피하세요)' : '💥 충격파 (붉은 원 밖으로 피하세요)'}</div>
+            ${bossHasPhase2(b) ? `<div class="boss-req" style="color:#f97316">🔥 2페이즈: HP 50% 이하에서 강화 — 양 패턴 사용·공속/피해 증가</div>` : ''}
             <div class="boss-req">📍 추천 진화 장소: ${b.refugeText}</div>
             ${b.spawnText ? `<div class="boss-req" style="color:#fbbf24">⚡ 등장 조건: ${b.spawnText}</div>` : ''}
           </div>
@@ -8522,7 +8575,7 @@ const Tutorial = (() => {
     {
       ico: '🎯',
       title: '목표',
-      desc: '🍓 먹이를 먹으면 🧬 진화 게이지가 차요.\n가득 차면 새 형질을 골라\n집단 전체가 진화합니다!\n\n보스 3마리를 순서대로 처치하면 승리.\n보스마다 안전 조건이 있어서\n조건을 갖춘 개체만 살아남아요.',
+      desc: '⚔️ 다른 집단과 싸워 적을 처치하면\n🧬 진화 게이지가 차요.\n가득 차면 새 형질을 골라\n집단 전체가 진화합니다!\n\n🍓 먹이는 식량(번식 자원)이 되고,\n보스 3마리를 순서대로 처치하면 승리.\n보스마다 안전 조건이 있어요.',
       target: null, cond: null, nextLabel: '알겠어요 →',
     },
     {

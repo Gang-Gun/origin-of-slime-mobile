@@ -21,7 +21,7 @@ let api;
 try {
   const factory = new Function(
     'Phaser','document','window','navigator','localStorage','firebase','requestAnimationFrame',
-    code + '\n;return { BOSS_ROSTER, bossById, WAVE_HP, WAVE_FIRST_AT, WAVE_COOLDOWN, getGenotypeLabel, BOSS_PATTERNS };'
+    code + '\n;return { BOSS_ROSTER, bossById, WAVE_HP, WAVE_FIRST_AT, WAVE_COOLDOWN, getGenotypeLabel, BOSS_PATTERNS, bossHasPhase2 };'
   );
   api = factory(Phaser, stub, stub, stub, stub, stub, function(){return 0;});
 } catch (e) {
@@ -91,6 +91,12 @@ for (const b of api.BOSS_ROSTER) {
 }
 if ((api.BOSS_PATTERNS.golden !== 'both') || (api.BOSS_PATTERNS.primordial !== 'both'))
   fail('최종/히든 보스는 both 패턴이어야 함');
+
+// 3.6) 2페이즈 대상 — 복합 조건 4 + 최종 1 + 히든 1 = 6
+const p2 = api.BOSS_ROSTER.filter(b => api.bossHasPhase2(b)).map(b => b.id);
+if (p2.length !== 6) fail(`2페이즈 대상 ${p2.length}개 (기대 6): ${p2.join(',')}`);
+if (!api.bossHasPhase2(api.bossById('steel'))) fail('복합 보스(steel)는 2페이즈 대상이어야 함');
+if (api.bossHasPhase2(api.bossById('lava'))) fail('단일 보스(lava)는 2페이즈 대상이 아니어야 함');
 
 // 4) 웨이브 스케줄 상수 — 보스 3마리(단일→복합→최종) HP 오름차순
 if (!Array.isArray(api.WAVE_HP) || api.WAVE_HP.length !== 3) fail(`WAVE_HP 길이 ${api.WAVE_HP?.length} (기대 3)`);
