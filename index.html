@@ -1789,7 +1789,7 @@ body { image-rendering: pixelated; }
         onclick="toggleFullscreen()">⛶ 전체화면으로</button>
     </div>
     <div class="setting-row">
-      <span>🧬 돌연변이 선택</span>
+      <span>✨ 진화 선택창 (끄면 무작위 자동)</span>
       <button class="toggle-btn" id="options-mutpick-toggle" onclick="toggleOptionsMutPick(this)"></button>
     </div>
     <div class="setting-row">
@@ -1910,7 +1910,7 @@ body { image-rendering: pixelated; }
           onclick="cycleGameSpeed()">1×</button>
       </div>
       <div class="setting-row">
-        <span>🧬 돌연변이 선택</span>
+        <span>✨ 진화 선택창 (끄면 무작위 자동)</span>
         <button class="toggle-btn" id="pause-mutpick-toggle" onclick="togglePauseMutPick(this)"></button>
       </div>
       <div class="setting-row">
@@ -1988,7 +1988,7 @@ const TRANSLATIONS = {
     infinite: '♾️ 무한 생존',
     breed: '번식', flee: '도망', pause: '일시정지', resume: '계속',
     opt_title: '⚙️ 옵션', opt_bgm: '🎵 배경음', opt_sfx: '🔊 효과음',
-    opt_fullscreen: '⛶ 전체화면', opt_mutpick: '🧬 돌연변이 선택',
+    opt_fullscreen: '⛶ 전체화면', opt_mutpick: '✨ 진화 선택창',
     opt_tutorial: '📖 튜토리얼 초기화', opt_reset: '⚠️ 계정 초기화',
     opt_reset_desc: '계통수 해금·통계·업적 등 모든 진행 데이터를 삭제합니다.',
     opt_reset_btn: '🗑️ 전체 데이터 초기화',
@@ -2008,7 +2008,7 @@ const TRANSLATIONS = {
     infinite: '♾️ Infinite Survival',
     breed: 'Breed', flee: 'Flee', pause: 'Pause', resume: 'Resume',
     opt_title: '⚙️ Options', opt_bgm: '🎵 BGM', opt_sfx: '🔊 SFX',
-    opt_fullscreen: '⛶ Fullscreen', opt_mutpick: '🧬 Mutation Choice',
+    opt_fullscreen: '⛶ Fullscreen', opt_mutpick: '✨ Evolution Choice',
     opt_tutorial: '📖 Reset Tutorial', opt_reset: '⚠️ Reset Account',
     opt_reset_desc: 'Deletes all progress: gene tree unlocks, stats, achievements.',
     opt_reset_btn: '🗑️ Reset All Data',
@@ -2324,11 +2324,11 @@ const LAB_NODE_DEFS = [
   { id:'bos4', t:'ess', parent:'bos3',  ico:'🛡️', name:'저항 IV',   costType:'ess', costAmt:11, effect:'보스 처치 시 전 개체 HP +30%' },
   { id:'bos5', t:'ess', parent:'bos4',  ico:'🛡️', name:'저항 V',    costType:'ess', costAmt:20, effect:'안전하지 않은 개체 2마리 이상 필요' },
   // 선택적 진화 계열
-  { id:'evo1',  t:'ess', parent:'eroot', ico:'🧬', name:'선택적 진화', costType:'ess', costAmt:1,  effect:'돌연변이 선택지 수 강화 + 유전 분석 계열 해금' },
-  { id:'pick1', t:'ess', parent:'evo1',  ico:'🎲', name:'선택 I',    costType:'ess', costAmt:1,  effect:'2개 중 선택 해금' },
-  { id:'pick2', t:'ess', parent:'pick1', ico:'🎲', name:'선택 II',   costType:'ess', costAmt:2,  effect:'3개 중 선택' },
-  { id:'pick3', t:'ess', parent:'pick2', ico:'🎲', name:'선택 III',  costType:'ess', costAmt:5,  effect:'4개 중 선택' },
-  { id:'pick4', t:'ess', parent:'pick3', ico:'🎲', name:'선택 IV',   costType:'ess', costAmt:10, effect:'5개 중 선택' },
+  { id:'evo1',  t:'ess', parent:'eroot', ico:'🧬', name:'선택적 진화', costType:'ess', costAmt:1,  effect:'진화 선택지 확장 + 유전 분석 계열 해금' },
+  { id:'pick1', t:'ess', parent:'evo1',  ico:'🎲', name:'선택 I',    costType:'ess', costAmt:1,  effect:'진화 선택지 4개' },
+  { id:'pick2', t:'ess', parent:'pick1', ico:'🎲', name:'선택 II',   costType:'ess', costAmt:2,  effect:'진화 선택지 5개' },
+  { id:'pick3', t:'ess', parent:'pick2', ico:'🎲', name:'선택 III',  costType:'ess', costAmt:5,  effect:'진화 선택지 6개' },
+  { id:'pick4', t:'ess', parent:'pick3', ico:'🎲', name:'선택 IV',   costType:'ess', costAmt:10, effect:'진화 선택지 7개' },
   { id:'vis1',  t:'ess', parent:'evo1',  ico:'🔬', name:'유전 분석 I',  costType:'ess', costAmt:2,  effect:'현황판에 대립유전자 빈도 표시 (5종 비율 바)' },
   { id:'vis2',  t:'ess', parent:'vis1',  ico:'🔬', name:'유전 분석 II', costType:'ess', costAmt:5,  effect:'유전자형 분포 추가 표시 (동형·이형접합 비율)' },
   { id:'vis3',  t:'ess', parent:'vis2',  ico:'🔬', name:'유전 분석 III', costType:'ess', costAmt:10, effect:'결과 화면에서 대립유전자 변화 그래프 해금' },
@@ -2401,7 +2401,7 @@ function computeLabBuffs() {
     bossHealOnKill:has('bos4'),
     bossHarderThreshold: has('bos5'),
     mutationEnabled: has('evo1'),
-    mutationChoices: has('pick4')?5 : has('pick3')?4 : has('pick2')?3 : has('pick1')?2 : 0,
+    mutationChoices: has('pick4')?7 : has('pick3')?6 : has('pick2')?5 : has('pick1')?4 : 0,
     geneVisLevel: has('vis3')?3 : has('vis2')?2 : has('vis1')?1 : 0,
     maxPopBonus: (has('cap1')?10:0) + (has('cap2')?20:0) + (has('cap3')?35:0) + (has('cap4')?55:0) + (has('cap5')?80:0),
     gameSpeedUnlock: has('spd2') ? 2 : has('spd1') ? 1.5 : 0,
@@ -2616,107 +2616,8 @@ function confirmBuyLabNode() {
 let _mutPickResolve = null;
 let _mutPickChild = null;
 
-function showMutationPicker(child, naturalMutId, scene) {
-  // 돌연변이 발생 시 무조건 선택창 표시 — 확률 체크 없음
-  const titleEl = document.getElementById('mutation-picker-title');
-  if (titleEl) titleEl.textContent = '🧬 돌연변이 선택';
-  const nChoices = Math.max(1, LAB_BUFFS.mutationChoices || 0);
-  const allMutIds = (typeof MUTATIONS !== 'undefined') ? MUTATIONS.map(m=>m.id) : [];
-  const candidates = [naturalMutId];
-  const others = allMutIds.filter(id => id !== naturalMutId && !(child.mutations||[]).includes(id));
-  // shuffle
-  for (let i = others.length-1; i > 0; i--) {
-    const j = Math.floor(Math.random()*(i+1));
-    [others[i],others[j]] = [others[j],others[i]];
-  }
-  for (let i = 0; i < Math.min(nChoices-1, others.length); i++) candidates.push(others[i]);
-
-  const subEl = document.getElementById('mutation-picker-sub');
-  const optsEl = document.getElementById('mutation-picker-options');
-  const skipBtn = document.getElementById('mutation-skip-btn');
-  subEl.textContent = `${candidates.length}개 중 하나를 선택하세요.`;
-  // pick1 해금 전(선택지 1개)에는 거부 버튼 표시
-  const canReject = (nChoices <= 1) && !(LAB_BUFFS.mutationChoices > 0);
-  skipBtn.style.display = canReject ? '' : 'none';
-  skipBtn.textContent = '🚫 거부';
-  skipBtn.onclick = () => resolveMutationPick(null);
-
-  const _mutIco = {good:'✅',dual:'🔵',bad:'❌'};
-  const _mutEffectDesc = (effects) => {
-    if (!effects) return '';
-    return Object.entries(effects).map(([k,v]) => {
-      const labels = {hp:'HP',attack:'공격',defense:'방어',speed:'속도',gather:'채집',charm:'매력',foodNeed:'식량소모',fertility:'번식력',mutationRate:'돌연변이율'};
-      const sign = v > 0 ? '+' : '';
-      return `${labels[k]||k} ${sign}${v}`;
-    }).join(' · ');
-  };
-
-  // 다음 보스 안전조건 힌트: 현재 대기 중인 다음 보스 파악
-  const _sc = window._arenaScene;
-  const _nextBossForHint = (() => {
-    if (!_sc || !_sc._waveList) return null;
-    if (_sc.bossPhase !== 'idle') return _sc.activeBoss; // 경고 중인 보스
-    const idx = _sc._waveIdx;
-    if (idx >= _sc._waveList.length) return null;
-    return bossById(_sc._waveList[idx]);
-  })();
-
-  optsEl.innerHTML = candidates.map(mid => {
-    const m = mutationById(mid);
-    const ico  = m ? (_mutIco[m.type] || '🧬') : '🧬';
-    const name = m ? m.name : mid;
-    const desc = m ? _mutEffectDesc(m.effects) : '';
-    // 다음 보스 안전조건에 해당하는지 확인
-    const isBossHint = _nextBossForHint && (() => {
-      try {
-        const fakeMuts = [...(child.mutations||[]), mid];
-        // plain object proxy — prototype getter 방식 피함 (strict mode TypeError 방지)
-        const fakeInd = { mutations: fakeMuts, stats: child.stats, genes: child.genes, mutationGenes: child.mutationGenes };
-        return _nextBossForHint.safe(fakeInd) && !_nextBossForHint.safe(child);
-      } catch(e){ return false; }
-    })();
-    const badge = isBossHint ? `<span style="display:inline-block;margin-left:6px;font-size:10px;padding:2px 7px;border-radius:999px;background:rgba(251,191,36,.18);border:1.5px solid #fbbf24;color:#fbbf24;font-weight:900">${_nextBossForHint.ico} 안전조건</span>` : '';
-    return `<div class="mut-pick-option" onclick="resolveMutationPick('${mid}')">
-      <span class="mut-ico">${ico}</span>
-      <div class="mut-info">
-        <div class="mut-name">${name}${badge}</div>
-        <div class="mut-desc">${desc}</div>
-      </div>
-    </div>`;
-  }).join('');
-
-  _mutPickChild = child;
-  _mutPickResolve = (chosenId) => {
-    for (const mid of candidates) {
-      delete child.mutationGenes[mid];
-    }
-    if (chosenId) {
-      child.mutationGenes[chosenId] = ['M','m'];
-      child.newlyGained = [chosenId];
-      // 선택 확정 시 토스트 표시 (handleBreed에서는 중복 방지를 위해 표시 안 함)
-      const _sc2 = window._arenaScene;
-      if (_sc2) {
-        const _m = mutationById(chosenId);
-        if (_m) {
-          const _ico = _m.type === 'good' ? '✅' : _m.type === 'bad' ? '❌' : '🔵';
-          setTimeout(() => _sc2.showToast(`🧬 ${_ico} ${_m.name}`, 'mut'), 80);
-        }
-      }
-    } else {
-      child.newlyGained = [];
-      child.newMutationCount = 0;
-    }
-    // 스탯 재계산 (거부 시 제거된 돌연변이 효과 반영)
-    child.stats = child.calculateStats();
-    child.hp = Math.min(child.hp, child.stats.hp);
-    if (scene && !_paused) scene.scene.resume(); // 일시정지 상태는 모듈 _paused가 관리
-  };
-
-  document.getElementById('mutation-picker').classList.add('open');
-  if (scene) scene.scene.pause();
-  return true;
-}
-
+// (번식 돌연변이 선택창은 제거됨 — 번식 돌연변이는 무작위 자동 발현.
+//  아래 선택창 UI는 레벨업 진화(showEvolutionPicker)에서만 사용)
 function resolveMutationPick(chosenId) {
   document.getElementById('mutation-picker').classList.remove('open');
   if (_mutPickResolve) { _mutPickResolve(chosenId); _mutPickResolve = null; _mutPickChild = null; }
@@ -3809,11 +3710,7 @@ class Group {
       for (const id of child.newlyGained) {
         if (!this.lastGainedMutations.includes(id)) this.lastGainedMutations.push(id);
       }
-      // Mutation selection picker (player only, when evo upgrades purchased)
-      if (this.isPlayer && child.newlyGained.length > 0 && localStorage.getItem('gpa_mutpick_off') !== '1') {
-        const scene = window._arenaScene;
-        if (scene) showMutationPicker(child, child.newlyGained[0], scene);
-      }
+      // 번식 돌연변이는 무작위 자동 발현 (선택창 없음 — 자연 돌연변이 그대로)
       this.individuals.push(child);
       // Twin chance (player only)
       if (this.isPlayer && LAB_BUFFS && LAB_BUFFS.twinChance > 0
@@ -5957,15 +5854,13 @@ class ArenaScene extends Phaser.Scene {
     Audio.sfxBreed();
     ContextHint.show('first_breed','🥚','자손이 태어났어요!\n부모의 특성을 물려받고\n가끔 돌연변이로 새 능력이 생겨요.\n🔬 돌연변이가 쌓일수록 집단이 강해집니다!');
     this.burst(this.player.x, this.player.y, 0xffb4a2, 12, 70);
-    // 돌연변이 토스트: 선택창 OFF일 때만 즉시 표시 (ON이면 resolveMutationPick에서 처리)
-    if (localStorage.getItem('gpa_mutpick_off') === '1') {
-      gained.forEach((id, i) => {
-        const m = mutationById(id);
-        if (!m) return;
-        const ico = m.type === 'good' ? '✅' : m.type === 'bad' ? '❌' : '🔵';
-        setTimeout(() => this.showToast(`🧬 ${ico} ${m.name}`, 'mut'), i * 350);
-      });
-    }
+    // 번식 돌연변이는 무작위 자동 발현 — 결과를 토스트로 안내
+    gained.forEach((id, i) => {
+      const m = mutationById(id);
+      if (!m) return;
+      const ico = m.type === 'good' ? '✅' : m.type === 'bad' ? '❌' : '🔵';
+      setTimeout(() => this.showToast(`🧬 ${ico} ${m.name}`, 'mut'), i * 350);
+    });
   }
 
   tryFleeBattle() {
@@ -6627,7 +6522,12 @@ resolveBoss(win, reason) {
       }
     }
   } else if (reason === 'retreat') {
-    this.showMessage(`${boss.ico} ${boss.name}가 물러갑니다… (보상 없음)`, true);
+    // 퇴각한 보스는 잠시 후 재도전 — _waveFired를 반드시 리셋해야 다음 출현이 예약됨
+    // (리셋 누락 시 이후 복합·최종 보스가 영영 등장하지 않는 진행 불가 버그)
+    this._waveFired = false;
+    const _rSlow = (LAB_BUFFS && LAB_BUFFS.infiniteBossSlowdown) || 1.0;
+    this._nextBossAt = this.elapsed + WAVE_COOLDOWN * _rSlow;
+    this.showMessage(`${boss.ico} ${boss.name}가 물러갑니다… (보상 없음)\n⏳ ${Math.round(WAVE_COOLDOWN * _rSlow / 1000)}초 후 다시 옵니다 — 처치해야 다음으로 진행!`, true);
     this.cameras.main.flash(300, 120, 120, 180);
     if (navigator.vibrate) navigator.vibrate([40, 60, 40]);
   }
