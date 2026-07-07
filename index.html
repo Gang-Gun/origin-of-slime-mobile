@@ -2401,6 +2401,7 @@ const LAB_NODE_DEFS = [
   { id:'mut1', t:'frag', parent:'froot', ico:'🔬', name:'진화 촉진 I',   costType:'frag', costAmt:10, effect:'기본 돌연변이 발생률 +2%' },
   { id:'mut2', t:'frag', parent:'mut1',  ico:'🔬', name:'진화 촉진 II',  costType:'frag', costAmt:22, effect:'기본 돌연변이 발생률 +4% (누적)' },
   { id:'mut3', t:'frag', parent:'mut2',  ico:'🔬', name:'진화 촉진 III', costType:'frag', costAmt:42, effect:'기본 돌연변이 발생률 +7% (누적)' },
+  { id:'mutsel', t:'frag', parent:'mut1', ico:'🎯', name:'돌연변이 선별', costType:'frag', costAmt:26, effect:'번식 돌연변이 발생 시 3택1 선택창 해금 (미보유 시 무작위 발현)' },
 
   // ── 파편 트리 새 계열: 식량 효율 ──
   { id:'food1', t:'frag', parent:'froot', ico:'🍖', name:'대사 효율 I',  costType:'frag', costAmt:8,  effect:'집단 식량 소비 -8%' },
@@ -2462,6 +2463,7 @@ function computeLabBuffs() {
     infiniteMode:  has('inf1'),
     infiniteBossSlowdown: has('inf2') ? 0.75 : 1.0,
     mutRateBonus:  (has('mut1')?0.02:0) + (has('mut2')?0.04:0) + (has('mut3')?0.07:0),
+    breedMutPick:  has('mutsel'), // 번식 돌연변이 3택1 선택창 (미보유 시 무작위 발현)
     foodNeedMult:  1 * (has('food1')?0.92:1) * (has('food2')?0.84/0.92:1) * (has('food3')?0.75/0.84:1),
   };
 }
@@ -2735,8 +2737,8 @@ function showEvolutionPicker(scene) {
 }
 
 // ── 번식 돌연변이 선택창 — 자손의 신규 돌연변이 정체를 플레이어가 3택1로 결정 ──
-// (자연은 "돌연변이 발생 여부"만 굴리고, 어떤 형질이 발현될지는 플레이어가 고른다.
-//  건너뛰기 = 기존처럼 무작위 발현. gpa_mutpick_off 옵션 ON 시 이 창은 열리지 않음.)
+// (기본값은 무작위 발현. 계통수 [돌연변이 선별](mutsel) 구매 시에만 이 창이 열리며,
+//  건너뛰기 = 무작위 발현. gpa_mutpick_off 옵션 ON 시에는 해금했어도 열리지 않음.)
 function showBreedMutationPicker(scene, children) {
   const owned = new Set();
   for (const c of children) for (const id of c.mutations) owned.add(id);
@@ -3854,8 +3856,10 @@ class Group {
     let newMutations = 0;
     this.lastGainedMutations = []; // 이번 번식에서 새로 발현된 돌연변이 ID
     this._pendingMutChildren = []; // 돌연변이 정체 선택 대기 자손 (플레이어 전용)
-    // 플레이어는 신규 돌연변이의 정체를 선택창에서 직접 고름 (옵션 OFF·튜토리얼 중엔 무작위)
+    // 번식 돌연변이 기본값은 무작위 발현 — 계통수 [돌연변이 선별] 구매 시 3택1 선택창 해금
+    // (선택창 OFF 옵션·튜토리얼 중에는 해금했어도 무작위)
     const deferPick = this.isPlayer
+      && LAB_BUFFS && LAB_BUFFS.breedMutPick
       && typeof window !== 'undefined' && window._arenaScene && !window._arenaScene.tutorialActive
       && localStorage.getItem('gpa_mutpick_off') !== '1';
     for (let i = 0; i < childCount; i += 1) {
