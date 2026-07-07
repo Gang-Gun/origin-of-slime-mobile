@@ -356,7 +356,10 @@ canvas { display: block; image-rendering: pixelated; }
   display: none; flex-direction: row; gap: 7px;
   pointer-events: auto; /* #hud가 pointer-events:none이므로 반드시 재활성화 (조이스틱 관통 방지) */
 }
-#skill-bar.show { display: flex; animation: slideUp .22s cubic-bezier(.34,1.56,.64,1); }
+/* 주의: 공용 slideUp 키프레임은 transform을 통째로 교체해 translateX(-50%) 센터링이 풀린다.
+   left:50% 센터링 요소는 반드시 slideUpCenter(translate(-50%,…) 유지)를 쓸 것 — 등장 중 터치가 빗나가는 버그 방지 */
+@keyframes slideUpCenter { from{transform:translate(-50%,26px);opacity:.5} to{transform:translate(-50%,0);opacity:1} }
+#skill-bar.show { display: flex; animation: slideUpCenter .22s cubic-bezier(.34,1.56,.64,1); }
 .skill-btn {
   position: relative; width: 52px; height: 52px; border-radius: 13px;
   border: 2.5px solid rgba(255,255,255,.75);
@@ -1735,20 +1738,21 @@ body { image-rendering: pixelated; }
 
   <!-- 실시간 전투 스킬바: 전투·보스 교전 중에만 표시 — 스킬은 돌연변이 보유로 해금 (Z/X/C/V/R/T) -->
   <div id="skill-bar">
-    <button class="skill-btn" id="sk-onslaught" type="button" onclick="useCombatSkill('onslaught')">⚔️<span class="sk-name">돌격</span><span class="sk-lock">🔒</span><span class="sk-cd" id="skcd-onslaught"></span></button>
-    <button class="skill-btn" id="sk-rally" type="button" onclick="useCombatSkill('rally')">🛡️<span class="sk-name">철벽</span><span class="sk-lock">🔒</span><span class="sk-cd" id="skcd-rally"></span></button>
-    <button class="skill-btn" id="sk-burst" type="button" onclick="useCombatSkill('burst')">💥<span class="sk-name">독액</span><span class="sk-lock">🔒</span><span class="sk-cd" id="skcd-burst"></span></button>
-    <button class="skill-btn" id="sk-heal" type="button" onclick="useCombatSkill('heal')">💗<span class="sk-name">재생</span><span class="sk-lock">🔒</span><span class="sk-cd" id="skcd-heal"></span></button>
-    <button class="skill-btn" id="sk-haste" type="button" onclick="useCombatSkill('haste')">⚡<span class="sk-name">질주</span><span class="sk-lock">🔒</span><span class="sk-cd" id="skcd-haste"></span></button>
-    <button class="skill-btn" id="sk-fear" type="button" onclick="useCombatSkill('fear')">😱<span class="sk-name">위협</span><span class="sk-lock">🔒</span><span class="sk-cd" id="skcd-fear"></span></button>
+    <button class="skill-btn" id="sk-onslaught" type="button" onpointerdown="event.preventDefault();useCombatSkill('onslaught')">⚔️<span class="sk-name">돌격</span><span class="sk-lock">🔒</span><span class="sk-cd" id="skcd-onslaught"></span></button>
+    <button class="skill-btn" id="sk-rally" type="button" onpointerdown="event.preventDefault();useCombatSkill('rally')">🛡️<span class="sk-name">철벽</span><span class="sk-lock">🔒</span><span class="sk-cd" id="skcd-rally"></span></button>
+    <button class="skill-btn" id="sk-burst" type="button" onpointerdown="event.preventDefault();useCombatSkill('burst')">💥<span class="sk-name">독액</span><span class="sk-lock">🔒</span><span class="sk-cd" id="skcd-burst"></span></button>
+    <button class="skill-btn" id="sk-heal" type="button" onpointerdown="event.preventDefault();useCombatSkill('heal')">💗<span class="sk-name">재생</span><span class="sk-lock">🔒</span><span class="sk-cd" id="skcd-heal"></span></button>
+    <button class="skill-btn" id="sk-haste" type="button" onpointerdown="event.preventDefault();useCombatSkill('haste')">⚡<span class="sk-name">질주</span><span class="sk-lock">🔒</span><span class="sk-cd" id="skcd-haste"></span></button>
+    <button class="skill-btn" id="sk-fear" type="button" onpointerdown="event.preventDefault();useCombatSkill('fear')">😱<span class="sk-name">위협</span><span class="sk-lock">🔒</span><span class="sk-cd" id="skcd-fear"></span></button>
   </div>
 
   <div id="near-extinct-overlay" style="position:fixed;inset:0;pointer-events:none;z-index:11;background:transparent"></div>
-  <div id="recruit-toast" class="panel" style="display:none;position:fixed;bottom:130px;left:50%;transform:translateX(-50%);z-index:30;padding:12px 16px;text-align:center;font-family:'Jua',sans-serif;white-space:nowrap;animation:slideUp .25s cubic-bezier(.34,1.56,.64,1)">
-    <div id="recruit-msg" style="font-size:13px;color:var(--ink);margin-bottom:10px;font-weight:800"></div>
+  <!-- 게임 중 HUD 버튼은 onclick 대신 pointerdown 사용 (멀티터치/조이스틱 중 click 합성이 막혀도 동작) -->
+  <div id="recruit-toast" class="panel" style="display:none;position:fixed;bottom:130px;left:50%;transform:translateX(-50%);z-index:32;pointer-events:auto;padding:12px 16px;text-align:center;font-family:'Jua',sans-serif;max-width:92vw;animation:slideUpCenter .25s cubic-bezier(.34,1.56,.64,1)">
+    <div id="recruit-msg" style="font-size:13px;color:var(--ink);margin-bottom:10px;font-weight:800;line-height:1.5"></div>
     <div style="display:flex;gap:8px;justify-content:center">
-      <button onclick="doRecruit()" class="pause-btn pause-resume" style="padding:8px 20px;font-size:14px;width:auto">⚔️ 영입</button>
-      <button onclick="dismissRecruit()" class="pause-btn pause-home" style="padding:8px 16px;font-size:14px;width:auto">✕</button>
+      <button onpointerdown="event.preventDefault();doRecruit()" class="pause-btn pause-resume" style="padding:8px 20px;font-size:14px;width:auto">⚔️ 영입</button>
+      <button onpointerdown="event.preventDefault();dismissRecruit()" class="pause-btn pause-home" style="padding:8px 16px;font-size:14px;width:auto">✕</button>
     </div>
   </div>
   <div id="battle-vignette"></div>
@@ -5492,7 +5496,11 @@ class ArenaScene extends Phaser.Scene {
       const event = pointer.event;
       if (_paused) return;
       if (event && event.button === 2) return; // 우클릭은 조이스틱 제외
-      if (event && event.target && event.target.closest && event.target.closest('#hud button, #bottom-bar, #skill-bar, #stats, #top-left, #terrain-badge, #boss-banner')) return;
+      // 조이스틱은 게임 캔버스를 직접 터치했을 때만 소환.
+      // (예전 방식은 "무시할 UI 목록"이라 새 버튼이 생길 때마다 조이스틱이 UI를 가리는 버그가 재발했음.
+      //  HTML UI는 pointer-events:auto라 터치 target이 캔버스가 아니므로 이 한 줄로 전부 걸러진다.
+      //  단, #hud 안에 새 인터랙티브 요소를 만들 땐 pointer-events:auto를 켜야 터치를 받는다 — #hud는 none.)
+      if (event && event.target && String(event.target.tagName).toUpperCase() !== 'CANVAS') return;
       const { x: clientX, y: clientY } = this.getPointerClientPosition(pointer);
       Object.assign(this.joystick, { active: true, pointerId: pointer.id, baseX: clientX, baseY: clientY, knobX: 0, knobY: 0, dirX: 0, dirY: 0 });
       this.updateJoystickDom();
