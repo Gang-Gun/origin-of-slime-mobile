@@ -350,6 +350,34 @@ canvas { display: block; image-rendering: pixelated; }
 #breed-btn.flee-mode { background: linear-gradient(170deg, #ff9483, var(--coral)); }
 .action-btn:disabled { background: rgba(180,168,200,.4); color: rgba(61,51,80,.4); box-shadow: none; border-color: rgba(255,255,255,.5); }
 
+/* ── 실시간 전투 스킬바 ─────────────────────────────── */
+#skill-bar {
+  position: fixed; right: 10px; bottom: 96px; z-index: 22;
+  display: none; flex-direction: column; gap: 8px;
+}
+#skill-bar.show { display: flex; animation: slideUp .22s cubic-bezier(.34,1.56,.64,1); }
+.skill-btn {
+  position: relative; width: 58px; height: 58px; border-radius: 14px;
+  border: 2.5px solid rgba(255,255,255,.75);
+  background: linear-gradient(170deg, #6f5fb8, #4a3e86);
+  color: #fff; font-size: 21px; line-height: 1; cursor: pointer;
+  box-shadow: 0 4px 8px rgba(0,0,0,.28);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+}
+.skill-btn .sk-name { font-family: 'Jua', sans-serif; font-size: 10px; font-weight: 800; letter-spacing: .02em; }
+.skill-btn:active:not(.cooling) { transform: translateY(2px); box-shadow: 0 2px 4px rgba(0,0,0,.2); }
+.skill-btn.cooling { filter: grayscale(.85) brightness(.7); cursor: default; }
+.skill-btn .sk-cd {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  font-family: 'Jua', sans-serif; font-size: 20px; font-weight: 900; color: #fff;
+  text-shadow: 0 1px 4px rgba(0,0,0,.8); pointer-events: none;
+}
+.skill-btn.buff-on { border-color: #ffd97d; box-shadow: 0 0 14px rgba(255,217,125,.85), 0 4px 8px rgba(0,0,0,.28); }
+#sk-onslaught { background: linear-gradient(170deg, #ff8a5c, #d84a2a); }
+#sk-rally     { background: linear-gradient(170deg, #7ecf74, #3d8a3a); }
+#sk-burst     { background: linear-gradient(170deg, #64c7f0, #2a6fd8); }
+
 /* ─── 일시정지 모달 ─── */
 #pause-modal {
   position: fixed; inset: 0; z-index: 55; display: none;
@@ -1691,6 +1719,13 @@ body { image-rendering: pixelated; }
     <button id="breed-btn" class="action-btn" type="button" disabled>🥚<br>번식</button>
   </div>
 
+  <!-- 실시간 전투 스킬바: 전투·보스 교전 중에만 표시 (Z/X/C 단축키) -->
+  <div id="skill-bar">
+    <button class="skill-btn" id="sk-onslaught" type="button" onclick="useCombatSkill('onslaught')" title="돌격 명령 (Z): 5초간 공격력 +40%·공속 +40%">⚔️<span class="sk-name">돌격</span><span class="sk-cd" id="skcd-onslaught"></span></button>
+    <button class="skill-btn" id="sk-rally" type="button" onclick="useCombatSkill('rally')" title="결집 태세 (X): 5초간 받는 피해 -50% + HP 15% 회복">🛡️<span class="sk-name">결집</span><span class="sk-cd" id="skcd-rally"></span></button>
+    <button class="skill-btn" id="sk-burst" type="button" onclick="useCombatSkill('burst')" title="점액 폭발 (C): 주변 적 전체 피해 + 넉백, 보스에게도 유효">💥<span class="sk-name">폭발</span><span class="sk-cd" id="skcd-burst"></span></button>
+  </div>
+
   <div id="near-extinct-overlay" style="position:fixed;inset:0;pointer-events:none;z-index:11;background:transparent"></div>
   <div id="recruit-toast" class="panel" style="display:none;position:fixed;bottom:130px;left:50%;transform:translateX(-50%);z-index:30;padding:12px 16px;text-align:center;font-family:'Jua',sans-serif;white-space:nowrap;animation:slideUp .25s cubic-bezier(.34,1.56,.64,1)">
     <div id="recruit-msg" style="font-size:13px;color:var(--ink);margin-bottom:10px;font-weight:800"></div>
@@ -1988,7 +2023,7 @@ const TRANSLATIONS = {
     infinite: '♾️ 무한 생존',
     breed: '번식', flee: '도망', pause: '일시정지', resume: '계속',
     opt_title: '⚙️ 옵션', opt_bgm: '🎵 배경음', opt_sfx: '🔊 효과음',
-    opt_fullscreen: '⛶ 전체화면', opt_mutpick: '✨ 진화 선택창',
+    opt_fullscreen: '⛶ 전체화면', opt_mutpick: '✨ 진화·돌연변이 선택창',
     opt_tutorial: '📖 튜토리얼 초기화', opt_reset: '⚠️ 계정 초기화',
     opt_reset_desc: '계통수 해금·통계·업적 등 모든 진행 데이터를 삭제합니다.',
     opt_reset_btn: '🗑️ 전체 데이터 초기화',
@@ -2008,7 +2043,7 @@ const TRANSLATIONS = {
     infinite: '♾️ Infinite Survival',
     breed: 'Breed', flee: 'Flee', pause: 'Pause', resume: 'Resume',
     opt_title: '⚙️ Options', opt_bgm: '🎵 BGM', opt_sfx: '🔊 SFX',
-    opt_fullscreen: '⛶ Fullscreen', opt_mutpick: '✨ Evolution Choice',
+    opt_fullscreen: '⛶ Fullscreen', opt_mutpick: '✨ Evolution & Mutation Choice',
     opt_tutorial: '📖 Reset Tutorial', opt_reset: '⚠️ Reset Account',
     opt_reset_desc: 'Deletes all progress: gene tree unlocks, stats, achievements.',
     opt_reset_btn: '🗑️ Reset All Data',
@@ -2682,6 +2717,52 @@ function showEvolutionPicker(scene) {
   return true;
 }
 
+// ── 번식 돌연변이 선택창 — 자손의 신규 돌연변이 정체를 플레이어가 3택1로 결정 ──
+// (자연은 "돌연변이 발생 여부"만 굴리고, 어떤 형질이 발현될지는 플레이어가 고른다.
+//  건너뛰기 = 기존처럼 무작위 발현. gpa_mutpick_off 옵션 ON 시 이 창은 열리지 않음.)
+function showBreedMutationPicker(scene, children) {
+  const owned = new Set();
+  for (const c of children) for (const id of c.mutations) owned.add(id);
+  const pool = MUTATIONS.filter(m => !owned.has(m.id)).map(m => m.id);
+  for (let i = pool.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [pool[i], pool[j]] = [pool[j], pool[i]];
+  }
+  const candidates = pool.slice(0, 3);
+  if (!candidates.length) { scene._applyBreedMutation(children, null); return; }
+
+  const titleEl = document.getElementById('mutation-picker-title');
+  if (titleEl) titleEl.textContent = '🧬 신생 돌연변이 선택';
+  document.getElementById('mutation-picker-sub').textContent =
+    `돌연변이를 가진 자손 ${children.length}마리가 태어났어요. 발현할 형질을 고르세요.`;
+  const skipBtn = document.getElementById('mutation-skip-btn');
+  skipBtn.style.display = '';
+  skipBtn.textContent = '🎲 무작위 발현';
+
+  const _mutIco = { good: '✅', dual: '🔵', bad: '❌' };
+  const _effDesc = (effects) => Object.entries(effects || {}).map(([k, v]) => {
+    const labels = { hp:'HP', attack:'공격', defense:'방어', speed:'속도', gather:'채집', charm:'매력', foodNeed:'식량소모', fertility:'번식력', mutationRate:'돌연변이율' };
+    return `${labels[k] || k} ${v > 0 ? '+' : ''}${v}`;
+  }).join(' · ');
+  document.getElementById('mutation-picker-options').innerHTML = candidates.map(mid => {
+    const m = mutationById(mid);
+    return `<div class="mut-pick-option" onclick="resolveMutationPick('${mid}')">
+      <span class="mut-ico">${_mutIco[m.type] || '🧬'}</span>
+      <div class="mut-info">
+        <div class="mut-name">${m.name}</div>
+        <div class="mut-desc">${_effDesc(m.effects)}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  _mutPickResolve = (chosenId) => {
+    scene._applyBreedMutation(children, chosenId);
+    if (!_paused) scene.scene.resume();
+  };
+  document.getElementById('mutation-picker').classList.add('open');
+  scene.scene.pause();
+}
+
 const WORLD_W = 5000;
 const WORLD_H = 5000;
 const TILE = 80;
@@ -2743,8 +2824,24 @@ const DANGER_CD_MAX     = 35000;  // 쿨타임 최대 35초
 const METEOR_TIME = 600000;   // 10분 후 운석 멸종
 const METEOR_WARN_TIME = 585000; // 9분 45초 경고 시작
 const BATTLE_DISTANCE = 155;
-const BATTLE_DURATION = 5000;
+const BATTLE_DURATION = 5000;        // AI끼리의 전투 자동 종료 시간 (플레이어 전투는 거리 이탈로만 종료)
 const ATTACK_COOLDOWN = 400;
+// ── 실시간 액션 전투 ──────────────────────────────────
+const BATTLE_MELEE_RANGE = 54;       // 이 거리 안에서만 타격 (거리를 벌리면 피해 없음 — 카이팅 가능)
+const BATTLE_DISENGAGE_DIST = 430;   // 집단 중심이 이만큼 멀어지면 전투 이탈 (자유 후퇴)
+const BATTLE_LEASH_DIST = 250;       // 전투 중 개체가 집단 중심에서 이 이상 떨어지면 복귀 (플레이어 이동 = 부대 지휘)
+const BATTLE_PURSUIT_SPEED = 148;    // 전투 중 적 집단 추격 기준 속도 (플레이어 기본 165보다 느림 — 속도 유전자로 격차)
+const CRIT_CHANCE = 0.12;
+const CRIT_MULT = 1.8;
+const KNOCKBACK_PX = 13;
+const COMBO_WINDOW = 3000;           // 처치 후 이 시간 안에 또 처치하면 콤보 지속
+const COMBO_DMG_PER_STACK = 0.03;    // 콤보당 피해 +3%
+const COMBO_DMG_CAP = 0.6;           // 콤보 피해 보너스 상한 +60%
+const COMBAT_SKILLS = {
+  onslaught: { ico: '⚔️', name: '돌격 명령', desc: '5초간 공격력 +40%·공격 속도 +40%', dur: 5000, cd: 12000, key: 'Z' },
+  rally:     { ico: '🛡️', name: '결집 태세', desc: '5초간 받는 피해 -50% + 즉시 HP 15% 회복', dur: 5000, cd: 15000, key: 'X' },
+  burst:     { ico: '💥', name: '점액 폭발', desc: '주변 적 전체에 큰 피해 + 넉백 (보스에게도 유효)', dur: 0, cd: 18000, key: 'C' },
+};
 const FOLLOW_RADIUS = 78;
 const COLLECT_RADIUS = 72;
 
@@ -3459,8 +3556,8 @@ class Individual {
     return stats;
   }
 
-  takeHit(attack) {
-    const damage = Math.max(1, attack - this.stats.defense);
+  takeHit(attack, dmgMult = 1) {
+    const damage = Math.max(1, Math.round((Math.max(1, attack - this.stats.defense)) * dmgMult));
     this.hp -= damage;
     if (this.hp <= 0) {
       this.hp = 0;
@@ -3469,7 +3566,8 @@ class Individual {
     return damage;
   }
 
-  static breed(parentA, parentB, groupId, x, y, guaranteeMutation = false) {
+  // deferPick: 신규 돌연변이 발생 여부만 굴리고 정체는 미정으로 남김 (플레이어 선택창에서 결정)
+  static breed(parentA, parentB, groupId, x, y, guaranteeMutation = false, deferPick = false) {
     const genes = {};
     const gameteA = makeGamete(parentA);
     const gameteB = makeGamete(parentB);
@@ -3493,21 +3591,32 @@ class Individual {
     const _mutStormActive = _sc && _sc._specialEventMutStormUntil && _sc.elapsed < _sc._specialEventMutStormUntil;
     const mutationRollRate = clamp(((parentA.stats.mutationRate + parentB.stats.mutationRate) / 2) * (_mutStormActive ? 3 : 1), 0, MAX_STATS.mutationRate);
     let newMutationCount = 0;
+    let deferredCount = 0; // 정체 미정 신규 변이 수 (선택창에서 결정)
     const newlyGained = [];
     const forceOne = guaranteeMutation;
     if (forceOne && newMutationCount === 0) {
-      const available = MUTATIONS.filter(m => !(childMutGenes[m.id] && childMutGenes[m.id].includes('M')));
-      if (available.length) {
-        const picked = choose(available).id;
-        const existing = childMutGenes[picked] || ['m', 'm'];
-        const idx = existing.indexOf('m');
-        if (idx >= 0) existing[idx] = 'M';
-        childMutGenes[picked] = existing;
-        newlyGained.push(picked);
+      if (deferPick) {
+        deferredCount += 1;
         newMutationCount += 1;
+      } else {
+        const available = MUTATIONS.filter(m => !(childMutGenes[m.id] && childMutGenes[m.id].includes('M')));
+        if (available.length) {
+          const picked = choose(available).id;
+          const existing = childMutGenes[picked] || ['m', 'm'];
+          const idx = existing.indexOf('m');
+          if (idx >= 0) existing[idx] = 'M';
+          childMutGenes[picked] = existing;
+          newlyGained.push(picked);
+          newMutationCount += 1;
+        }
       }
     }
     while (newMutationCount < MAX_NEW_MUTATIONS_PER_CHILD && Math.random() < mutationRollRate) {
+      if (deferPick) {
+        deferredCount += 1;
+        newMutationCount += 1;
+        continue;
+      }
       const available = MUTATIONS.filter(m => !(childMutGenes[m.id] && childMutGenes[m.id].includes('M')));
       if (!available.length) break;
       const picked = choose(available).id;
@@ -3539,6 +3648,7 @@ class Individual {
     child.stats = child.calculateStats(); // geneQuality·statBonus 반영해 재계산
     child.hp = child.stats.hp;
     child.newMutationCount = newMutationCount;
+    child._pendingNewMut = deferredCount; // 선택창 대기 중인 신규 변이 수
     // 부모에게 없던 발현 = 진짜 새 획득 (멘델 재조합으로 새로 발현된 것 포함)
     child.newlyGained = child.mutations.filter(id => !parentExpressed.has(id));
     return child;
@@ -3701,21 +3811,27 @@ class Group {
     this.generation += 1;
     let newMutations = 0;
     this.lastGainedMutations = []; // 이번 번식에서 새로 발현된 돌연변이 ID
+    this._pendingMutChildren = []; // 돌연변이 정체 선택 대기 자손 (플레이어 전용)
+    // 플레이어는 신규 돌연변이의 정체를 선택창에서 직접 고름 (옵션 OFF·튜토리얼 중엔 무작위)
+    const deferPick = this.isPlayer
+      && typeof window !== 'undefined' && window._arenaScene && !window._arenaScene.tutorialActive
+      && localStorage.getItem('gpa_mutpick_off') !== '1';
     for (let i = 0; i < childCount; i += 1) {
       const parentA = this.pickParent();
       const parentB = this.pickParent(parentA);
       if (!parentA || !parentB) break;
-      const child = Individual.breed(parentA, parentB, this.id, this.x + (Math.random() - 0.5) * 84, this.y + (Math.random() - 0.5) * 84, i === 0 && !!this._guaranteeNextMutation);
+      const child = Individual.breed(parentA, parentB, this.id, this.x + (Math.random() - 0.5) * 84, this.y + (Math.random() - 0.5) * 84, i === 0 && !!this._guaranteeNextMutation, deferPick);
       newMutations += child.newMutationCount;
       for (const id of child.newlyGained) {
         if (!this.lastGainedMutations.includes(id)) this.lastGainedMutations.push(id);
       }
-      // 번식 돌연변이는 무작위 자동 발현 (선택창 없음 — 자연 돌연변이 그대로)
+      if (child._pendingNewMut > 0) this._pendingMutChildren.push(child);
       this.individuals.push(child);
       // Twin chance (player only)
       if (this.isPlayer && LAB_BUFFS && LAB_BUFFS.twinChance > 0
           && Math.random() < LAB_BUFFS.twinChance && this.individuals.length < this._maxPop()) {
-        const twin = Individual.breed(parentA, parentB, this.id, this.x + (Math.random()-0.5)*84, this.y + (Math.random()-0.5)*84);
+        const twin = Individual.breed(parentA, parentB, this.id, this.x + (Math.random()-0.5)*84, this.y + (Math.random()-0.5)*84, false, deferPick);
+        if (twin._pendingNewMut > 0) this._pendingMutChildren.push(twin);
         this.individuals.push(twin);
       }
     }
@@ -3780,7 +3896,13 @@ class Battle {
 
   tick() {
     if (!this.active) return;
-    if (Date.now() - this.startedAt >= BATTLE_DURATION) return this.end('timeout');
+    if (this.isPlayerBattle) {
+      // 플레이어 전투는 타이머 없음 — 거리 이탈·전멸·도망으로만 종료 (실시간 액션)
+      const centerDist = Math.hypot(this.groupA.x - this.groupB.x, this.groupA.y - this.groupB.y);
+      if (centerDist >= BATTLE_DISENGAGE_DIST) return this.end('disengage');
+    } else if (Date.now() - this.startedAt >= BATTLE_DURATION) {
+      return this.end('timeout');
+    }
     const liveA = this.sideA.filter(i => !i.dead && i.groupId === this.groupA.id);
     const liveB = this.sideB.filter(i => !i.dead && i.groupId === this.groupB.id);
     if (!liveA.length && !liveB.length) return this.end('draw');
@@ -3805,26 +3927,40 @@ class Battle {
     if (!this.groupB.individuals.length) this.end('groupA');
   }
 
-  // 개별 공격 (포섭 로직 분리)
+  // 개별 공격 (포섭 로직 분리) — 사거리·크리티컬·넉백·스킬 버프 적용
   attack(attacker, foes, now, terrainBonus = 1) {
     if (attacker.dead || !foes.length) return;
-    if (now - attacker.lastAttackAt < ATTACK_COOLDOWN) return;
+    const sc = this.isPlayerBattle ? window._arenaScene : null;
+    const isPlayerSide = sc && attacker.groupId === sc.player.id;
+    let cooldown = ATTACK_COOLDOWN;
+    if (isPlayerSide && sc.combatBuffActive('onslaught')) cooldown *= 0.6; // 돌격: 공격 속도 +40%
+    if (now - attacker.lastAttackAt < cooldown) return;
     const target = nearest(attacker, foes.filter(f => !f.dead));
     if (!target) return;
+    // 근접 사거리: 거리를 벌리면 맞지 않음 (위치 선정이 곧 전술)
+    if (Math.hypot(target.x - attacker.x, target.y - attacker.y) > BATTLE_MELEE_RANGE) return;
     attacker.lastAttackAt = now;
-    target.takeHit(attacker.stats.attack * terrainBonus);
+    let dmgMult = 1;
+    if (isPlayerSide) {
+      if (sc.combatBuffActive('onslaught')) dmgMult *= 1.4; // 돌격: 피해 +40%
+      dmgMult *= 1 + Math.min(COMBO_DMG_CAP, (sc.combat?.combo || 0) * COMBO_DMG_PER_STACK);
+    }
+    if (sc && target.groupId === sc.player.id && sc.combatBuffActive('rally')) dmgMult *= 0.5; // 결집: 받는 피해 -50%
+    const crit = Math.random() < CRIT_CHANCE;
+    if (crit) dmgMult *= CRIT_MULT;
+    const dmg = target.takeHit(attacker.stats.attack * terrainBonus, dmgMult);
+    // 넉백: 공격자 반대 방향으로 밀려남 (크리는 2배)
+    const kdx = target.x - attacker.x, kdy = target.y - attacker.y;
+    const kd = Math.hypot(kdx, kdy) || 1;
+    const push = crit ? KNOCKBACK_PX * 2 : KNOCKBACK_PX;
+    target.x = clamp(target.x + kdx / kd * push, 20, WORLD_W - 20);
+    target.y = clamp(target.y + kdy / kd * push, 20, WORLD_H - 20);
     if (this.isPlayerBattle) {
       Audio.sfxHit();
       if (this.onHit) this.onHit(target.x, target.y);
-      // 포식: 플레이어 개체가 적을 처치하면 진화 EXP (전투가 유일한 진화 동력)
-      if (target.dead) {
-        const pg = this.groupA.isPlayer ? this.groupA : (this.groupB.isPlayer ? this.groupB : null);
-        const sc = window._arenaScene;
-        if (pg && attacker.groupId === pg.id && sc) {
-          sc.gainEvoExp(EVO_KILL_EXP);
-          if (sc.spawnFloatText) sc.spawnFloatText(target.x, target.y - 12, `+${EVO_KILL_EXP} 🧬`, '#9b6fc4', 14);
-        }
-      }
+      if (crit && sc && sc.spawnFloatText) sc.spawnFloatText(target.x, target.y - 18, `💢${dmg}`, '#ffb020', 15);
+      // 포식: 플레이어 개체가 적을 처치하면 진화 EXP + 콤보 (전투가 유일한 진화 동력)
+      if (target.dead && isPlayerSide) sc.registerPlayerKill(target.x, target.y);
     }
   }
 
@@ -3879,6 +4015,7 @@ class Battle {
   end(reason) {
     if (!this.active) return;
     this.active = false;
+    this.endReason = reason;
     const resolve = (winner, loser) => {
       const loot = Math.floor(loser.food * 0.5);
       winner.food = Math.min(FOOD_CAP, winner.food + loot);
@@ -4147,6 +4284,8 @@ class ArenaScene extends Phaser.Scene {
     this.rebuildIndividualSprites();
     for (let i = 0; i < 200; i += 1) this.spawnFood();
     this.battles = [];
+    // 실시간 전투 상태: 스킬 쿨다운·버프·콤보
+    this.combat = { cdUntil: {}, activeUntil: {}, combo: 0, comboUntil: 0, bestCombo: 0 };
     this.elapsed = 0;
     this.lastFoodAt = Date.now();
     this.lastSurvivalAt = Date.now();
@@ -5350,6 +5489,20 @@ class ArenaScene extends Phaser.Scene {
     }
     this.updateDayNight();
     this.updateFloatTexts(dt);
+    // 전투 중 적 집단 추격: 플레이어가 도망치면 따라온다 — 속도 유전자가 이탈 성패를 가름
+    for (const battle of this.battles) {
+      if (!battle.active || !battle.isPlayerBattle) continue;
+      const enemy = battle.groupA.isPlayer ? battle.groupB : battle.groupA;
+      const pdx = this.player.x - enemy.x, pdy = this.player.y - enemy.y;
+      const pdist = Math.hypot(pdx, pdy) || 1;
+      if (pdist > 70) {
+        const chase = (enemy.average('speed') / 80) * BATTLE_PURSUIT_SPEED * (dt / 1000);
+        enemy.x = clamp(enemy.x + pdx / pdist * chase, 60, WORLD_W - 60);
+        enemy.y = clamp(enemy.y + pdy / pdist * chase, 60, WORLD_H - 60);
+      }
+    }
+    // 콤보 만료 체크
+    if (this.combat.combo > 0 && this.elapsed >= this.combat.comboUntil) this.combat.combo = 0;
     for (const battle of this.battles) battle.tick();
     const ended = this.battles.filter(battle => !battle.active);
     for (const battle of ended) this.handleBattleEnd(battle);
@@ -5374,9 +5527,7 @@ class ArenaScene extends Phaser.Scene {
   }
 
   movePlayer(dt) {
-    // 전투 중 플레이어 입력 차단 (일반 집단전·보스전 모두)
-    if (this.player.state === 'battle') return;
-    if (this.bossEntity && Math.hypot(this.bossEntity.x - this.player.x, this.bossEntity.y - this.player.y) <= BOSS_RANGE) return;
+    // 실시간 전투: 전투·보스 교전 중에도 이동 가능 — 카이팅·회피·후퇴가 모두 플레이어 손에
     const terrain = this.terrainAt(this.player.x, this.player.y);
     const geneSpd = this.calcGeneTerrainSpeedBonus(this.player, terrain);
     const weatherSpd = this.weather ? this.weather.spdMult : 1;
@@ -5432,6 +5583,16 @@ class ArenaScene extends Phaser.Scene {
         if (individual.dead) continue;
         if (battle && battle.active) {
           // 일반 집단전: 가장 가까운 적 개체를 향해 이동
+          // 단, 집단 중심(플레이어 위치)에서 너무 멀어지면 복귀 — 플레이어 이동이 곧 부대 지휘 (후퇴·재배치)
+          const cdx = group.x - individual.x;
+          const cdy = group.y - individual.y;
+          const cdist = Math.hypot(cdx, cdy);
+          if (cdist > BATTLE_LEASH_DIST) {
+            const step = Math.min(cdist, (individual.stats.speed / 80) * baseSpeed * 1.4);
+            individual.x += cdx / cdist * step;
+            individual.y += cdy / cdist * step;
+            continue;
+          }
           const foes = (battle.groupA === group ? battle.groupB.individuals : battle.groupA.individuals).filter(foe => !foe.dead);
           const target = nearest(individual, foes);
           if (!target) continue;
@@ -5464,11 +5625,16 @@ class ArenaScene extends Phaser.Scene {
             const bDist = Math.hypot(this.bossEntity.x - individual.x, this.bossEntity.y - individual.y);
             if (bDist <= BOSS_RANGE + 120 && this.activeBoss.safe(individual, group)) {
               const now = Date.now();
-              if (!individual.lastAttackAt || now - individual.lastAttackAt >= ATTACK_COOLDOWN) {
+              const isPlayerGrp = group.isPlayer;
+              const onslaught = isPlayerGrp && this.combatBuffActive('onslaught');
+              const atkCd = onslaught ? ATTACK_COOLDOWN * 0.6 : ATTACK_COOLDOWN; // 돌격: 보스전에서도 공속 +40%
+              if (!individual.lastAttackAt || now - individual.lastAttackAt >= atkCd) {
                 individual.lastAttackAt = now;
                 const terrain = this.terrainAt(group.x, group.y);
                 const bonus = Battle.calcTerrainBattleBonus(group, terrain);
-                const dmg = Math.max(1, individual.stats.attack * bonus - BOSS_DEFENSE);
+                let dmg = Math.max(1, individual.stats.attack * bonus - BOSS_DEFENSE);
+                if (onslaught) dmg *= 1.4;
+                if (isPlayerGrp && Math.random() < CRIT_CHANCE) dmg *= CRIT_MULT;
                 this.bossEntity.hp = Math.max(0, this.bossEntity.hp - dmg);
               }
             }
@@ -5747,7 +5913,7 @@ class ArenaScene extends Phaser.Scene {
           if (groupA.isPlayer || groupB.isPlayer) {
             const enemy = groupA.isPlayer ? groupB : groupA;
             this.showMessage(`⚔️ ${enemy.name}와 전쟁 시작!`);
-            ContextHint.show('first_battle','⚔️','다른 집단과 전쟁이 시작됐어요!\n이기면 상대를 포섭할 수 있어요.\n💨 도망 버튼으로 피할 수도 있답니다.');
+            ContextHint.show('first_battle','⚔️','다른 집단과 전쟁이 시작됐어요!\n⚔️🛡️💥 스킬 버튼(Z/X/C)으로 전투를 지휘하세요.\n이동하면 부대가 따라오고, 멀리 달아나면 전투에서 이탈해요!');
             document.getElementById('battle-banner').style.display = 'block';
             document.getElementById('battle-vignette').classList.add('active');
             document.getElementById('combat-pulse').classList.add('active');
@@ -5768,6 +5934,15 @@ class ArenaScene extends Phaser.Scene {
 
   handleBattleEnd(battle) {
     if (battle.groupA.isPlayer || battle.groupB.isPlayer) {
+      // 거리 이탈: 승패 없이 전투 종료 — 식량 손실 없음, 잠시 재교전 유예
+      if (battle.endReason === 'disengage') {
+        this._bossFleeGraceUntil = this.elapsed + 2500;
+        document.getElementById('battle-banner').style.display = 'none';
+        document.getElementById('battle-vignette').classList.remove('active');
+        document.getElementById('combat-pulse').classList.remove('active');
+        this.showMessage('🏃 거리를 벌려 전투에서 이탈했습니다!');
+        return;
+      }
       const pgIsA  = battle.groupA.isPlayer;
       const pg     = pgIsA ? battle.groupA : battle.groupB;
       // battle 객체에 기록된 이 전투만의 포섭 수 사용 (group 카운터는 리셋되어 부정확)
@@ -5849,12 +6024,60 @@ class ArenaScene extends Phaser.Scene {
     for (let i = before; i < this.player.individuals.length; i += 1) this.addIndividualSprite(this.player.individuals[i], this.player);
     this.player._guaranteeNextMutation = false;
     const gained = this.player.lastGainedMutations || [];
-    if (gained.length > 0) { this._breedsWithoutMutation = 0; } else { this._breedsWithoutMutation++; }
+    const pending = this.player._pendingMutChildren || [];
+    this.player._pendingMutChildren = [];
+    if (gained.length > 0 || pending.length > 0) { this._breedsWithoutMutation = 0; } else { this._breedsWithoutMutation++; }
     this.showToast(`🥚 +${count}`, 'ach');
     Audio.sfxBreed();
     ContextHint.show('first_breed','🥚','자손이 태어났어요!\n부모의 특성을 물려받고\n가끔 돌연변이로 새 능력이 생겨요.\n🔬 돌연변이가 쌓일수록 집단이 강해집니다!');
     this.burst(this.player.x, this.player.y, 0xffb4a2, 12, 70);
-    // 번식 돌연변이는 무작위 자동 발현 — 결과를 토스트로 안내
+    // 멘델 재조합으로 새로 발현된 형질 토스트
+    gained.forEach((id, i) => {
+      const m = mutationById(id);
+      if (!m) return;
+      const ico = m.type === 'good' ? '✅' : m.type === 'bad' ? '❌' : '🔵';
+      setTimeout(() => this.showToast(`🧬 ${ico} ${m.name}`, 'mut'), i * 350);
+    });
+    // 신규 돌연변이가 발생했다면 플레이어가 정체를 선택 (건너뛰기 = 무작위)
+    if (pending.length > 0) showBreedMutationPicker(this, pending);
+  }
+
+  // 선택창 결과 적용: 대기 중인 자손들에게 선택한 돌연변이(또는 무작위)를 발현
+  _applyBreedMutation(children, chosenId) {
+    const gained = [];
+    for (const child of children) {
+      let slots = child._pendingNewMut || 0;
+      child._pendingNewMut = 0;
+      let preferred = chosenId;
+      while (slots-- > 0) {
+        let pick = null;
+        if (preferred && !(child.mutationGenes[preferred] && child.mutationGenes[preferred].includes('M'))) {
+          pick = preferred;
+        } else {
+          const avail = MUTATIONS.filter(m => !(child.mutationGenes[m.id] && child.mutationGenes[m.id].includes('M')));
+          if (!avail.length) break;
+          pick = choose(avail).id;
+        }
+        preferred = null; // 선택 형질은 자손당 1슬롯
+        const existing = child.mutationGenes[pick] || ['m', 'm'];
+        const idx = existing.indexOf('m');
+        if (idx >= 0) existing[idx] = 'M';
+        child.mutationGenes[pick] = existing;
+        if (!child.newlyGained.includes(pick)) child.newlyGained.push(pick);
+        if (!gained.includes(pick)) gained.push(pick);
+      }
+      child.stats = child.calculateStats();
+      child.hp = child.stats.hp;
+      // 시그니처 돌연변이는 외형에 반영 — 스프라이트 재생성
+      const entry = this.individualSprites.get(child.id);
+      if (entry) { entry.sprite.destroy(); this.individualSprites.delete(child.id); }
+    }
+    this.ensureSprites(this.player);
+    if (!this.player.lastGainedMutations) this.player.lastGainedMutations = [];
+    for (const id of gained) {
+      if (!this.player.lastGainedMutations.includes(id)) this.player.lastGainedMutations.push(id);
+      this.gainedMutationsThisGame.add(id);
+    }
     gained.forEach((id, i) => {
       const m = mutationById(id);
       if (!m) return;
@@ -5928,6 +6151,104 @@ class ArenaScene extends Phaser.Scene {
   handleAction() {
     if (this._isInBattle()) this.handleFlee();
     else this.handleBreed();
+  }
+
+  // ── 실시간 전투 스킬 ──────────────────────────────────
+  combatBuffActive(id) {
+    return !!this.combat && this.elapsed < (this.combat.activeUntil[id] || 0);
+  }
+
+  useCombatSkill(id) {
+    const def = COMBAT_SKILLS[id];
+    if (!def || this.gameOver || _paused || !this._isInBattle()) return;
+    const c = this.combat;
+    if (this.elapsed < (c.cdUntil[id] || 0)) return;
+    c.cdUntil[id] = this.elapsed + def.cd;
+    if (def.dur > 0) c.activeUntil[id] = this.elapsed + def.dur;
+    const alive = this.player.individuals.filter(i => !i.dead);
+    if (id === 'onslaught') {
+      this.showToast('⚔️ 돌격 명령! 공격력·공속 증가', 'ach');
+      this.burst(this.player.x, this.player.y, 0xff6b35, 18, 110);
+      this.cameras.main.flash(120, 255, 120, 60, false);
+      Audio.sfxBattle();
+    } else if (id === 'rally') {
+      for (const ind of alive) ind.hp = Math.min(ind.stats.hp, ind.hp + ind.stats.hp * 0.15);
+      this.showToast('🛡️ 결집 태세! 피해 감소 + 회복', 'ach');
+      this.burst(this.player.x, this.player.y, 0x7cc674, 18, 110);
+      Audio.sfxRecruit();
+    } else if (id === 'burst') {
+      const avgAtk = this.player.average('attack');
+      let kills = 0, hits = 0;
+      // 주변 적 개체 피해 + 넉백
+      for (const battle of this.battles) {
+        if (!battle.active || !battle.isPlayerBattle) continue;
+        const enemy = battle.groupA.isPlayer ? battle.groupB : battle.groupA;
+        for (const foe of enemy.individuals) {
+          if (foe.dead) continue;
+          const fdx = foe.x - this.player.x, fdy = foe.y - this.player.y;
+          const fd = Math.hypot(fdx, fdy);
+          if (fd > 300) continue;
+          hits++;
+          foe.takeHit(avgAtk * 2.5 + 12);
+          const kn = 55;
+          foe.x = clamp(foe.x + fdx / (fd || 1) * kn, 20, WORLD_W - 20);
+          foe.y = clamp(foe.y + fdy / (fd || 1) * kn, 20, WORLD_H - 20);
+          this.spawnHitEffect(foe.x, foe.y);
+          if (foe.dead) { kills++; this.registerPlayerKill(foe.x, foe.y); }
+        }
+        enemy.individuals = enemy.individuals.filter(i => !i.dead);
+      }
+      // 보스에게도 유효
+      if (this.bossEntity && this.bossPhase === 'chase') {
+        const bd = Math.hypot(this.bossEntity.x - this.player.x, this.bossEntity.y - this.player.y);
+        if (bd <= 500) {
+          const bossDmg = Math.round(avgAtk * Math.max(6, alive.length * 0.8));
+          this.bossEntity.hp = Math.max(0, this.bossEntity.hp - bossDmg);
+          this.spawnFloatText(this.bossEntity.x, this.bossEntity.y - 60, `💥 ${bossDmg}`, '#ffd97d', 20);
+          hits++;
+        }
+      }
+      this.burst(this.player.x, this.player.y, 0x8de3ff, 30, 300);
+      this.cameras.main.shake(250, 0.012);
+      if (Audio.sfxQuake) Audio.sfxQuake();
+      this.showToast(hits ? `💥 점액 폭발! ${kills > 0 ? kills + '마리 처치' : hits + '회 적중'}` : '💥 점액 폭발! (빗나감)', 'ach');
+    }
+    this.updateSkillBar();
+  }
+
+  // 플레이어 개체가 적을 처치 — 콤보 증가 + 진화 EXP (콤보가 높을수록 추가 EXP)
+  registerPlayerKill(x, y) {
+    const c = this.combat;
+    c.combo += 1;
+    c.comboUntil = this.elapsed + COMBO_WINDOW;
+    if (c.combo > c.bestCombo) c.bestCombo = c.combo;
+    const bonus = Math.min(10, Math.floor(c.combo / 3));
+    this.gainEvoExp(EVO_KILL_EXP + bonus);
+    const label = c.combo >= 2 ? `+${EVO_KILL_EXP + bonus} 🧬 🔥${c.combo}` : `+${EVO_KILL_EXP} 🧬`;
+    if (this.spawnFloatText) this.spawnFloatText(x, y - 12, label, c.combo >= 5 ? '#ff9440' : '#9b6fc4', c.combo >= 5 ? 16 : 14);
+  }
+
+  // 스킬바 표시/쿨다운 갱신 (updateHud에서 호출)
+  updateSkillBar() {
+    const bar = document.getElementById('skill-bar');
+    if (!bar) return;
+    const show = !this.gameOver && this._isInBattle();
+    bar.classList.toggle('show', show);
+    if (!show) return;
+    for (const [id, def] of Object.entries(COMBAT_SKILLS)) {
+      const btn = document.getElementById(`sk-${id}`);
+      const cdEl = document.getElementById(`skcd-${id}`);
+      if (!btn || !cdEl) continue;
+      const remain = (this.combat.cdUntil[id] || 0) - this.elapsed;
+      if (remain > 0) {
+        btn.classList.add('cooling');
+        cdEl.textContent = Math.ceil(remain / 1000);
+      } else {
+        btn.classList.remove('cooling');
+        cdEl.textContent = '';
+      }
+      btn.classList.toggle('buff-on', this.combatBuffActive(id));
+    }
   }
 
   // ── 진화 게이지 ──────────────────────────────────────
@@ -6344,6 +6665,7 @@ _applyBossHit(ind, safe, mult = 1) {
   if (this.bossEntity && this.bossEntity.phase2) dmg *= PHASE2_DMG_MULT; // 2페이즈: 피해 +25%
   if (safe) dmg *= 0.3;                                 // 안전 조건: 피해 70% 감소
   if (LAB_BUFFS && LAB_BUFFS.bossDmgHalf) dmg *= 0.5;   // 계통수 저항 III: 보스 피해 -50%
+  if (this.combatBuffActive && this.combatBuffActive('rally')) dmg *= 0.5; // 결집 태세: 받는 피해 -50%
   const hpBefore = ind.hp;
   ind.takeHit(dmg);
   // 계통수 보스저항 I: 안전 개체는 체력이 넉넉했다면 한 방에 죽지 않음 (1 HP 잔류)
@@ -7017,17 +7339,19 @@ resolveBoss(win, reason) {
       }
     }
 
-    // 전쟁 타이머
+    // 전쟁 현황 배너 (실시간 전투: 타이머 없음 — 병력·콤보 표시)
     const activeBattle = this.battles.find(b => b.active && (b.groupA.isPlayer || b.groupB.isPlayer));
     if (activeBattle) {
-      const remaining = Math.max(0, Math.floor((BATTLE_DURATION - (Date.now() - activeBattle.startedAt)) / 1000));
       const _pb = activeBattle.groupA.isPlayer ? activeBattle.groupA : activeBattle.groupB;
       const _eb = activeBattle.groupA.isPlayer ? activeBattle.groupB : activeBattle.groupA;
       const _myN = _pb.individuals.filter(i=>!i.dead).length;
       const _enN = _eb.individuals.filter(i=>!i.dead).length;
-      document.getElementById('battle-banner').textContent = `⚔️ 내 편 ${_myN}  vs  적 ${_enN}  (${remaining}초)`;
+      const comboTxt = this.combat.combo >= 2 ? `  ·  🔥${this.combat.combo}콤보` : '';
+      document.getElementById('battle-banner').textContent = `⚔️ 내 편 ${_myN}  vs  적 ${_enN}${comboTxt}`;
       document.getElementById('battle-banner').style.display = 'block';
     }
+    // 전투 스킬바 표시·쿨다운 갱신
+    this.updateSkillBar();
 
     // ── 유전자 대립유전자 빈도 (vis1 이상 해금 시 표시)
     const visLv = (LAB_BUFFS && LAB_BUFFS.geneVisLevel) || 0;
@@ -8266,6 +8590,15 @@ document.addEventListener('keydown', e => {
     case 'b': case 'B':
       // B: 번식/도망 (이동 키 아님, 게임 중만)
       if (sc && !modalOpen && !paused) { sc.handleAction(); e.preventDefault(); } break;
+    case 'z': case 'Z':
+      // Z: 전투 스킬 — 돌격 명령
+      if (sc && !modalOpen && !paused) { sc.useCombatSkill('onslaught'); e.preventDefault(); } break;
+    case 'x': case 'X':
+      // X: 전투 스킬 — 결집 태세
+      if (sc && !modalOpen && !paused) { sc.useCombatSkill('rally'); e.preventDefault(); } break;
+    case 'c': case 'C':
+      // C: 전투 스킬 — 점액 폭발
+      if (sc && !modalOpen && !paused) { sc.useCombatSkill('burst'); e.preventDefault(); } break;
     case ' ':
       if (sc && !modalOpen && !paused) { sc.handleAction(); e.preventDefault(); } break;
     case 'Escape':
@@ -8841,6 +9174,12 @@ function openStatsModal() {
 function closeStatsModal() { document.getElementById('stats-modal').style.display = 'none'; }
 
 // ── Feature 3: 전쟁 승리 영입 토스트 ────────────────────────────────
+// 스킬바 버튼 onclick 전역 진입점 (실제 로직은 ArenaScene.useCombatSkill)
+function useCombatSkill(id) {
+  const sc = window._arenaScene;
+  if (sc && sc.useCombatSkill) sc.useCombatSkill(id);
+}
+
 let _recruitTimer = null;
 function showRecruit(loserGroup, survivorCount) {
   const msg = document.getElementById('recruit-msg');
