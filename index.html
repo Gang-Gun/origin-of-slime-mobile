@@ -347,7 +347,6 @@ canvas { display: block; image-rendering: pixelated; }
 }
 .action-btn:active:not(:disabled) { transform: translateY(3px); box-shadow: 0 2px 4px rgba(0,0,0,.14); }
 #breed-btn { background: linear-gradient(170deg, #84de7e, var(--leaf-dk)); }
-#breed-btn.flee-mode { background: linear-gradient(170deg, #ff9483, var(--coral)); }
 .action-btn:disabled { background: rgba(180,168,200,.4); color: rgba(61,51,80,.4); box-shadow: none; border-color: rgba(255,255,255,.5); }
 
 /* ── 실시간 전투 스킬바 (하단 중앙 가로 — 조이스틱/도망 버튼 영역과 분리) ── */
@@ -1057,7 +1056,7 @@ body { image-rendering: pixelated; }
 .big-btn, #breed-btn, .pause-resume { background: var(--px-green) !important; }
 .big-btn.sky { background: var(--px-blue) !important; }
 .big-btn.lilac { background: var(--px-purple) !important; }
-.big-btn.coral, #restart-btn, #breed-btn.flee-mode, .pause-home, #dex-close { background: var(--px-red) !important; }
+.big-btn.coral, #restart-btn, .pause-home, #dex-close { background: var(--px-red) !important; }
 .pause-settings { background: var(--px-blue) !important; }
 /* stats-toggle / dex-toggle: 양피지 패널 스타일 (공통 패널 목록 적용) */
 #stats-toggle { color: var(--px-blue-d) !important; text-shadow: none !important; }
@@ -1653,7 +1652,7 @@ body { image-rendering: pixelated; }
 <div id="pc-panel-right" class="pc-side-panel" style="display:none">
   <div class="pc-widget-title">키보드 단축키</div>
   <div class="pc-key-row"><span class="pc-key">WASD</span><span>이동</span></div>
-  <div class="pc-key-row"><span class="pc-key">B</span><span>번식/도망</span></div>
+  <div class="pc-key-row"><span class="pc-key">B</span><span>번식</span></div>
   <div class="pc-key-row"><span class="pc-key">ZXCVRT</span><span>전투 스킬</span></div>
   <div class="pc-key-row"><span class="pc-key">Tab</span><span>도감</span></div>
   <div class="pc-key-row"><span class="pc-key">Q</span><span>계통수</span></div>
@@ -2841,8 +2840,6 @@ const BODY_COLOR_RED = 0xef4444;
 const BODY_COLOR_BLUE = 0x3b82f6;
 const BODY_COLOR_PURPLE = 0xa855f7;
 // 색맹 모드 팔레트 (주황/청록/노랑 — 적록색맹 구분 가능)
-const ESCAPE_FOOD_PENALTY = 0.25;
-const ESCAPE_DISTANCE = 260;
 const MAX_INDIVIDUALS = 100;
 const MAX_BATTLE_INDIVIDUALS = 30;
 const MAX_RECRUIT_PER_BATTLE = 3;
@@ -2853,13 +2850,14 @@ const DANGER_WARN_MS       = 7000;  // 경고 단계 7초 — 예고 메시지·
 const DANGER_ACTIVE_MS     = 15000; // 도태 이벤트 활성 단계 15초 (점진적 도태)
 const DANGER_FOOD_ACTIVE_MS = 3000; // 식량 이벤트 활성 단계 3초 (결과 표시 후 종료)
 const DANGER_KILL_INTERVAL = 2500;  // 도태 간격: 2.5초마다 틱
-const DANGER_CD_MIN     = 20000;  // 쿨타임 최소 20초
-const DANGER_CD_MAX     = 35000;  // 쿨타임 최대 35초
+const DANGER_CD_MIN     = 35000;  // 쿨타임 최소 35초 (지형 이벤트 빈도 완화)
+const DANGER_CD_MAX     = 60000;  // 쿨타임 최대 60초
 const METEOR_TIME = 600000;   // 10분 후 운석 멸종
 const METEOR_WARN_TIME = 585000; // 9분 45초 경고 시작
 const BATTLE_DISTANCE = 155;
-const BATTLE_DURATION = 5000;        // AI끼리의 전투 자동 종료 시간 (플레이어 전투는 거리 이탈로만 종료)
-const ATTACK_COOLDOWN = 400;
+const BATTLE_DURATION = 8000;        // AI끼리의 전투 자동 종료 시간 (플레이어 전투는 거리 이탈로만 종료)
+const ATTACK_COOLDOWN = 400;         // 보스전 등 기본 공격 주기
+const BATTLE_ATTACK_COOLDOWN = 700;  // 집단전 전용 공격 주기 — 전투 시간을 늘려 스킬·위치 선정 여지 확보
 // ── 실시간 액션 전투 ──────────────────────────────────
 const BATTLE_MELEE_RANGE = 54;       // 이 거리 안에서만 타격 (거리를 벌리면 피해 없음 — 카이팅 가능)
 const BATTLE_DISENGAGE_DIST = 430;   // 집단 중심이 이만큼 멀어지면 전투 이탈 (자유 후퇴)
@@ -3121,7 +3119,7 @@ const ACHIEVEMENTS = [
     check:(g)=>g.wins>=3 },
   { id:'pacifist',    cat:'전투', name:'🕊️ 평화주의자', desc:'패배 없이 3분 생존',           bonus:350,
     check:(g,el)=>g.losses===0&&el>=180000 },
-  { id:'escapist',    cat:'전투', name:'🏃 도주의 달인', desc:'전투 도망 3회',                bonus:150,
+  { id:'escapist',    cat:'전투', name:'🏃 도주의 달인', desc:'거리를 벌려 전투 이탈 3회',                bonus:150,
     check:(g)=>g.escapes>=3 },
 
   // ── 포섭 ──────────────────────────────────────────────
@@ -4024,7 +4022,7 @@ class Battle {
     if (attacker.dead || !foes.length) return;
     const sc = this.isPlayerBattle ? window._arenaScene : null;
     const isPlayerSide = sc && attacker.groupId === sc.player.id;
-    let cooldown = ATTACK_COOLDOWN;
+    let cooldown = BATTLE_ATTACK_COOLDOWN;
     if (isPlayerSide && sc.combatBuffActive('onslaught')) cooldown *= 0.6; // 돌격: 공격 속도 +40%
     if (sc && !isPlayerSide && sc.combatBuffActive('fear')) cooldown *= 2;  // 위협: 적 공격 속도 -50%
     if (now - attacker.lastAttackAt < cooldown) return;
@@ -4129,17 +4127,6 @@ class Battle {
     this.groupB.battleId = null;
   }
 
-  escape(group) {
-    if (!this.active || (group !== this.groupA && group !== this.groupB)) return null;
-    const enemy = group === this.groupA ? this.groupB : this.groupA;
-    this.active = false;
-    group.state = 'normal';
-    enemy.state = enemy.individuals.length ? 'normal' : 'defeated';
-    group.battleId = null;
-    enemy.battleId = null;
-    group.escapes += 1;
-    return enemy;
-  }
 }
 
 function nearest(source, list) {
@@ -5593,7 +5580,7 @@ class ArenaScene extends Phaser.Scene {
       down: Phaser.Input.Keyboard.KeyCodes.S,
       right: Phaser.Input.Keyboard.KeyCodes.D
     });
-    // 스페이스바 → 전투 중 도망, 평시 번식
+    // 스페이스바 → 번식 (후퇴는 이동으로)
     this.input.keyboard.on('keydown-SPACE', () => {
       if (!_paused && !this.gameOver) this.handleAction();
     });
@@ -6217,6 +6204,7 @@ class ArenaScene extends Phaser.Scene {
     if (battle.groupA.isPlayer || battle.groupB.isPlayer) {
       // 거리 이탈: 승패 없이 전투 종료 — 식량 손실 없음, 잠시 재교전 유예
       if (battle.endReason === 'disengage') {
+        this.player.escapes += 1; // 거리 이탈 = 도망 (도전과제 집계)
         this._bossFleeGraceUntil = this.elapsed + 2500;
         document.getElementById('battle-banner').style.display = 'none';
         document.getElementById('battle-vignette').classList.remove('active');
@@ -6289,7 +6277,7 @@ class ArenaScene extends Phaser.Scene {
       const bc = LAB_BUFFS ? Math.max(1, Math.round(10 * LAB_BUFFS.breedCostMult)) : 10;
       const minFood = bc * 10;
       let reason = '';
-      if (g.state !== 'normal') reason = '⚔️ 전투 또는 보스 교전 중 번식 불가';
+      if (g.state !== 'normal') reason = '⚔️ 전투 중 번식 불가 — 멀리 이동해 전투에서 이탈하세요';
       else if (g.count < 5) reason = `👥 개체 5마리 필요 (현재 ${g.count}마리)`;
       else if (g.surplus() < minFood) reason = `🍖 식량 부족 (필요 ${minFood}, 현재 ${Math.floor(g.food)})`;
       else if (g.count >= g._maxPop()) reason = `🏟️ 개체 한도 초과 (최대 ${g._maxPop()}마리)`;
@@ -6367,61 +6355,6 @@ class ArenaScene extends Phaser.Scene {
     });
   }
 
-  tryFleeBattle() {
-    const battle = this.battles.find(item => item.active && (item.groupA === this.player || item.groupB === this.player));
-    if (!battle) return false;
-    const enemy = battle.escape(this.player);
-    if (!enemy) return false;
-    this.player.food = Math.max(0, Math.floor(this.player.food * (1 - ESCAPE_FOOD_PENALTY)));
-    const dx = this.player.x - enemy.x;
-    const dy = this.player.y - enemy.y;
-    const distance = Math.hypot(dx, dy) || 1;
-    this.player.x = clamp(enemy.x + dx / distance * ESCAPE_DISTANCE, 54, WORLD_W - 54);
-    this.player.y = clamp(enemy.y + dy / distance * ESCAPE_DISTANCE, 54, WORLD_H - 54);
-    this._bossFleeGraceUntil = this.elapsed + 2500;
-    document.getElementById('battle-banner').style.display = 'none';
-    document.getElementById('battle-vignette').classList.remove('active');
-    this.showMessage('전투에서 도망쳤습니다. 식량 일부를 잃었습니다.');
-    return true;
-  }
-
-  handleFlee() {
-    if (this.tryFleeBattle()) return;
-    // 보스전 도망: 집단 전체를 보스 반대 방향으로 텔레포트
-    if (this.bossEntity && this.bossPhase === 'chase') {
-      this.player.food = Math.max(0, Math.floor(this.player.food * (1 - ESCAPE_FOOD_PENALTY)));
-      let dx = this.player.x - this.bossEntity.x;
-      let dy = this.player.y - this.bossEntity.y;
-      if (Math.hypot(dx, dy) < 10) { dx = 1; dy = 0; }
-      const d = Math.hypot(dx, dy);
-      const fleeRange = BOSS_RANGE + 600;
-      const margin = 80;
-      const inBounds = (x, y) => x >= margin && x <= WORLD_W - margin && y >= margin && y <= WORLD_H - margin;
-      // 1순위: 보스 반대 방향
-      let fx = dx / d, fy = dy / d;
-      let cx = this.bossEntity.x + fx * fleeRange, cy = this.bossEntity.y + fy * fleeRange;
-      // 벽에 막히면 수직 방향 시도
-      if (!inBounds(cx, cy)) {
-        const cx1 = this.bossEntity.x + (-fy) * fleeRange, cy1 = this.bossEntity.y + (fx) * fleeRange;
-        const cx2 = this.bossEntity.x + (fy) * fleeRange,  cy2 = this.bossEntity.y + (-fx) * fleeRange;
-        if (inBounds(cx1, cy1)) { cx = cx1; cy = cy1; }
-        else if (inBounds(cx2, cy2)) { cx = cx2; cy = cy2; }
-        else { cx = WORLD_W / 2; cy = WORLD_H / 2; } // 맵 중앙으로 도망
-      }
-      const newX = clamp(cx, margin, WORLD_W - margin);
-      const newY = clamp(cy, margin, WORLD_H - margin);
-      this.player.x = newX;
-      this.player.y = newY;
-      // 모든 개체를 그룹 중심 한 점으로 집결
-      for (const ind of this.player.individuals) {
-        ind.x = newX;
-        ind.y = newY;
-      }
-      this._bossFleeGraceUntil = this.elapsed + 2500;
-      this.showMessage('보스에게서 도망쳤습니다. 식량 일부를 잃었습니다.');
-    }
-  }
-
   _isInBattle() {
     if (this.player.state === 'battle') return true;
     // 보스 chase 중이라도 실제 교전 사거리 안일 때만 전투로 간주 → 멀면 번식 가능
@@ -6429,9 +6362,9 @@ class ArenaScene extends Phaser.Scene {
     return false;
   }
 
+  // 도망 버튼 제거 — 후퇴는 오직 이동(거리 이탈)으로. 버튼·키는 항상 번식
   handleAction() {
-    if (this._isInBattle()) this.handleFlee();
-    else this.handleBreed();
+    this.handleBreed();
   }
 
   // ── 실시간 전투 스킬 ──────────────────────────────────
@@ -6724,7 +6657,7 @@ class ArenaScene extends Phaser.Scene {
     this.bossPhaseUntil = this.elapsed + (this.bossSlot === 'final' ? (METEOR_TIME + ((LAB_BUFFS&&LAB_BUFFS.meteorBonus)||0) - this.elapsed) : BOSS_RETREAT_TIME);
     document.getElementById('boss-hp').classList.add('show');
     this.showMessage(`${boss.ico} ${boss.name} 출현! 도망치며 번식해 빈도를 올리세요`, true);
-    ContextHint.show('first_boss','👹','거대 보스가 당신 집단만 노려요!\n💨 도망 버튼으로 피하면서 🥚 번식하세요.\n🔬 도감 > 보스 탭에서 안전 조건을 확인하세요.');
+    ContextHint.show('first_boss','👹','거대 보스가 당신 집단만 노려요!\n조이스틱으로 도망 다니며(⚡질주 스킬 유용) 🥚 번식하세요.\n🔬 도감 > 보스 탭에서 안전 조건을 확인하세요.');
     this.recordAlleleSnapshot();
     if (navigator.vibrate) navigator.vibrate(120);
     this.cameras.main.shake(400, 0.01);
@@ -7778,27 +7711,18 @@ resolveBoss(win, reason) {
     foodFill.style.width = foodPct + '%';
     foodFill.style.height = '';
     const actionBtn = document.getElementById('breed-btn');
-    const inBattle = this._isInBattle();
-    if (inBattle) {
-      actionBtn.innerHTML = '💨<br>도망';
-      actionBtn.classList.add('flee-mode');
-      actionBtn.disabled = false;
+    actionBtn.disabled = !canBreed;
+    // 번식 불가 이유 tooltip
+    if (!canBreed) {
+      const bc = LAB_BUFFS ? Math.max(1, Math.round(10 * LAB_BUFFS.breedCostMult)) : 10;
+      const minFood = bc * 10;
+      if (group.state !== 'normal')      actionBtn.title = '전투 중 번식 불가 — 멀리 이동해 전투에서 이탈하세요';
+      else if (group.count < 5)          actionBtn.title = `개체 5마리 필요 (현재 ${group.count})`;
+      else if (group.surplus() < minFood) actionBtn.title = `식량 부족 (${Math.floor(group.food)}/${minFood})`;
+      else if (group.count >= group._maxPop()) actionBtn.title = `한도 초과 (최대 ${group._maxPop()})`;
+      else actionBtn.title = '';
     } else {
-      actionBtn.innerHTML = '🥚<br>번식';
-      actionBtn.classList.remove('flee-mode');
-      actionBtn.disabled = !canBreed;
-      // 번식 불가 이유 tooltip
-      if (!canBreed) {
-        const bc = LAB_BUFFS ? Math.max(1, Math.round(10 * LAB_BUFFS.breedCostMult)) : 10;
-        const minFood = bc * 10;
-        if (group.state !== 'normal')      actionBtn.title = '전투/보스 교전 중 번식 불가';
-        else if (group.count < 5)          actionBtn.title = `개체 5마리 필요 (현재 ${group.count})`;
-        else if (group.surplus() < minFood) actionBtn.title = `식량 부족 (${Math.floor(group.food)}/${minFood})`;
-        else if (group.count >= group._maxPop()) actionBtn.title = `한도 초과 (최대 ${group._maxPop()})`;
-        else actionBtn.title = '';
-      } else {
-        actionBtn.title = '';
-      }
+      actionBtn.title = '';
     }
     // 무한 모드 웨이브 표시
     if (GAME_MODE === 'infinite' && this._infiniteWave > 1) {
@@ -9098,7 +9022,7 @@ document.addEventListener('keydown', e => {
       if (document.getElementById('lab-modal').classList.contains('open')) { closeLab(); e.preventDefault(); }
       else if (!modalOpen) { openLab(); e.preventDefault(); } break;
     case 'b': case 'B':
-      // B: 번식/도망 (이동 키 아님, 게임 중만)
+      // B: 번식 (이동 키 아님, 게임 중만)
       if (sc && !modalOpen && !paused) { sc.handleAction(); e.preventDefault(); } break;
     case 'z': case 'Z':
       // Z: 전투 스킬 — 돌격 명령
