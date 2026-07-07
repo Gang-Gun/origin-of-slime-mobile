@@ -350,33 +350,46 @@ canvas { display: block; image-rendering: pixelated; }
 #breed-btn.flee-mode { background: linear-gradient(170deg, #ff9483, var(--coral)); }
 .action-btn:disabled { background: rgba(180,168,200,.4); color: rgba(61,51,80,.4); box-shadow: none; border-color: rgba(255,255,255,.5); }
 
-/* ── 실시간 전투 스킬바 ─────────────────────────────── */
+/* ── 실시간 전투 스킬바 (하단 중앙 가로 — 조이스틱/도망 버튼 영역과 분리) ── */
 #skill-bar {
-  position: fixed; right: 10px; bottom: 96px; z-index: 22;
-  display: none; flex-direction: column; gap: 8px;
+  position: fixed; left: 50%; transform: translateX(-50%); bottom: 92px; z-index: 31;
+  display: none; flex-direction: row; gap: 7px;
+  pointer-events: auto; /* #hud가 pointer-events:none이므로 반드시 재활성화 (조이스틱 관통 방지) */
 }
 #skill-bar.show { display: flex; animation: slideUp .22s cubic-bezier(.34,1.56,.64,1); }
 .skill-btn {
-  position: relative; width: 58px; height: 58px; border-radius: 14px;
+  position: relative; width: 52px; height: 52px; border-radius: 13px;
   border: 2.5px solid rgba(255,255,255,.75);
   background: linear-gradient(170deg, #6f5fb8, #4a3e86);
-  color: #fff; font-size: 21px; line-height: 1; cursor: pointer;
+  color: #fff; font-size: 19px; line-height: 1; cursor: pointer;
   box-shadow: 0 4px 8px rgba(0,0,0,.28);
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
   -webkit-tap-highlight-color: transparent; touch-action: manipulation;
 }
-.skill-btn .sk-name { font-family: 'Jua', sans-serif; font-size: 10px; font-weight: 800; letter-spacing: .02em; }
-.skill-btn:active:not(.cooling) { transform: translateY(2px); box-shadow: 0 2px 4px rgba(0,0,0,.2); }
+.skill-btn .sk-name { font-family: 'Jua', sans-serif; font-size: 9.5px; font-weight: 800; letter-spacing: .02em; }
+.skill-btn:active:not(.cooling):not(.locked) { transform: translateY(2px); box-shadow: 0 2px 4px rgba(0,0,0,.2); }
 .skill-btn.cooling { filter: grayscale(.85) brightness(.7); cursor: default; }
 .skill-btn .sk-cd {
   position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
-  font-family: 'Jua', sans-serif; font-size: 20px; font-weight: 900; color: #fff;
+  font-family: 'Jua', sans-serif; font-size: 19px; font-weight: 900; color: #fff;
   text-shadow: 0 1px 4px rgba(0,0,0,.8); pointer-events: none;
 }
 .skill-btn.buff-on { border-color: #ffd97d; box-shadow: 0 0 14px rgba(255,217,125,.85), 0 4px 8px rgba(0,0,0,.28); }
+/* 돌연변이 미보유 → 잠금: 흐리게 + 자물쇠 표시 (누르면 필요 돌연변이 안내) */
+.skill-btn .sk-lock { display: none; position: absolute; right: 2px; top: 2px; font-size: 12px; pointer-events: none; filter: none; }
+.skill-btn.locked { filter: grayscale(1) brightness(.55); }
+.skill-btn.locked .sk-lock { display: block; }
 #sk-onslaught { background: linear-gradient(170deg, #ff8a5c, #d84a2a); }
 #sk-rally     { background: linear-gradient(170deg, #7ecf74, #3d8a3a); }
-#sk-burst     { background: linear-gradient(170deg, #64c7f0, #2a6fd8); }
+#sk-burst     { background: linear-gradient(170deg, #a06fdc, #6a3ab0); }
+#sk-heal      { background: linear-gradient(170deg, #ff9ec4, #d8548a); }
+#sk-haste     { background: linear-gradient(170deg, #ffd166, #d89a2a); }
+#sk-fear      { background: linear-gradient(170deg, #64c7f0, #2a6fd8); }
+@media (max-width: 640px) {
+  #skill-bar { bottom: 118px; gap: 5px; }
+  .skill-btn { width: 46px; height: 46px; font-size: 17px; border-radius: 11px; }
+  .skill-btn .sk-name { font-size: 8.5px; }
+}
 
 /* ─── 일시정지 모달 ─── */
 #pause-modal {
@@ -1638,6 +1651,7 @@ body { image-rendering: pixelated; }
   <div class="pc-widget-title">키보드 단축키</div>
   <div class="pc-key-row"><span class="pc-key">WASD</span><span>이동</span></div>
   <div class="pc-key-row"><span class="pc-key">B</span><span>번식/도망</span></div>
+  <div class="pc-key-row"><span class="pc-key">ZXCVRT</span><span>전투 스킬</span></div>
   <div class="pc-key-row"><span class="pc-key">Tab</span><span>도감</span></div>
   <div class="pc-key-row"><span class="pc-key">Q</span><span>계통수</span></div>
   <div class="pc-key-row"><span class="pc-key">M</span><span>음소거</span></div>
@@ -1719,11 +1733,14 @@ body { image-rendering: pixelated; }
     <button id="breed-btn" class="action-btn" type="button" disabled>🥚<br>번식</button>
   </div>
 
-  <!-- 실시간 전투 스킬바: 전투·보스 교전 중에만 표시 (Z/X/C 단축키) -->
+  <!-- 실시간 전투 스킬바: 전투·보스 교전 중에만 표시 — 스킬은 돌연변이 보유로 해금 (Z/X/C/V/R/T) -->
   <div id="skill-bar">
-    <button class="skill-btn" id="sk-onslaught" type="button" onclick="useCombatSkill('onslaught')" title="돌격 명령 (Z): 5초간 공격력 +40%·공속 +40%">⚔️<span class="sk-name">돌격</span><span class="sk-cd" id="skcd-onslaught"></span></button>
-    <button class="skill-btn" id="sk-rally" type="button" onclick="useCombatSkill('rally')" title="결집 태세 (X): 5초간 받는 피해 -50% + HP 15% 회복">🛡️<span class="sk-name">결집</span><span class="sk-cd" id="skcd-rally"></span></button>
-    <button class="skill-btn" id="sk-burst" type="button" onclick="useCombatSkill('burst')" title="점액 폭발 (C): 주변 적 전체 피해 + 넉백, 보스에게도 유효">💥<span class="sk-name">폭발</span><span class="sk-cd" id="skcd-burst"></span></button>
+    <button class="skill-btn" id="sk-onslaught" type="button" onclick="useCombatSkill('onslaught')">⚔️<span class="sk-name">돌격</span><span class="sk-lock">🔒</span><span class="sk-cd" id="skcd-onslaught"></span></button>
+    <button class="skill-btn" id="sk-rally" type="button" onclick="useCombatSkill('rally')">🛡️<span class="sk-name">철벽</span><span class="sk-lock">🔒</span><span class="sk-cd" id="skcd-rally"></span></button>
+    <button class="skill-btn" id="sk-burst" type="button" onclick="useCombatSkill('burst')">💥<span class="sk-name">독액</span><span class="sk-lock">🔒</span><span class="sk-cd" id="skcd-burst"></span></button>
+    <button class="skill-btn" id="sk-heal" type="button" onclick="useCombatSkill('heal')">💗<span class="sk-name">재생</span><span class="sk-lock">🔒</span><span class="sk-cd" id="skcd-heal"></span></button>
+    <button class="skill-btn" id="sk-haste" type="button" onclick="useCombatSkill('haste')">⚡<span class="sk-name">질주</span><span class="sk-lock">🔒</span><span class="sk-cd" id="skcd-haste"></span></button>
+    <button class="skill-btn" id="sk-fear" type="button" onclick="useCombatSkill('fear')">😱<span class="sk-name">위협</span><span class="sk-lock">🔒</span><span class="sk-cd" id="skcd-fear"></span></button>
   </div>
 
   <div id="near-extinct-overlay" style="position:fixed;inset:0;pointer-events:none;z-index:11;background:transparent"></div>
@@ -2837,11 +2854,39 @@ const KNOCKBACK_PX = 13;
 const COMBO_WINDOW = 3000;           // 처치 후 이 시간 안에 또 처치하면 콤보 지속
 const COMBO_DMG_PER_STACK = 0.03;    // 콤보당 피해 +3%
 const COMBO_DMG_CAP = 0.6;           // 콤보 피해 보너스 상한 +60%
+// 전투 스킬은 돌연변이가 만든다 — 집단에 해당 계열 돌연변이 보유 개체가 1마리 이상 있어야 해금.
+// 보유 개체 비율이 높을수록 효과가 강해진다 (0% 기준 효과 × 1.0 ~ 100% 기준 × 1.5).
 const COMBAT_SKILLS = {
-  onslaught: { ico: '⚔️', name: '돌격 명령', desc: '5초간 공격력 +40%·공격 속도 +40%', dur: 5000, cd: 12000, key: 'Z' },
-  rally:     { ico: '🛡️', name: '결집 태세', desc: '5초간 받는 피해 -50% + 즉시 HP 15% 회복', dur: 5000, cd: 15000, key: 'X' },
-  burst:     { ico: '💥', name: '점액 폭발', desc: '주변 적 전체에 큰 피해 + 넉백 (보스에게도 유효)', dur: 0, cd: 18000, key: 'C' },
+  onslaught: { ico: '⚔️', name: '돌격', desc: '5초간 공격력·공격 속도 증가', dur: 5000, cd: 12000, key: 'Z',
+    muts: ['strong_jaw', 'crab_claw', 'oversized_claw', 'adrenal_gland', 'sticky_slime', 'large_body'] },
+  rally:     { ico: '🛡️', name: '철벽', desc: '5초간 받는 피해 -50%', dur: 5000, cd: 15000, key: 'X',
+    muts: ['hard_shell', 'chitin_layer', 'thick_fur', 'barbed_shell', 'armored_tail', 'molting', 'burrowing', 'deep_roots'] },
+  burst:     { ico: '💥', name: '독액 폭발', desc: '주변 적 전체 피해 + 넉백 (보스 유효)', dur: 0, cd: 18000, key: 'C',
+    muts: ['poison_gland', 'acid_spit', 'venomous_bite', 'toxic_skin', 'parasite_spore', 'unstable_dna'] },
+  heal:      { ico: '💗', name: '재생', desc: '집단 전체 HP 즉시 회복', dur: 0, cd: 20000, key: 'V',
+    muts: ['regeneration', 'rapid_healing', 'vital_core', 'symbiotic_algae', 'solar_skin'] },
+  haste:     { ico: '⚡', name: '질주', desc: '4초간 이동 속도 +50%', dur: 4000, cd: 14000, key: 'R',
+    muts: ['fast_legs', 'spring_legs', 'hyper_metab', 'echolocation', 'night_vision', 'sixth_sense', 'keen_eyes'] },
+  fear:      { ico: '😱', name: '위협', desc: '적을 밀쳐내고 4초간 적 공격 속도 -50%', dur: 4000, cd: 16000, key: 'T',
+    muts: ['pheromone', 'bright_pattern', 'biolumin', 'mimic_pattern', 'magnetism', 'giant_antennae', 'swarm_body'] },
 };
+// 스킬 해금 여부: 살아있는 개체 중 계열 돌연변이 발현 개체 수
+function combatSkillCarriers(group, skillId) {
+  const def = COMBAT_SKILLS[skillId];
+  if (!def) return 0;
+  let n = 0;
+  for (const ind of group.individuals) {
+    if (ind.dead) continue;
+    const muts = ind.mutations;
+    if (def.muts.some(id => muts.includes(id))) n += 1;
+  }
+  return n;
+}
+// 스킬 요구 돌연변이 이름 목록 (잠금 안내용)
+function combatSkillReqText(skillId) {
+  const def = COMBAT_SKILLS[skillId];
+  return def.muts.map(id => (mutationById(id) || {}).name).filter(Boolean).join(', ');
+}
 const FOLLOW_RADIUS = 78;
 const COLLECT_RADIUS = 72;
 
@@ -3931,6 +3976,7 @@ class Battle {
     const isPlayerSide = sc && attacker.groupId === sc.player.id;
     let cooldown = ATTACK_COOLDOWN;
     if (isPlayerSide && sc.combatBuffActive('onslaught')) cooldown *= 0.6; // 돌격: 공격 속도 +40%
+    if (sc && !isPlayerSide && sc.combatBuffActive('fear')) cooldown *= 2;  // 위협: 적 공격 속도 -50%
     if (now - attacker.lastAttackAt < cooldown) return;
     const target = nearest(attacker, foes.filter(f => !f.dead));
     if (!target) return;
@@ -3939,7 +3985,7 @@ class Battle {
     attacker.lastAttackAt = now;
     let dmgMult = 1;
     if (isPlayerSide) {
-      if (sc.combatBuffActive('onslaught')) dmgMult *= 1.4; // 돌격: 피해 +40%
+      if (sc.combatBuffActive('onslaught')) dmgMult *= 1 + 0.4 * (sc.combat.power.onslaught || 1); // 돌격: 피해 +40%×위력
       dmgMult *= 1 + Math.min(COMBO_DMG_CAP, (sc.combat?.combo || 0) * COMBO_DMG_PER_STACK);
     }
     if (sc && target.groupId === sc.player.id && sc.combatBuffActive('rally')) dmgMult *= 0.5; // 결집: 받는 피해 -50%
@@ -4281,8 +4327,8 @@ class ArenaScene extends Phaser.Scene {
     this.rebuildIndividualSprites();
     for (let i = 0; i < 200; i += 1) this.spawnFood();
     this.battles = [];
-    // 실시간 전투 상태: 스킬 쿨다운·버프·콤보
-    this.combat = { cdUntil: {}, activeUntil: {}, combo: 0, comboUntil: 0, bestCombo: 0 };
+    // 실시간 전투 상태: 스킬 쿨다운·버프·시전 위력(돌연변이 보유 비율)·콤보
+    this.combat = { cdUntil: {}, activeUntil: {}, power: {}, combo: 0, comboUntil: 0, bestCombo: 0 };
     this.elapsed = 0;
     this.lastFoodAt = Date.now();
     this.lastSurvivalAt = Date.now();
@@ -5434,7 +5480,7 @@ class ArenaScene extends Phaser.Scene {
       const event = pointer.event;
       if (_paused) return;
       if (event && event.button === 2) return; // 우클릭은 조이스틱 제외
-      if (event && event.target && event.target.closest && event.target.closest('#hud button, #bottom-bar, #stats, #top-left, #terrain-badge, #boss-banner')) return;
+      if (event && event.target && event.target.closest && event.target.closest('#hud button, #bottom-bar, #skill-bar, #stats, #top-left, #terrain-badge, #boss-banner')) return;
       const { x: clientX, y: clientY } = this.getPointerClientPosition(pointer);
       Object.assign(this.joystick, { active: true, pointerId: pointer.id, baseX: clientX, baseY: clientY, knobX: 0, knobY: 0, dirX: 0, dirY: 0 });
       this.updateJoystickDom();
@@ -5708,7 +5754,8 @@ class ArenaScene extends Phaser.Scene {
     const terrain = this.terrainAt(this.player.x, this.player.y);
     const geneSpd = this.calcGeneTerrainSpeedBonus(this.player, terrain);
     const weatherSpd = this.weather ? this.weather.spdMult : 1;
-    const speed = (this.player.average('speed') / 80) * 165 * (dt / 1000) * terrain.speed * geneSpd * weatherSpd;
+    const hasteSpd = this.combatBuffActive('haste') ? 1.5 : 1; // 질주 스킬: 이동 속도 +50%
+    const speed = (this.player.average('speed') / 80) * 165 * (dt / 1000) * terrain.speed * geneSpd * weatherSpd * hasteSpd;
     const keyX = (this.keys.right.isDown ? 1 : 0) - (this.keys.left.isDown ? 1 : 0);
     const keyY = (this.keys.down.isDown ? 1 : 0) - (this.keys.up.isDown ? 1 : 0);
     let dirX = this.joystick.dirX + keyX;
@@ -5810,7 +5857,7 @@ class ArenaScene extends Phaser.Scene {
                 const terrain = this.terrainAt(group.x, group.y);
                 const bonus = Battle.calcTerrainBattleBonus(group, terrain);
                 let dmg = Math.max(1, individual.stats.attack * bonus - BOSS_DEFENSE);
-                if (onslaught) dmg *= 1.4;
+                if (onslaught) dmg *= 1 + 0.4 * (this.combat.power.onslaught || 1);
                 if (isPlayerGrp && Math.random() < CRIT_CHANCE) dmg *= CRIT_MULT;
                 this.bossEntity.hp = Math.max(0, this.bossEntity.hp - dmg);
               }
@@ -6090,7 +6137,7 @@ class ArenaScene extends Phaser.Scene {
           if (groupA.isPlayer || groupB.isPlayer) {
             const enemy = groupA.isPlayer ? groupB : groupA;
             this.showMessage(`⚔️ ${enemy.name}와 전쟁 시작!`);
-            ContextHint.show('first_battle','⚔️','다른 집단과 전쟁이 시작됐어요!\n⚔️🛡️💥 스킬 버튼(Z/X/C)으로 전투를 지휘하세요.\n이동하면 부대가 따라오고, 멀리 달아나면 전투에서 이탈해요!');
+            ContextHint.show('first_battle','⚔️','다른 집단과 전쟁이 시작됐어요!\n🧬 집단이 가진 돌연변이가 전투 스킬이 됩니다.\n잠긴 스킬(🔒)을 누르면 필요한 돌연변이를 알려줘요.\n멀리 달아나면 전투에서 이탈할 수 있어요!');
             document.getElementById('battle-banner').style.display = 'block';
             document.getElementById('battle-vignette').classList.add('active');
             document.getElementById('combat-pulse').classList.add('active');
@@ -6338,21 +6385,61 @@ class ArenaScene extends Phaser.Scene {
   useCombatSkill(id) {
     const def = COMBAT_SKILLS[id];
     if (!def || this.gameOver || _paused || !this._isInBattle()) return;
+    const alive = this.player.individuals.filter(i => !i.dead);
+    // 돌연변이 해금 검사: 계열 돌연변이 보유 개체가 있어야 사용 가능
+    const carriers = combatSkillCarriers(this.player, id);
+    if (carriers <= 0) {
+      this.showToast(`🔒 ${def.ico} ${def.name} — 필요 돌연변이: ${combatSkillReqText(id)}`, 'warn');
+      return;
+    }
     const c = this.combat;
     if (this.elapsed < (c.cdUntil[id] || 0)) return;
     c.cdUntil[id] = this.elapsed + def.cd;
     if (def.dur > 0) c.activeUntil[id] = this.elapsed + def.dur;
-    const alive = this.player.individuals.filter(i => !i.dead);
+    // 보유 비율에 따라 강해짐: ×1.0(소수 보유) ~ ×1.5(전원 보유)
+    const power = 1 + 0.5 * (carriers / Math.max(1, alive.length));
+    c.power[id] = power;
     if (id === 'onslaught') {
-      this.showToast('⚔️ 돌격 명령! 공격력·공속 증가', 'ach');
+      this.showToast(`⚔️ 돌격! 공격력 +${Math.round(40 * power)}%·공속 증가`, 'ach');
       this.burst(this.player.x, this.player.y, 0xff6b35, 18, 110);
       this.cameras.main.flash(120, 255, 120, 60, false);
       Audio.sfxBattle();
     } else if (id === 'rally') {
-      for (const ind of alive) ind.hp = Math.min(ind.stats.hp, ind.hp + ind.stats.hp * 0.15);
-      this.showToast('🛡️ 결집 태세! 피해 감소 + 회복', 'ach');
+      this.showToast('🛡️ 철벽! 받는 피해 감소', 'ach');
       this.burst(this.player.x, this.player.y, 0x7cc674, 18, 110);
       Audio.sfxRecruit();
+    } else if (id === 'heal') {
+      const ratio = 0.25 * power;
+      for (const ind of alive) ind.hp = Math.min(ind.stats.hp, ind.hp + ind.stats.hp * ratio);
+      this.showToast(`💗 재생! 집단 HP ${Math.round(ratio * 100)}% 회복`, 'ach');
+      this.burst(this.player.x, this.player.y, 0xff9ec4, 22, 130);
+      this.cameras.main.flash(120, 160, 255, 170, false);
+      Audio.sfxRecruit();
+    } else if (id === 'haste') {
+      this.showToast('⚡ 질주! 이동 속도 증가', 'ach');
+      this.burst(this.player.x, this.player.y, 0xffe066, 16, 100);
+      Audio.sfxCollect();
+    } else if (id === 'fear') {
+      // 주변 적 밀쳐내기 (지속 공속 감소는 Battle.attack/보스 틱에서 처리)
+      let pushed = 0;
+      for (const battle of this.battles) {
+        if (!battle.active || !battle.isPlayerBattle) continue;
+        const enemy = battle.groupA.isPlayer ? battle.groupB : battle.groupA;
+        for (const foe of enemy.individuals) {
+          if (foe.dead) continue;
+          const fdx = foe.x - this.player.x, fdy = foe.y - this.player.y;
+          const fd = Math.hypot(fdx, fdy);
+          if (fd > 340) continue;
+          const kn = 70 * power;
+          foe.x = clamp(foe.x + fdx / (fd || 1) * kn, 20, WORLD_W - 20);
+          foe.y = clamp(foe.y + fdy / (fd || 1) * kn, 20, WORLD_H - 20);
+          pushed++;
+        }
+      }
+      this.showToast(`😱 위협! ${pushed ? pushed + '마리 밀쳐냄 + ' : ''}적 공속 감소`, 'ach');
+      this.burst(this.player.x, this.player.y, 0xc49ee0, 24, 200);
+      this.cameras.main.shake(180, 0.008);
+      Audio.sfxBattle();
     } else if (id === 'burst') {
       const avgAtk = this.player.average('attack');
       let kills = 0, hits = 0;
@@ -6366,7 +6453,7 @@ class ArenaScene extends Phaser.Scene {
           const fd = Math.hypot(fdx, fdy);
           if (fd > 300) continue;
           hits++;
-          foe.takeHit(avgAtk * 2.5 + 12);
+          foe.takeHit((avgAtk * 2.5 + 12) * power);
           const kn = 55;
           foe.x = clamp(foe.x + fdx / (fd || 1) * kn, 20, WORLD_W - 20);
           foe.y = clamp(foe.y + fdy / (fd || 1) * kn, 20, WORLD_H - 20);
@@ -6379,7 +6466,7 @@ class ArenaScene extends Phaser.Scene {
       if (this.bossEntity && this.bossPhase === 'chase') {
         const bd = Math.hypot(this.bossEntity.x - this.player.x, this.bossEntity.y - this.player.y);
         if (bd <= 500) {
-          const bossDmg = Math.round(avgAtk * Math.max(6, alive.length * 0.8));
+          const bossDmg = Math.round(avgAtk * Math.max(6, alive.length * 0.8) * power);
           this.bossEntity.hp = Math.max(0, this.bossEntity.hp - bossDmg);
           this.spawnFloatText(this.bossEntity.x, this.bossEntity.y - 60, `💥 ${bossDmg}`, '#ffd97d', 20);
           hits++;
@@ -6388,7 +6475,7 @@ class ArenaScene extends Phaser.Scene {
       this.burst(this.player.x, this.player.y, 0x8de3ff, 30, 300);
       this.cameras.main.shake(250, 0.012);
       if (Audio.sfxQuake) Audio.sfxQuake();
-      this.showToast(hits ? `💥 점액 폭발! ${kills > 0 ? kills + '마리 처치' : hits + '회 적중'}` : '💥 점액 폭발! (빗나감)', 'ach');
+      this.showToast(hits ? `💥 독액 폭발! ${kills > 0 ? kills + '마리 처치' : hits + '회 적중'}` : '💥 독액 폭발! (빗나감)', 'ach');
     }
     this.updateSkillBar();
   }
@@ -6405,7 +6492,7 @@ class ArenaScene extends Phaser.Scene {
     if (this.spawnFloatText) this.spawnFloatText(x, y - 12, label, c.combo >= 5 ? '#ff9440' : '#9b6fc4', c.combo >= 5 ? 16 : 14);
   }
 
-  // 스킬바 표시/쿨다운 갱신 (updateHud에서 호출)
+  // 스킬바 표시/쿨다운/잠금 갱신 (updateHud에서 호출)
   updateSkillBar() {
     const bar = document.getElementById('skill-bar');
     if (!bar) return;
@@ -6416,6 +6503,18 @@ class ArenaScene extends Phaser.Scene {
       const btn = document.getElementById(`sk-${id}`);
       const cdEl = document.getElementById(`skcd-${id}`);
       if (!btn || !cdEl) continue;
+      // 돌연변이 미보유 → 잠금 표시
+      const carriers = combatSkillCarriers(this.player, id);
+      const locked = carriers <= 0;
+      btn.classList.toggle('locked', locked);
+      btn.title = locked
+        ? `${def.name} (${def.key}) 🔒 필요 돌연변이: ${combatSkillReqText(id)}`
+        : `${def.name} (${def.key}): ${def.desc} — 보유 ${carriers}마리`;
+      if (locked) {
+        btn.classList.remove('cooling', 'buff-on');
+        cdEl.textContent = '';
+        continue;
+      }
       const remain = (this.combat.cdUntil[id] || 0) - this.elapsed;
       if (remain > 0) {
         btn.classList.add('cooling');
@@ -6863,7 +6962,8 @@ bossCombatTick(dt) {
   if (b.hp <= 0) { this.resolveBoss(true); return; }
 
   const now = Date.now();
-  const atkCd = b.phase2 ? BOSS_ATK_CD * PHASE2_ATK_CD_MULT : BOSS_ATK_CD; // 2페이즈: 공격 주기 -30%
+  let atkCd = b.phase2 ? BOSS_ATK_CD * PHASE2_ATK_CD_MULT : BOSS_ATK_CD; // 2페이즈: 공격 주기 -30%
+  if (this.combatBuffActive('fear')) atkCd *= 1.6; // 위협: 보스 공격 속도 감소
 
   // 공격 직전 350ms: 충전 연출
   const timeToAtk = atkCd - (now - b.lastAttackAt);
@@ -8774,8 +8874,17 @@ document.addEventListener('keydown', e => {
       // X: 전투 스킬 — 결집 태세
       if (sc && !modalOpen && !paused) { sc.useCombatSkill('rally'); e.preventDefault(); } break;
     case 'c': case 'C':
-      // C: 전투 스킬 — 점액 폭발
+      // C: 전투 스킬 — 독액 폭발
       if (sc && !modalOpen && !paused) { sc.useCombatSkill('burst'); e.preventDefault(); } break;
+    case 'v': case 'V':
+      // V: 전투 스킬 — 재생
+      if (sc && !modalOpen && !paused) { sc.useCombatSkill('heal'); e.preventDefault(); } break;
+    case 'r': case 'R':
+      // R: 전투 스킬 — 질주
+      if (sc && !modalOpen && !paused) { sc.useCombatSkill('haste'); e.preventDefault(); } break;
+    case 't': case 'T':
+      // T: 전투 스킬 — 위협
+      if (sc && !modalOpen && !paused) { sc.useCombatSkill('fear'); e.preventDefault(); } break;
     case ' ':
       if (sc && !modalOpen && !paused) { sc.handleAction(); e.preventDefault(); } break;
     case 'Escape':
