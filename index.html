@@ -2806,16 +2806,16 @@ const START_INDIVIDUALS = 20;
 const DIFFICULTIES = [
   { id:'normal', name:'일반',   ico:'🌱', desc:'기본 게임 환경.\n이벤트·보스 강도 표준.',
     bossHpMult:1,    cdMult:1,    startPop:0,   extraEnemies:0,
-    aiGeneQuality:'e', aiMutExtra:0 },
-  { id:'hard',   name:'어려움', ico:'🔥', desc:'보스 HP 1.6배.\n이벤트 쿨타임 -30%.\n시작 개체 -4.\nAI 집단 강화.',
+    aiGeneQuality:'e', aiMutExtra:0, bossSpecialMult:1 },
+  { id:'hard',   name:'어려움', ico:'🔥', desc:'보스 HP 1.6배.\n이벤트 쿨타임 -30%.\n보스 특수 패턴 빈도 +25%.\n시작 개체 -4.\nAI 집단 강화.',
     bossHpMult:1.6,  cdMult:0.7,  startPop:-4,  extraEnemies:2,
-    aiGeneQuality:'n', aiMutExtra:1 },
-  { id:'hell',   name:'지옥',   ico:'💀', desc:'보스 HP 2.5배.\n이벤트 쿨타임 -50%.\n시작 개체 -8.\nAI 집단 대폭 강화.',
+    aiGeneQuality:'n', aiMutExtra:1, bossSpecialMult:0.8 },
+  { id:'hell',   name:'지옥',   ico:'💀', desc:'보스 HP 2.5배.\n이벤트 쿨타임 -50%.\n보스 특수 패턴 빈도 +55%.\n시작 개체 -8.\nAI 집단 대폭 강화.',
     bossHpMult:2.5,  cdMult:0.5,  startPop:-8,  extraEnemies:4,
-    aiGeneQuality:'h', aiMutExtra:2 },
-  { id:'abyss',  name:'심연',   ico:'🌑', desc:'보스 HP 4배.\n이벤트 쿨타임 -65%.\n시작 개체 -12.\nAI 집단 극한 강화.',
+    aiGeneQuality:'h', aiMutExtra:2, bossSpecialMult:0.65 },
+  { id:'abyss',  name:'심연',   ico:'🌑', desc:'보스 HP 4배.\n이벤트 쿨타임 -65%.\n보스 특수 패턴 빈도 2배.\n시작 개체 -12.\nAI 집단 극한 강화.',
     bossHpMult:4,    cdMult:0.35, startPop:-12, extraEnemies:6,
-    aiGeneQuality:'h', aiMutExtra:3 },
+    aiGeneQuality:'h', aiMutExtra:3, bossSpecialMult:0.5 },
 ];
 let CURRENT_DIFFICULTY = 0; // 0~3, startGame()에서 설정
 let GAME_MODE = 'normal'; // 'normal' | 'infinite'
@@ -3015,18 +3015,49 @@ const BOSS_VISUAL = {
 };
 
 // ── 보스 특수 패턴 ──────────────────────────────────
-// shockwave: 예고 후 광역 내려찍기 / dash: 예고선 방향으로 관통 돌진 / both: 번갈아 사용
-const BOSS_PATTERNS = {
-  lava:'shockwave', sand:'dash', glacier:'shockwave', spore:'shockwave', gale:'dash',
-  charmer:'dash', steel:'dash', plague:'dash', siren:'shockwave', crystal:'shockwave',
-  vortex:'dash', void_shadow:'dash', ancient:'shockwave', leviathan:'shockwave',
-  golden:'both', primordial:'both',
+// 보스 테마별 고유 특수공격 7종:
+//  shockwave    광역 내려찍기 (원 밖으로 회피)
+//  dash         예고선 관통 돌진
+//  multi_dash   연속 돌진 (짧은 재예고 후 한 번 더)
+//  eruption     용암 폭격 — 플레이어 주변 여러 지점 낙하
+//  frost_nova   빙결 노바 — 피해는 낮지만 맞으면 이동 속도 감소
+//  poison_pools 독 웅덩이 — 바닥에 남아 밟으면 지속 피해
+//  pull         유혹의 손짓 — 범위 내 개체를 보스 쪽으로 끌어당김
+//  all          모든 패턴 무작위 (최종·히든 보스)
+const BOSS_SPECIAL_DEFS = {
+  shockwave:    { ico:'💥', name:'충격파',      hint:'붉은 원 밖으로 피하세요' },
+  dash:         { ico:'💨', name:'돌진',        hint:'예고선 밖으로 피하세요' },
+  multi_dash:   { ico:'🌀', name:'연속 돌진',   hint:'두 번 이상 연속! 예고선 밖으로' },
+  eruption:     { ico:'☄️', name:'용암 폭격',   hint:'낙하 지점 원 밖으로 피하세요' },
+  frost_nova:   { ico:'❄️', name:'빙결 노바',   hint:'맞으면 5초간 이동 속도 감소' },
+  poison_pools: { ico:'☠️', name:'독 웅덩이',   hint:'보라색 독지대를 밟지 마세요' },
+  pull:         { ico:'💗', name:'유혹의 손짓', hint:'보스 쪽으로 끌려갑니다 — 사거리 밖으로' },
 };
-const BOSS_SPECIAL_FIRST_AT = 6000;  // 교전 시작 후 첫 특수 패턴까지(ms)
-const BOSS_SPECIAL_CD = 8000;        // 이후 쿨다운(ms)
+const BOSS_SPECIAL_ALL = Object.keys(BOSS_SPECIAL_DEFS);
+const BOSS_PATTERNS = {
+  lava:'eruption',      // 용암 거인: 용암탄 폭격
+  sand:'dash',          // 모래 폭군: 모래 돌진
+  glacier:'frost_nova', // 빙하 군주: 빙결
+  spore:'poison_pools', // 독포자 마수: 독 웅덩이
+  gale:'multi_dash',    // 질풍 추적자: 연속 돌진
+  charmer:'pull',       // 매혹 포식자: 유혹
+  steel:'dash',         // 강철 질주병: 철갑 돌진
+  plague:'eruption',    // 화염 역병룡: 화염탄 폭격
+  siren:'pull',         // 심연 세이렌: 노래로 끌어당김
+  crystal:'frost_nova', // 수정 군주: 빙결
+  vortex:'multi_dash',  // 소용돌이 폭풍: 연속 돌진
+  void_shadow:'poison_pools', // 심연의 그림자: 어둠의 웅덩이
+  ancient:'shockwave',  // 고대 파수꾼: 대지 내려찍기
+  leviathan:'shockwave',// 거대 리바이어던: 해일 내려찍기
+  golden:'all', primordial:'all',
+};
+const BOSS_SPECIAL_FIRST_AT = 6000;  // 교전 시작 후 첫 특수 패턴까지(ms) — 난이도 배율 적용
+const BOSS_SPECIAL_CD = 8000;        // 이후 쿨다운(ms) — 난이도 배율 적용
 const BOSS_SPECIAL_WARN = 1100;      // 텔레그래프(예고) 시간(ms)
 const SHOCKWAVE_RADIUS = 300;
 const DASH_HIT_WIDTH = 95;
+const FROST_NOVA_RADIUS = 340;
+const PULL_RADIUS = 480;
 // 2페이즈: 복합 조건·최종·히든 보스는 HP 50% 이하에서 강화된다
 // (양 패턴 교대 사용, 공격 주기 -30%, 피해 +25%, 특수 패턴 빈도 증가)
 function bossHasPhase2(boss) {
@@ -4386,6 +4417,8 @@ class ArenaScene extends Phaser.Scene {
     this.tutorialActive = false; // 튜토리얼 진행 중 — 사망 시스템 일시 정지
     this.bossPhase = 'idle';   // idle | warning | chase
     this.bossInCombat = false; // 보스가 실제 교전 사거리 안에 있는지 (도망/번식 버튼 토글용)
+    this._bossPools = [];      // 보스 독 웅덩이 잔류 지대
+    this._bossSlowUntil = 0;   // 빙결 노바 이동 감속 만료 시각
     this.activeBoss = null;    // 현재 보스 정의
     this.bossEntity = null;    // { x, y, hp, hpMax, sprite, speed }
     this.bossSlot = null;      // 'mid' | 'final'
@@ -5778,7 +5811,8 @@ class ArenaScene extends Phaser.Scene {
     const geneSpd = this.calcGeneTerrainSpeedBonus(this.player, terrain);
     const weatherSpd = this.weather ? this.weather.spdMult : 1;
     const hasteSpd = this.combatBuffActive('haste') ? 1.5 : 1; // 질주 스킬: 이동 속도 +50%
-    const speed = (this.player.average('speed') / 80) * 165 * (dt / 1000) * terrain.speed * geneSpd * weatherSpd * hasteSpd;
+    const frostSpd = (this._bossSlowUntil && this.elapsed < this._bossSlowUntil) ? 0.55 : 1; // 빙결 노바 피격: 감속
+    const speed = (this.player.average('speed') / 80) * 165 * (dt / 1000) * terrain.speed * geneSpd * weatherSpd * hasteSpd * frostSpd;
     const keyX = (this.keys.right.isDown ? 1 : 0) - (this.keys.left.isDown ? 1 : 0);
     const keyY = (this.keys.down.isDown ? 1 : 0) - (this.keys.up.isDown ? 1 : 0);
     let dirX = this.joystick.dirX + keyX;
@@ -6678,7 +6712,9 @@ class ArenaScene extends Phaser.Scene {
     this.bossEntity = { x:sx, y:sy, hp:hpMax, hpMax, sprite, shadow, lastAttackAt: 0,
       moveState:'charge', chargeTimer:0, chargeDuration: 1200 + Math.random()*400,
       jumpStart:null, jumpTarget:null, jumpProgress:0, jumpDuration:0, jumpHeight:160,
-      nextSpecialAt: this.elapsed + BOSS_SPECIAL_FIRST_AT, special: null, _lastSpecial: null, phase2: false };
+      nextSpecialAt: this.elapsed + BOSS_SPECIAL_FIRST_AT * (getDiffConfig().bossSpecialMult || 1), special: null, _lastSpecial: null, phase2: false };
+    this._bossPools = [];      // 독 웅덩이 잔류 지대
+    this._bossSlowUntil = 0;   // 빙결 노바 이동 감속 만료 시각
     if (!this.bossFx) this.bossFx = this.add.graphics().setDepth(19);
     const _hpFill = document.getElementById('boss-hp-fill');
     if (_hpFill) _hpFill.style.background = ''; // 이전 보스의 2페이즈 색 초기화
@@ -6700,7 +6736,7 @@ class ArenaScene extends Phaser.Scene {
     b.nextSpecialAt = Math.min(b.nextSpecialAt, this.elapsed + 2500); // 곧바로 특수 패턴
     this.showMessage(`🔥 ${this.activeBoss.name} 2페이즈! 더 빠르고 강해집니다`, true);
     this.showToast(`🔥 ${this.activeBoss.name} 2페이즈!`, 'warn');
-    ContextHint.show('boss_phase2', '🔥', '보스가 2페이즈에 돌입했어요!\n두 특수 패턴을 모두 쓰고\n공격이 훨씬 빨라집니다. 집중하세요!');
+    ContextHint.show('boss_phase2', '🔥', '보스가 2페이즈에 돌입했어요!\n여러 특수 패턴을 번갈아 쓰고\n공격이 훨씬 빨라집니다. 집중하세요!');
     this.cameras.main.shake(500, 0.03);
     this.cameras.main.flash(250, 255, 80, 30, false);
     this.burst(b.x, b.y, 0xff3020, 26, 150);
@@ -6712,48 +6748,159 @@ class ArenaScene extends Phaser.Scene {
 
   // 특수 패턴 시작: 텔레그래프 상태로 전환
   _startBossSpecial(b) {
-    // 2페이즈에서는 어떤 보스든 양 패턴을 교대로 사용
-    const pat = b.phase2 ? 'both' : (BOSS_PATTERNS[this.activeBoss.id] || 'shockwave');
-    const type = pat === 'both' ? (b._lastSpecial === 'shockwave' ? 'dash' : 'shockwave') : pat;
+    const own = BOSS_PATTERNS[this.activeBoss.id] || 'shockwave';
+    // 'all'(최종·히든): 전 패턴 무작위 / 2페이즈: 고유 패턴 + 보조 패턴(충격파·돌진) 교대
+    let pool;
+    if (own === 'all') pool = BOSS_SPECIAL_ALL;
+    else if (b.phase2) pool = [own, (own === 'dash' || own === 'multi_dash') ? 'shockwave' : 'dash'];
+    else pool = [own];
+    const avail = pool.length > 1 ? pool.filter(t => t !== b._lastSpecial) : pool;
+    const type = choose(avail);
     b._lastSpecial = type;
     b.moveState = 'special_warn';
     b.special = { type, fireAt: this.elapsed + BOSS_SPECIAL_WARN };
-    if (type === 'dash') {
-      const dx = this.player.x - b.x, dy = this.player.y - b.y;
-      const d = Math.hypot(dx, dy) || 1;
-      const len = Math.min(750, d + 260);
-      b.special.tx = clamp(b.x + dx / d * len, 60, WORLD_W - 60);
-      b.special.ty = clamp(b.y + dy / d * len, 60, WORLD_H - 60);
+    const sp = b.special;
+    if (type === 'dash' || type === 'multi_dash') {
+      this._aimBossDash(b, sp);
+      if (type === 'multi_dash') sp.chain = b.phase2 ? 2 : 1; // 추가 돌진 횟수
+    } else if (type === 'eruption') {
+      sp.zones = this._rollBossZones(b.phase2 ? 5 : 4, 110);
+    } else if (type === 'poison_pools') {
+      sp.zones = this._rollBossZones(b.phase2 ? 4 : 3, 95);
     }
-    this.showToast(`${this.activeBoss.ico} ${type === 'dash' ? '돌진' : '충격파'} 준비!`, 'warn');
-    ContextHint.show('boss_special', '⚠️', '보스가 특수 공격을 준비해요!\n붉은 표시 범위 밖으로 도망치세요!');
+    const def = BOSS_SPECIAL_DEFS[type];
+    this.showToast(`${this.activeBoss.ico} ${def.ico} ${def.name} 준비!`, 'warn');
+    ContextHint.show('boss_special', '⚠️', `보스가 특수 공격을 준비해요!\n${def.hint}!`);
     if (Audio.sfxBattle) Audio.sfxBattle();
   }
 
-  // 텔레그래프 종료: 충격파 발동 또는 돌진 개시
+  // 돌진 목표선 계산 (플레이어 방향 관통)
+  _aimBossDash(b, sp) {
+    const dx = this.player.x - b.x, dy = this.player.y - b.y;
+    const d = Math.hypot(dx, dy) || 1;
+    const len = Math.min(750, d + 260);
+    sp.tx = clamp(b.x + dx / d * len, 60, WORLD_W - 60);
+    sp.ty = clamp(b.y + dy / d * len, 60, WORLD_H - 60);
+  }
+
+  // 폭격·웅덩이 낙하 지점: 살아있는 플레이어 개체 주변에 뿌리기
+  _rollBossZones(n, r) {
+    const alive = this.player.individuals.filter(i => !i.dead);
+    const zones = [];
+    for (let k = 0; k < n; k++) {
+      const t = alive.length ? choose(alive) : this.player;
+      zones.push({
+        x: clamp(t.x + (Math.random() - 0.5) * 220, 40, WORLD_W - 40),
+        y: clamp(t.y + (Math.random() - 0.5) * 220, 40, WORLD_H - 40),
+        r,
+      });
+    }
+    return zones;
+  }
+
+  // 특수 패턴 종료 공통 처리: 대기 상태 복귀 + 난이도 배율 쿨다운
+  _bossSpecialDone(b) {
+    b.moveState = 'charge';
+    b.chargeTimer = 0;
+    b.chargeDuration = (1400 + Math.random() * 600) * (b.phase2 ? PHASE2_CHARGE_MULT : 1);
+    b.nextSpecialAt = this.elapsed + this._bossSpecialCd(b);
+  }
+
+  // 특수 패턴 쿨다운: 난이도가 높을수록 자주 사용 (일반 ×1 → 심연 ×0.5)
+  _bossSpecialCd(b) {
+    const diffMult = getDiffConfig().bossSpecialMult || 1;
+    return (BOSS_SPECIAL_CD + Math.random() * 3000) * diffMult * (b.phase2 ? PHASE2_SPECIAL_CD_MULT : 1);
+  }
+
+  // 텔레그래프 종료: 패턴별 발동
   _fireBossSpecial(b) {
     const sp = b.special;
-    if (sp.type === 'shockwave') {
+    const boss = this.activeBoss;
+    const aliveHit = (pred, mult) => {
       let kills = 0, hits = 0;
       for (const i of this.player.individuals) {
-        if (i.dead) continue;
-        if (Math.hypot(i.x - b.x, i.y - b.y) <= SHOCKWAVE_RADIUS) {
-          hits++;
-          if (this._applyBossHit(i, this.activeBoss.safe(i, this.player), 0.9)) kills++;
-        }
+        if (i.dead || !pred(i)) continue;
+        hits++;
+        if (this._applyBossHit(i, boss.safe(i, this.player), mult)) kills++;
       }
       this.player.individuals = this.player.individuals.filter(i => !i.dead);
+      return { kills, hits };
+    };
+    const resultToast = (def, r) => {
+      if (r.hits) this.showToast(`${boss.ico} ${def.name}! ${r.kills > 0 ? r.kills + '마리 도태' : r.hits + '마리 피해'}!`, 'warn');
+    };
+
+    if (sp.type === 'shockwave') {
+      const r = aliveHit(i => Math.hypot(i.x - b.x, i.y - b.y) <= SHOCKWAVE_RADIUS, 0.9);
       this.burst(b.x, b.y, 0xff5030, 30, SHOCKWAVE_RADIUS * 0.8);
       this.cameras.main.shake(450, 0.04);
       this.cameras.main.flash(120, 255, 60, 40, false);
       if (navigator.vibrate) navigator.vibrate(200);
       if (Audio.sfxQuake) Audio.sfxQuake();
-      if (hits) this.showToast(`${this.activeBoss.ico} 충격파! ${kills > 0 ? kills + '마리 도태' : hits + '마리 피해'}!`, 'warn');
-      b.moveState = 'charge';
-      b.chargeTimer = 0;
-      b.chargeDuration = (1400 + Math.random() * 600) * (b.phase2 ? PHASE2_CHARGE_MULT : 1);
-      b.nextSpecialAt = this.elapsed + (BOSS_SPECIAL_CD + Math.random() * 3000) * (b.phase2 ? PHASE2_SPECIAL_CD_MULT : 1);
+      resultToast(BOSS_SPECIAL_DEFS.shockwave, r);
+      this._bossSpecialDone(b);
+
+    } else if (sp.type === 'eruption') {
+      // 용암 폭격: 예고된 지점 전부 동시 폭발
+      let kills = 0, hits = 0;
+      for (const z of sp.zones) {
+        const r = aliveHit(i => Math.hypot(i.x - z.x, i.y - z.y) <= z.r, 0.85);
+        kills += r.kills; hits += r.hits;
+        this.burst(z.x, z.y, 0xff7a1a, 14, z.r * 0.8);
+      }
+      this.cameras.main.shake(400, 0.03);
+      if (navigator.vibrate) navigator.vibrate(160);
+      if (Audio.sfxQuake) Audio.sfxQuake();
+      resultToast(BOSS_SPECIAL_DEFS.eruption, { kills, hits });
+      this._bossSpecialDone(b);
+
+    } else if (sp.type === 'frost_nova') {
+      // 빙결 노바: 피해는 낮지만 맞으면 집단 이동 속도 감소
+      const r = aliveHit(i => Math.hypot(i.x - b.x, i.y - b.y) <= FROST_NOVA_RADIUS, 0.45);
+      if (r.hits) {
+        this._bossSlowUntil = this.elapsed + 5000;
+        this.showToast(`${boss.ico} ❄️ 빙결! 5초간 이동 속도 감소`, 'warn');
+      }
+      this.burst(b.x, b.y, 0x9adfff, 26, FROST_NOVA_RADIUS * 0.7);
+      this.cameras.main.flash(150, 120, 190, 255, false);
+      if (navigator.vibrate) navigator.vibrate(140);
+      if (Audio.sfxQuake) Audio.sfxQuake();
+      this._bossSpecialDone(b);
+
+    } else if (sp.type === 'poison_pools') {
+      // 독 웅덩이: 잔류 지대 생성 — 밟고 있으면 지속 피해 (bossChaseTick에서 틱)
+      for (const z of sp.zones) {
+        this._bossPools.push({ ...z, until: this.elapsed + 6500 });
+        this.burst(z.x, z.y, 0xa040f0, 10, z.r * 0.7);
+      }
+      this.showToast(`${boss.ico} ☠️ 독 웅덩이 생성! 밟지 마세요`, 'warn');
+      if (navigator.vibrate) navigator.vibrate(120);
+      this._bossSpecialDone(b);
+
+    } else if (sp.type === 'pull') {
+      // 유혹의 손짓: 범위 내 개체를 보스 곁으로 끌어당김 + 소량 피해
+      let pulled = 0;
+      for (const i of this.player.individuals) {
+        if (i.dead) continue;
+        const dx = i.x - b.x, dy = i.y - b.y;
+        const d = Math.hypot(dx, dy);
+        if (d > PULL_RADIUS || d < 10) continue;
+        const nd = Math.max(90, d * 0.3); // 보스 바로 앞까지 끌려옴
+        i.x = b.x + dx / d * nd;
+        i.y = b.y + dy / d * nd;
+        this._applyBossHit(i, boss.safe(i, this.player), 0.3);
+        pulled++;
+      }
+      this.player.individuals = this.player.individuals.filter(i => !i.dead);
+      if (pulled) this.showToast(`${boss.ico} 💗 유혹! ${pulled}마리가 끌려갔어요`, 'warn');
+      this.burst(b.x, b.y, 0xff6ad8, 24, 180);
+      this.cameras.main.shake(300, 0.02);
+      if (navigator.vibrate) navigator.vibrate(150);
+      if (Audio.sfxBattle) Audio.sfxBattle();
+      this._bossSpecialDone(b);
+
     } else {
+      // dash · multi_dash: 관통 돌진 개시 (완료 처리는 dashing 상태에서)
       b.moveState = 'dashing';
       sp.sx = b.x; sp.sy = b.y;
       sp.progress = 0;
@@ -6778,6 +6925,31 @@ class ArenaScene extends Phaser.Scene {
       const pulse = 0.22 + 0.10 * Math.sin(this.elapsed / 140);
       this.bossFx.fillStyle(0xff3020, pulse);
       this.bossFx.fillEllipse(b.x, b.y + 12, 150, 52);
+    }
+
+    // 독 웅덩이: 잔류 표시 + 밟고 있는 개체에게 틱 피해
+    if (this._bossPools && this._bossPools.length) {
+      this._bossPools = this._bossPools.filter(p => this.elapsed < p.until);
+      if (this.bossFx) {
+        for (const p of this._bossPools) {
+          this.bossFx.fillStyle(0xa040f0, 0.18 + 0.06 * Math.sin(this.elapsed / 120));
+          this.bossFx.fillCircle(p.x, p.y, p.r);
+          this.bossFx.lineStyle(2, 0xc070ff, 0.8);
+          this.bossFx.strokeCircle(p.x, p.y, p.r);
+        }
+      }
+      if (!this._bossPoolNextTick || this.elapsed >= this._bossPoolNextTick) {
+        this._bossPoolNextTick = this.elapsed + 450;
+        let poolHits = 0;
+        for (const i of this.player.individuals) {
+          if (i.dead) continue;
+          if (this._bossPools.some(p => Math.hypot(i.x - p.x, i.y - p.y) <= p.r)) {
+            this._applyBossHit(i, this.activeBoss.safe(i, this.player), 0.10);
+            poolHits++;
+          }
+        }
+        if (poolHits) this.player.individuals = this.player.individuals.filter(i => !i.dead);
+      }
     }
 
     // 특수 패턴 트리거: 대기(charge) 중 + 쿨다운 경과 + 플레이어가 사거리권일 때
@@ -6840,7 +7012,31 @@ class ArenaScene extends Phaser.Scene {
           this.bossFx.strokeCircle(b.x, b.y, SHOCKWAVE_RADIUS);
           this.bossFx.lineStyle(3, 0xffa040, 0.9);
           this.bossFx.strokeCircle(b.x, b.y, SHOCKWAVE_RADIUS * t); // 안쪽에서 차오르는 링
-        } else {
+        } else if (sp.type === 'frost_nova') {
+          this.bossFx.fillStyle(0x6ac8ff, 0.10 + 0.10 * t);
+          this.bossFx.fillCircle(b.x, b.y, FROST_NOVA_RADIUS);
+          this.bossFx.lineStyle(4, 0x6ac8ff, blink);
+          this.bossFx.strokeCircle(b.x, b.y, FROST_NOVA_RADIUS);
+          this.bossFx.lineStyle(3, 0xdff4ff, 0.9);
+          this.bossFx.strokeCircle(b.x, b.y, FROST_NOVA_RADIUS * t);
+        } else if (sp.type === 'eruption' || sp.type === 'poison_pools') {
+          const col = sp.type === 'eruption' ? 0xff7a1a : 0xa040f0;
+          for (const z of sp.zones) {
+            this.bossFx.fillStyle(col, 0.12 + 0.12 * t);
+            this.bossFx.fillCircle(z.x, z.y, z.r);
+            this.bossFx.lineStyle(3, col, blink);
+            this.bossFx.strokeCircle(z.x, z.y, z.r);
+            this.bossFx.lineStyle(2, 0xffffff, 0.5 + 0.4 * t);
+            this.bossFx.strokeCircle(z.x, z.y, z.r * t);
+          }
+        } else if (sp.type === 'pull') {
+          this.bossFx.lineStyle(4, 0xff6ad8, blink);
+          this.bossFx.strokeCircle(b.x, b.y, PULL_RADIUS);
+          this.bossFx.lineStyle(3, 0xff9ee8, 0.8);
+          this.bossFx.strokeCircle(b.x, b.y, PULL_RADIUS * (1 - t * 0.8)); // 안쪽으로 조여드는 링
+          this.bossFx.fillStyle(0xff6ad8, 0.05 + 0.06 * t);
+          this.bossFx.fillCircle(b.x, b.y, PULL_RADIUS);
+        } else { // dash · multi_dash
           this.bossFx.lineStyle(DASH_HIT_WIDTH * 2, 0xff3030, 0.12 + 0.10 * t);
           this.bossFx.lineBetween(b.x, b.y, sp.tx, sp.ty);
           this.bossFx.lineStyle(3, 0xff3030, blink);
@@ -6878,10 +7074,15 @@ class ArenaScene extends Phaser.Scene {
         if (navigator.vibrate) navigator.vibrate(120);
         if (sp.hit.size) this.showToast(`${this.activeBoss.ico} 돌진! ${sp.kills > 0 ? sp.kills + '마리 도태' : sp.hit.size + '마리 피해'}!`, 'warn');
         this.tweens.add({ targets: b.sprite, scaleX: 2.0, scaleY: 2.0, duration: 220, ease: 'Back.Out' });
-        b.moveState = 'charge';
-        b.chargeTimer = 0;
-        b.chargeDuration = (1400 + Math.random() * 600) * (b.phase2 ? PHASE2_CHARGE_MULT : 1);
-        b.nextSpecialAt = this.elapsed + (BOSS_SPECIAL_CD + Math.random() * 3000) * (b.phase2 ? PHASE2_SPECIAL_CD_MULT : 1);
+        if (sp.chain > 0) {
+          // 연속 돌진: 짧은 재예고 후 플레이어를 다시 조준해 한 번 더
+          sp.chain -= 1;
+          this._aimBossDash(b, sp);
+          sp.fireAt = this.elapsed + 700;
+          b.moveState = 'special_warn';
+        } else {
+          this._bossSpecialDone(b);
+        }
       }
 
     } else {
@@ -7089,6 +7290,8 @@ resolveBoss(win, reason) {
   const by = this.bossEntity ? this.bossEntity.y : this.player.y;
   if (this.bossEntity) { this.bossEntity.sprite.destroy(); if (this.bossEntity.shadow) this.bossEntity.shadow.destroy(); this.bossEntity = null; }
   if (this.bossFx) this.bossFx.clear(); // 특수 패턴 텔레그래프 잔상 제거
+  this._bossPools = [];    // 독 웅덩이 제거
+  this._bossSlowUntil = 0; // 빙결 감속 해제
   document.getElementById('boss-hp').classList.remove('show');
   document.getElementById('boss-banner').classList.remove('show');
   document.getElementById('boss-arrow').classList.remove('show');
@@ -8605,7 +8808,12 @@ function renderBossDex() {
             <div class="boss-name" style="display:flex;align-items:center;gap:5px">${b.name} ${typeTag(b)}</div>
             ${diffBadges ? `<div style="display:flex;gap:4px;flex-wrap:wrap;margin:3px 0">${diffBadges}</div>` : ''}
             <div class="boss-req" style="margin-top:3px">🛡️ 안전조건: ${b.reqText}</div>
-            <div class="boss-req">⚔️ 특수 패턴: ${(BOSS_PATTERNS[b.id] === 'both') ? '💥 충격파 + 💨 돌진' : (BOSS_PATTERNS[b.id] === 'dash') ? '💨 돌진 (예고선 밖으로 피하세요)' : '💥 충격파 (붉은 원 밖으로 피하세요)'}</div>
+            <div class="boss-req">⚔️ 특수 패턴: ${(() => {
+              const pid = BOSS_PATTERNS[b.id] || 'shockwave';
+              if (pid === 'all') return '🌈 모든 패턴 무작위 사용';
+              const pd = BOSS_SPECIAL_DEFS[pid];
+              return `${pd.ico} ${pd.name} (${pd.hint})`;
+            })()}</div>
             ${bossHasPhase2(b) ? `<div class="boss-req" style="color:#f97316">🔥 2페이즈: HP 50% 이하에서 강화 — 양 패턴 사용·공속/피해 증가</div>` : ''}
             <div class="boss-req">📍 추천 진화 장소: ${b.refugeText}</div>
             ${b.spawnText ? `<div class="boss-req" style="color:#fbbf24">⚡ 등장 조건: ${b.spawnText}</div>` : ''}

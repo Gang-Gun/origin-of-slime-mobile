@@ -17,11 +17,13 @@ if (api.dominantMutationType([]) !== 'none') fail('빈 배열 → none');
 if (api.dominantMutationType(['strong_jaw','fast_legs']) !== 'good') fail('good 다수 → good');
 if (api.dominantMutationType(['weak_jaw','strong_jaw']) !== 'bad') fail('동수 → bad 우선');
 if (api.dominantMutationType(['hard_shell','large_body']) !== 'dual') fail('dual 다수 → dual');
+// 전 돌연변이 시그니처화: signatureMutations는 발현 목록 전체를 정렬해 반환
 const sig = api.signatureMutations(['efficient_metabolism','poison_gland','hard_shell']);
-if (sig.join(',') !== 'hard_shell,poison_gland') fail('시그니처 필터/정렬 실패: '+sig.join(','));
+if (sig.join(',') !== 'efficient_metabolism,hard_shell,poison_gland') fail('시그니처 정렬 실패: '+sig.join(','));
+if (![...api.MUTATION_SIG_IDS].includes('weak_jaw')) fail('모든 돌연변이가 시그니처여야 함 (weak_jaw 누락)');
 const ind = { genes: { color: ['R','R'] }, mutations: ['hard_shell','large_body','weak_jaw'] };
 const key = api.creatureTextureKey(ind);
-if (!/^creature_\d+_hard_shell_/.test(key)) fail('키 형식 이상: '+key);
+if (!/^creature_\d+_hard_shell\.weak_jaw_dual$/.test(key)) fail('키 형식 이상: '+key);
 if (key.includes('large_body')) fail('스케일 전용이 키에 포함됨: '+key);
 for (const b of api.BOSS_ROSTER) {
   const v = api.BOSS_VISUAL[b.id];

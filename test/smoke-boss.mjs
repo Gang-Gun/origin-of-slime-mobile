@@ -21,7 +21,7 @@ let api;
 try {
   const factory = new Function(
     'Phaser','document','window','navigator','localStorage','firebase','requestAnimationFrame',
-    code + '\n;return { BOSS_ROSTER, bossById, WAVE_HP, WAVE_FIRST_AT, WAVE_COOLDOWN, getGenotypeLabel, BOSS_PATTERNS, bossHasPhase2 };'
+    code + '\n;return { BOSS_ROSTER, bossById, WAVE_HP, WAVE_FIRST_AT, WAVE_COOLDOWN, getGenotypeLabel, BOSS_PATTERNS, BOSS_SPECIAL_DEFS, DIFFICULTIES, bossHasPhase2 };'
   );
   api = factory(Phaser, stub, stub, stub, stub, stub, function(){return 0;});
 } catch (e) {
@@ -84,13 +84,20 @@ try {
   fail('safe 평가 중 예외: ' + e.message + ' (합성 개체 형태 확인 필요)');
 }
 
-// 3.5) 특수 패턴 — 모든 보스에 유효한 패턴 배정
+// 3.5) 특수 패턴 — 모든 보스에 유효한 패턴 배정 (테마별 고유 패턴 7종 + all)
+const VALID_PATTERNS = [...Object.keys(api.BOSS_SPECIAL_DEFS), 'all'];
 for (const b of api.BOSS_ROSTER) {
   const p = api.BOSS_PATTERNS[b.id];
-  if (!['shockwave', 'dash', 'both'].includes(p)) fail(`${b.id} 특수 패턴 누락/불명: ${p}`);
+  if (!VALID_PATTERNS.includes(p)) fail(`${b.id} 특수 패턴 누락/불명: ${p}`);
 }
-if ((api.BOSS_PATTERNS.golden !== 'both') || (api.BOSS_PATTERNS.primordial !== 'both'))
-  fail('최종/히든 보스는 both 패턴이어야 함');
+if ((api.BOSS_PATTERNS.golden !== 'all') || (api.BOSS_PATTERNS.primordial !== 'all'))
+  fail('최종/히든 보스는 all(전 패턴 무작위)이어야 함');
+// 난이도별 특수 패턴 빈도: 난이도가 오를수록 쿨다운 배율 감소(더 자주)
+const specMults = api.DIFFICULTIES.map(d => d.bossSpecialMult);
+if (specMults.some(m => !(m > 0 && m <= 1))) fail(`bossSpecialMult 범위 이상: ${specMults}`);
+for (let i = 1; i < specMults.length; i++) {
+  if (!(specMults[i] < specMults[i - 1])) fail(`bossSpecialMult가 난이도 오름차순으로 감소하지 않음: ${specMults}`);
+}
 
 // 3.6) 2페이즈 대상 — 복합 조건 4 + 최종 1 + 히든 1 = 6
 const p2 = api.BOSS_ROSTER.filter(b => api.bossHasPhase2(b)).map(b => b.id);
