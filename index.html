@@ -1845,6 +1845,10 @@ body { image-rendering: pixelated; }
       <button class="toggle-btn" id="options-mutpick-toggle" onclick="toggleOptionsMutPick(this)"></button>
     </div>
     <div class="setting-row">
+      <span>🎯 번식 돌연변이 선택창 (계통수 해금 필요)</span>
+      <button class="toggle-btn" id="options-breedpick-toggle" onclick="toggleOptionsBreedPick(this)"></button>
+    </div>
+    <div class="setting-row">
       <span>📖 튜토리얼 초기화</span>
       <button class="pause-btn pause-settings" style="width:auto;padding:8px 14px;font-size:13px"
         onclick="localStorage.removeItem('gpa_tutorial_done');closeOptionsModal();alert('초기화 완료. 다음 게임 시작 시 튜토리얼이 표시됩니다.')">초기화</button>
@@ -1966,6 +1970,10 @@ body { image-rendering: pixelated; }
         <button class="toggle-btn" id="pause-mutpick-toggle" onclick="togglePauseMutPick(this)"></button>
       </div>
       <div class="setting-row">
+        <span>🎯 번식 돌연변이 선택창 (계통수 해금 필요)</span>
+        <button class="toggle-btn" id="pause-breedpick-toggle" onclick="togglePauseBreedPick(this)"></button>
+      </div>
+      <div class="setting-row">
         <span>📖 튜토리얼 초기화</span>
         <button class="pause-btn pause-settings" style="width:auto;padding:8px 14px;font-size:14px"
           onclick="localStorage.removeItem('gpa_tutorial_done'); location.reload()">초기화</button>
@@ -2040,7 +2048,7 @@ const TRANSLATIONS = {
     infinite: '♾️ 무한 생존',
     breed: '번식', flee: '도망', pause: '일시정지', resume: '계속',
     opt_title: '⚙️ 옵션', opt_bgm: '🎵 배경음', opt_sfx: '🔊 효과음',
-    opt_fullscreen: '⛶ 전체화면', opt_mutpick: '✨ 진화·돌연변이 선택창',
+    opt_fullscreen: '⛶ 전체화면', opt_mutpick: '✨ 진화 선택창',
     opt_tutorial: '📖 튜토리얼 초기화', opt_reset: '⚠️ 계정 초기화',
     opt_reset_desc: '계통수 해금·통계·업적 등 모든 진행 데이터를 삭제합니다.',
     opt_reset_btn: '🗑️ 전체 데이터 초기화',
@@ -2060,7 +2068,7 @@ const TRANSLATIONS = {
     infinite: '♾️ Infinite Survival',
     breed: 'Breed', flee: 'Flee', pause: 'Pause', resume: 'Resume',
     opt_title: '⚙️ Options', opt_bgm: '🎵 BGM', opt_sfx: '🔊 SFX',
-    opt_fullscreen: '⛶ Fullscreen', opt_mutpick: '✨ Evolution & Mutation Choice',
+    opt_fullscreen: '⛶ Fullscreen', opt_mutpick: '✨ Evolution Choice',
     opt_tutorial: '📖 Reset Tutorial', opt_reset: '⚠️ Reset Account',
     opt_reset_desc: 'Deletes all progress: gene tree unlocks, stats, achievements.',
     opt_reset_btn: '🗑️ Reset All Data',
@@ -2738,7 +2746,7 @@ function showEvolutionPicker(scene) {
 
 // ── 번식 돌연변이 선택창 — 자손의 신규 돌연변이 정체를 플레이어가 3택1로 결정 ──
 // (기본값은 무작위 발현. 계통수 [돌연변이 선별](mutsel) 구매 시에만 이 창이 열리며,
-//  건너뛰기 = 무작위 발현. gpa_mutpick_off 옵션 ON 시에는 해금했어도 열리지 않음.)
+//  건너뛰기 = 무작위 발현. 설정의 [번식 돌연변이 선택창] 토글(gpa_breedpick_off)로 끌 수 있음.)
 function showBreedMutationPicker(scene, children) {
   const owned = new Set();
   for (const c of children) for (const id of c.mutations) owned.add(id);
@@ -3857,11 +3865,11 @@ class Group {
     this.lastGainedMutations = []; // 이번 번식에서 새로 발현된 돌연변이 ID
     this._pendingMutChildren = []; // 돌연변이 정체 선택 대기 자손 (플레이어 전용)
     // 번식 돌연변이 기본값은 무작위 발현 — 계통수 [돌연변이 선별] 구매 시 3택1 선택창 해금
-    // (선택창 OFF 옵션·튜토리얼 중에는 해금했어도 무작위)
+    // (설정의 [번식 돌연변이 선택창] 토글로 켜고 끌 수 있음. 튜토리얼 중에는 항상 무작위)
     const deferPick = this.isPlayer
       && LAB_BUFFS && LAB_BUFFS.breedMutPick
       && typeof window !== 'undefined' && window._arenaScene && !window._arenaScene.tutorialActive
-      && localStorage.getItem('gpa_mutpick_off') !== '1';
+      && localStorage.getItem('gpa_breedpick_off') !== '1';
     for (let i = 0; i < childCount; i += 1) {
       const parentA = this.pickParent();
       const parentB = this.pickParent(parentA);
@@ -8825,6 +8833,8 @@ function openOptionsModal() {
   if (bgmBtn) bgmBtn.classList.toggle('on', localStorage.getItem('gpa_bgm_off') !== '1');
   const mutBtn = document.getElementById('options-mutpick-toggle');
   if (mutBtn) mutBtn.classList.toggle('on', localStorage.getItem('gpa_mutpick_off') !== '1');
+  const breedBtn = document.getElementById('options-breedpick-toggle');
+  if (breedBtn) breedBtn.classList.toggle('on', localStorage.getItem('gpa_breedpick_off') !== '1');
   const bgmVol = localStorage.getItem('gpa_bgm_vol') ?? '45';
   const sfxVol = localStorage.getItem('gpa_sfx_vol') ?? '50';
   document.querySelectorAll('.vol-slider[id$="-bgm-vol"]').forEach(s => s.value = bgmVol);
@@ -8939,6 +8949,12 @@ function toggleOptionsMutPick(btn) {
   btn.classList.toggle('on');
   localStorage.setItem('gpa_mutpick_off', btn.classList.contains('on') ? '0' : '1');
 }
+function toggleOptionsBreedPick(btn) {
+  btn.classList.toggle('on');
+  localStorage.setItem('gpa_breedpick_off', btn.classList.contains('on') ? '0' : '1');
+  const pauseBtn = document.getElementById('pause-breedpick-toggle');
+  if (pauseBtn) pauseBtn.classList.toggle('on', btn.classList.contains('on'));
+}
 function toggleOptionsSfx(btn) {
   btn.classList.toggle('on');
   const muted = !btn.classList.contains('on');
@@ -8987,6 +9003,8 @@ function toggleSettings() {
   document.querySelectorAll('.vol-slider[id$="-sfx-vol"]').forEach(s => s.value = sfxVol);
   const mutBtn = document.getElementById('pause-mutpick-toggle');
   if (mutBtn) mutBtn.classList.toggle('on', localStorage.getItem('gpa_mutpick_off') !== '1');
+  const breedBtn = document.getElementById('pause-breedpick-toggle');
+  if (breedBtn) breedBtn.classList.toggle('on', localStorage.getItem('gpa_breedpick_off') !== '1');
 }
 function togglePauseBgm(btn) {
   btn.classList.toggle('on');
@@ -9000,6 +9018,12 @@ function togglePauseMutPick(btn) {
   btn.classList.toggle('on');
   localStorage.setItem('gpa_mutpick_off', btn.classList.contains('on') ? '0' : '1');
   const optBtn = document.getElementById('options-mutpick-toggle');
+  if (optBtn) optBtn.classList.toggle('on', btn.classList.contains('on'));
+}
+function togglePauseBreedPick(btn) {
+  btn.classList.toggle('on');
+  localStorage.setItem('gpa_breedpick_off', btn.classList.contains('on') ? '0' : '1');
+  const optBtn = document.getElementById('options-breedpick-toggle');
   if (optBtn) optBtn.classList.toggle('on', btn.classList.contains('on'));
 }
 
