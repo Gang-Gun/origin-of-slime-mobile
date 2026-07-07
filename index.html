@@ -2168,6 +2168,9 @@ async function initLeaderboard() {
   }
   initFirebase();
   if (!_db) return; // Firebase 미설정 시 패널 숨김 유지
+  // SDK 로드를 기다리는 사이 게임이 시작됐으면 (튜토리얼 직후 자동 재시작 등)
+  // 게임 화면 위에 순위표·기록 버튼을 띄우지 않는다 — 타이틀 화면에서만 표시
+  if (game || document.getElementById('title-screen').style.display === 'none') return;
   document.getElementById('leaderboard-panel').style.display = 'flex';
   document.getElementById('stats-corner-btn').style.display = 'block';
   _startLeaderboardListener();
