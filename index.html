@@ -646,6 +646,28 @@ canvas { display: block; image-rendering: pixelated; }
 #event-message.boss-mode.evt-collapsed #evt-collapse-btn { display: none; }
 #event-message.boss-mode.evt-collapsed::after { content: '📋'; font-size: 20px; }
 
+/* ─── 지형 이벤트 컴팩트 알림 칩 (간략 모드) ─── */
+/* 큰 문장 박스 대신 작은 칩만 — 위험 종류만 알리고, 어떤 개체가 위험한지는 글로우로 전달 */
+#terrain-alert {
+  position: fixed; top: 128px; left: 50%; transform: translateX(-50%); z-index: 24;
+  display: none; padding: 5px 13px; border-radius: 999px;
+  font-family: 'Jua', sans-serif; font-size: 12.5px; font-weight: 800; white-space: nowrap;
+  border: 2px solid; backdrop-filter: blur(6px); pointer-events: none;
+  box-shadow: 0 3px 10px rgba(20,14,36,.25);
+}
+#terrain-alert.warn {
+  color: #92600a; background: rgba(255,244,214,.92); border-color: rgba(220,160,20,.85);
+  animation: terrAlertIn .3s cubic-bezier(.34,1.56,.64,1), terrWarnPulse 1.6s ease-in-out .3s infinite;
+}
+#terrain-alert.active {
+  color: #fff; background: rgba(200,40,40,.92); border-color: rgba(255,120,110,.9);
+  animation: terrAlertIn .3s cubic-bezier(.34,1.56,.64,1), terrActivePulse .9s ease-in-out .3s infinite;
+}
+@keyframes terrAlertIn { from{opacity:0;transform:translateX(-50%) translateY(-8px)} to{opacity:1;transform:translateX(-50%) translateY(0)} }
+@keyframes terrWarnPulse { 0%,100%{box-shadow:0 3px 10px rgba(220,160,20,.25)} 50%{box-shadow:0 3px 16px rgba(220,160,20,.6)} }
+@keyframes terrActivePulse { 0%,100%{box-shadow:0 3px 10px rgba(220,40,40,.35)} 50%{box-shadow:0 3px 18px rgba(220,40,40,.75)} }
+@media (max-width: 640px) { #terrain-alert { top: 120px; font-size: 11.5px; padding: 4px 11px; } }
+
 /* ─── 결과 화면 ─── */
 #result {
   position: fixed; inset: 0; z-index: 50; display: none; overflow-y: auto; padding: 24px 16px 40px;
@@ -1267,6 +1289,13 @@ body { image-rendering: pixelated; }
 .mut-pick-option .mut-ico { font-size:22px; flex-shrink:0; }
 .mut-pick-option .mut-name { font-family:'Jua',sans-serif; font-size:14px; color:var(--ink); }
 .mut-pick-option .mut-desc { font-size:11px; color:var(--ink-soft); margin-top:2px; }
+/* 집단 보유율 배지 — 이 돌연변이를 지금 몇 %가 갖고 있는지 */
+.mut-pick-option .mut-own {
+  margin-left:auto; flex-shrink:0; align-self:center; text-align:center;
+  font-family:'Jua',sans-serif; font-size:12px; font-weight:800; line-height:1.15;
+  padding:5px 10px; border-radius:12px; border:1.5px solid;
+}
+.mut-pick-option .mut-own small { display:block; font-size:8.5px; font-weight:700; opacity:.75; letter-spacing:.02em; }
 .mut-skip-btn {
   width:100%; margin-top:4px; padding:10px; border-radius:999px;
   border:2px solid var(--ink-faint); background:transparent; color:var(--ink-soft);
@@ -1765,6 +1794,7 @@ body { image-rendering: pixelated; }
   <div id="next-boss-hint" style="display:none;position:fixed;top:130px;left:8px;right:62px;transform:none;z-index:25;background:rgba(20,14,36,.82);border:1.5px solid rgba(110,99,132,.4);border-radius:12px;padding:6px 14px;font-size:11.5px;font-weight:800;color:#fff;text-align:center;white-space:nowrap;backdrop-filter:blur(6px);overflow:hidden;text-overflow:ellipsis"></div>
   <div id="boss-arrow"></div>
   <div id="boss-hp"><div id="boss-hp-fill"></div><span id="boss-hp-label"></span></div>
+  <div id="terrain-alert"></div>
 </div>
 <div id="joystick-dom"><div id="joystick-knob"></div></div>
 
@@ -1850,6 +1880,12 @@ body { image-rendering: pixelated; }
     <div class="setting-row">
       <span>🎯 번식 돌연변이 선택창 (계통수 해금 필요)</span>
       <button class="toggle-btn" id="options-breedpick-toggle" onclick="toggleOptionsBreedPick(this)"></button>
+    </div>
+    <div class="setting-row">
+      <span>🌋 지형 이벤트 알림 (간략/자세히/끄기)</span>
+      <button class="pause-btn pause-settings" id="options-terrnotify-toggle"
+        style="width:auto;padding:8px 14px;font-size:13px;min-width:72px"
+        onclick="cycleTerrainNotify(this)">간략</button>
     </div>
     <div class="setting-row">
       <span>📖 튜토리얼 초기화</span>
@@ -1971,6 +2007,12 @@ body { image-rendering: pixelated; }
       <div class="setting-row">
         <span>✨ 진화 선택창 (끄면 무작위 자동)</span>
         <button class="toggle-btn" id="pause-mutpick-toggle" onclick="togglePauseMutPick(this)"></button>
+      </div>
+      <div class="setting-row">
+        <span>🌋 지형 이벤트 알림</span>
+        <button class="pause-btn pause-settings" id="pause-terrnotify-toggle"
+          style="width:auto;padding:8px 14px;font-size:14px;min-width:72px"
+          onclick="cycleTerrainNotify(this)">간략</button>
       </div>
       <div class="setting-row">
         <span>🎯 번식 돌연변이 선택창 (계통수 해금 필요)</span>
@@ -2691,6 +2733,17 @@ function resolveMutationPick(chosenId) {
   if (_mutPickResolve) { _mutPickResolve(chosenId); _mutPickResolve = null; _mutPickChild = null; }
 }
 
+// 집단 보유율 배지 HTML — 이 돌연변이를 현재 몇 %의 개체가 발현 중인지
+function mutOwnBadge(pct) {
+  const p = Math.round(pct || 0);
+  let col, bg;
+  if (p >= 100)     { col = '#b5731c'; bg = 'rgba(251,191,36,.18)'; } // 완전 보급(금색)
+  else if (p >= 50) { col = '#2a8a3a'; bg = 'rgba(34,197,94,.15)'; }  // 다수 보유(초록)
+  else if (p >= 1)  { col = '#2a6fb0'; bg = 'rgba(59,130,246,.14)'; } // 일부 보유(파랑)
+  else              { col = '#8a8296'; bg = 'rgba(140,130,150,.12)'; } // 미보유(회색)
+  return `<span class="mut-own" style="color:${col};background:${bg};border-color:${col}">${p}%<small>집단 보유</small></span>`;
+}
+
 // ── 레벨업 진화 선택창 — 돌연변이 선택창 UI를 재사용하되 집단 전체에 발현 ──
 function showEvolutionPicker(scene) {
   const nChoices = Math.max(EVO_CHOICES_BASE, LAB_BUFFS.mutationChoices || 0);
@@ -2718,6 +2771,7 @@ function showEvolutionPicker(scene) {
     return bossById(scene._waveList[scene._waveIdx]);
   })();
   const rep = scene.player.individuals.find(i => !i.dead);
+  const _ownFreq = scene.player.mutationFrequency();
   document.getElementById('mutation-picker-options').innerHTML = candidates.map(mid => {
     const m = mutationById(mid);
     const helpsBoss = nextBoss && rep && (() => {
@@ -2733,6 +2787,7 @@ function showEvolutionPicker(scene) {
         <div class="mut-name">${m.name}${badge}</div>
         <div class="mut-desc">${_effDesc(m.effects)}</div>
       </div>
+      ${mutOwnBadge(_ownFreq[mid] || 0)}
     </div>`;
   }).join('');
 
@@ -2777,6 +2832,7 @@ function showBreedMutationPicker(scene, children) {
     const labels = { hp:'HP', attack:'공격', defense:'방어', speed:'속도', gather:'채집', charm:'매력', foodNeed:'식량소모', fertility:'번식력', mutationRate:'돌연변이율' };
     return `${labels[k] || k} ${v > 0 ? '+' : ''}${v}`;
   }).join(' · ');
+  const _ownFreq = scene.player.mutationFrequency();
   document.getElementById('mutation-picker-options').innerHTML = candidates.map(mid => {
     const m = mutationById(mid);
     return `<div class="mut-pick-option" onclick="resolveMutationPick('${mid}')">
@@ -2785,6 +2841,7 @@ function showBreedMutationPicker(scene, children) {
         <div class="mut-name">${m.name}</div>
         <div class="mut-desc">${_effDesc(m.effects)}</div>
       </div>
+      ${mutOwnBadge(_ownFreq[mid] || 0)}
     </div>`;
   }).join('');
 
@@ -4839,22 +4896,53 @@ class ArenaScene extends Phaser.Scene {
     this._drawDangerOverlay();
     this._syncDangerMarkers();
 
-    // ── 이벤트 진행 중: 메시지 창 지속 표시 + 가장자리 글로우 ──
+    // ── 이벤트 진행 중: 알림 표시 (모드별) + 가장자리 글로우 ──
+    // 알림 모드: 'compact'(기본, 작은 칩) | 'full'(자세한 문장 박스) | 'off'(칩 없음)
+    // 어느 모드든 위험 개체 글로우(_syncDangerMarkers)는 유지 → 어떤 개체가 위험한지는 항상 보임
+    const _mode = localStorage.getItem('gpa_terrain_notify') || 'compact';
     const _pt = this.terrainAt(this.player.x, this.player.y);
     const _pd = _pt?._danger;
     const _inEvent = _pd?.event && (_pd.phase === 'warning' || _pd.phase === 'active');
+    const _isActive = _inEvent && _pd.phase === 'active' && !!_pd.event?.predicate;
     const _newText = _inEvent
       ? (_pd.phase === 'warning' ? _pd.event.warning : (_pd.event.message || _pd.event.warning))
       : null;
     const _dv = document.getElementById('danger-vignette');
+    const _alert = document.getElementById('terrain-alert');
 
-    if (_inEvent) {
+    // 가장자리 글로우: off 모드는 실제 도태 중일 때만(경고는 조용히), 그 외엔 경고부터 표시
+    if (_dv) {
+      if (!_inEvent) _dv.className = '';
+      else if (_mode === 'off') _dv.className = _isActive ? 'danger-active' : '';
+      else _dv.className = _isActive ? 'danger-active' : 'danger-warning';
+    }
+
+    // 컴팩트 칩: 위험 종류(이벤트 이름)만 짧게 — compact 모드 전용
+    if (_alert) {
+      if (_inEvent && _mode === 'compact') {
+        const key = `${_isActive ? '🩸' : '⚠️'} ${_pd.event.name}`;
+        if (_alert.dataset.k !== key) {
+          _alert.dataset.k = key;
+          _alert.textContent = key;
+          _alert.classList.remove('warn', 'active');
+          void _alert.offsetWidth; // 리플로우로 애니메이션 재시작
+          _alert.classList.add(_isActive ? 'active' : 'warn');
+          _alert.style.display = 'block';
+        }
+      } else if (_alert.style.display !== 'none') {
+        _alert.style.display = 'none';
+        _alert.classList.remove('warn', 'active');
+        _alert.dataset.k = '';
+      }
+    }
+
+    // 자세한 문장 박스: full 모드에서만 조작 (showMessage와 공유하는 요소이므로 다른 모드는 건드리지 않음)
+    if (_mode === 'full' && _inEvent) {
       this._dangerMsgText = _newText;
       this._showingDangerMsg = true;
       const el = document.getElementById('event-message');
       const _evtText = document.getElementById('evt-text');
       const _curText = _evtText ? _evtText.textContent : el.textContent;
-      // 다른 showMessage가 숨겼거나 텍스트가 달라진 경우 복원
       if (el.style.display === 'none' || _curText !== _newText) {
         const textChanged = _curText !== _newText;
         if (_evtText) _evtText.textContent = _newText; else el.textContent = _newText;
@@ -4862,7 +4950,6 @@ class ArenaScene extends Phaser.Scene {
         el.style.display = 'block';
         if (textChanged) { el.classList.remove('show'); void el.offsetWidth; el.classList.add('show'); }
         clearTimeout(this.messageTimer);
-        // 보스 중이면 보스 배너를 자동 접기
         const _ba = this.bossPhase === 'warning' || this.bossPhase === 'chase';
         if (_ba) {
           const _bb = document.getElementById('boss-banner');
@@ -4870,15 +4957,12 @@ class ArenaScene extends Phaser.Scene {
           this._bossCollapseTimer = setTimeout(() => _bb.classList.add('boss-collapsed'), 800);
         }
       }
-      if (_dv) _dv.className = (_pd.phase === 'active' && _pd.event?.predicate) ? 'danger-active' : 'danger-warning';
     } else if (this._showingDangerMsg) {
+      // full 모드 이벤트 종료, 또는 모드가 바뀌어 남은 박스 정리
       this._showingDangerMsg = false;
       this._dangerMsgText = null;
       const _dEl = document.getElementById('event-message');
-      _dEl.style.display = 'none';
-      _dEl.classList.remove('evt-collapsed');
-      if (_dv) _dv.className = '';
-      // 지형이벤트 종료 → 보스 배너 복원
+      if (_dEl) { _dEl.style.display = 'none'; _dEl.classList.remove('evt-collapsed'); }
       clearTimeout(this._bossCollapseTimer);
       document.getElementById('boss-banner').classList.remove('boss-collapsed');
     }
@@ -8949,6 +9033,30 @@ function refreshSpeedBtn() {
   btn.style.color = cur > 1 ? '#fff' : '';
 }
 function toggleGameSpeed(btn) { cycleGameSpeed(); } // 하위호환
+
+// 지형 이벤트 알림 3단계 순환: compact(간략) → full(자세히) → off(끄기)
+const TERR_NOTIFY_MODES = ['compact', 'full', 'off'];
+const TERR_NOTIFY_LABEL = { compact: '간략', full: '자세히', off: '끄기' };
+function getTerrainNotify() {
+  const m = localStorage.getItem('gpa_terrain_notify');
+  return TERR_NOTIFY_MODES.includes(m) ? m : 'compact';
+}
+function refreshTerrainNotifyBtns() {
+  const label = TERR_NOTIFY_LABEL[getTerrainNotify()];
+  for (const id of ['options-terrnotify-toggle', 'pause-terrnotify-toggle']) {
+    const btn = document.getElementById(id);
+    if (btn) btn.textContent = label;
+  }
+}
+function cycleTerrainNotify(btn) {
+  const cur = getTerrainNotify();
+  const next = TERR_NOTIFY_MODES[(TERR_NOTIFY_MODES.indexOf(cur) + 1) % TERR_NOTIFY_MODES.length];
+  localStorage.setItem('gpa_terrain_notify', next);
+  refreshTerrainNotifyBtns();
+  // 즉시 반영: 남아있던 칩/박스 정리 (다음 틱에 새 모드로 다시 그려짐)
+  const alert = document.getElementById('terrain-alert');
+  if (alert) { alert.style.display = 'none'; alert.classList.remove('warn', 'active'); alert.dataset.k = ''; }
+}
 function refreshSpeedToggleRow() {
   const btn   = document.getElementById('speed-toggle');
   const label = document.getElementById('speed-toggle-label');
@@ -8978,6 +9086,7 @@ function openOptionsModal() {
   if (mutBtn) mutBtn.classList.toggle('on', localStorage.getItem('gpa_mutpick_off') !== '1');
   const breedBtn = document.getElementById('options-breedpick-toggle');
   if (breedBtn) breedBtn.classList.toggle('on', localStorage.getItem('gpa_breedpick_off') !== '1');
+  refreshTerrainNotifyBtns();
   const bgmVol = localStorage.getItem('gpa_bgm_vol') ?? '45';
   const sfxVol = localStorage.getItem('gpa_sfx_vol') ?? '50';
   document.querySelectorAll('.vol-slider[id$="-bgm-vol"]').forEach(s => s.value = bgmVol);
@@ -9148,6 +9257,7 @@ function toggleSettings() {
   if (mutBtn) mutBtn.classList.toggle('on', localStorage.getItem('gpa_mutpick_off') !== '1');
   const breedBtn = document.getElementById('pause-breedpick-toggle');
   if (breedBtn) breedBtn.classList.toggle('on', localStorage.getItem('gpa_breedpick_off') !== '1');
+  refreshTerrainNotifyBtns();
 }
 function togglePauseBgm(btn) {
   btn.classList.toggle('on');
