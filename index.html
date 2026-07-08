@@ -6743,7 +6743,7 @@ class ArenaScene extends Phaser.Scene {
     this.bossPhase = 'chase';
     this.bossPhaseUntil = this.elapsed + (this.bossSlot === 'final' ? (METEOR_TIME + ((LAB_BUFFS&&LAB_BUFFS.meteorBonus)||0) - this.elapsed) : BOSS_RETREAT_TIME);
     document.getElementById('boss-hp').classList.add('show');
-    this.showMessage(`${boss.ico} ${boss.name} 출현! 도망치며 번식해 빈도를 올리세요`, true);
+    // 출현은 보스 등장·HP바·화면 흔들림·상단 배너 전환으로 전달 — 중앙 팝업 생략(첫 보스만 힌트)
     ContextHint.show('first_boss','👹','거대 보스가 당신 집단만 노려요!\n조이스틱으로 도망 다니며(⚡질주 스킬 유용) 🥚 번식하세요.\n🔬 도감 > 보스 탭에서 안전 조건을 확인하세요.');
     this.recordAlleleSnapshot();
     if (navigator.vibrate) navigator.vibrate(120);
@@ -6755,7 +6755,7 @@ class ArenaScene extends Phaser.Scene {
     b.phase2 = true;
     b.nextSpecialAt = Math.min(b.nextSpecialAt, this.elapsed + 2500); // 곧바로 특수 패턴
     this.showMessage(`🔥 ${this.activeBoss.name} 2페이즈! 더 빠르고 강해집니다`, true);
-    this.showToast(`🔥 ${this.activeBoss.name} 2페이즈!`, 'warn');
+    // 중복 토스트 제거 — 중앙 메시지 + 붉은 섬광·오라로 충분
     ContextHint.show('boss_phase2', '🔥', '보스가 2페이즈에 돌입했어요!\n여러 특수 패턴을 번갈아 쓰고\n공격이 훨씬 빨라집니다. 집중하세요!');
     this.cameras.main.shake(500, 0.03);
     this.cameras.main.flash(250, 255, 80, 30, false);
@@ -7320,7 +7320,7 @@ resolveBoss(win, reason) {
     // 포식 보상: 보스 처치 = 진화 게이지 1레벨 분량
     this.gainEvoExp(evoExpNeedFor(this.evoLevel));
     this.showMessage(`🏆 ${boss.name} 처치! +${score}점\n🍖 식량+100 · 전 개체 HP+20% 회복 · 🧬 진화 게이지 충전!`, true);
-    if (this.showToast) this.showToast(`🏆 ${boss.name} 처치 +${score}`, 'ach');
+    // 중복 처치 토스트 제거 — 중앙 메시지로 일원화
     if (navigator.vibrate) navigator.vibrate([80,40,120]);
     this.cameras.main.flash(220, 255, 240, 180);
     // 보스 도전과제 추적
@@ -7380,12 +7380,7 @@ resolveBoss(win, reason) {
       // HP scaling: +10% per extra wave beyond 3
       this._infiniteHpMult = 1 + (this._infiniteWave - 1) * 0.10;
     }
-    const nextId = this._waveList[this._waveIdx];
-    const nextBoss = nextId ? bossById(nextId) : null;
-    if (nextBoss) {
-      const infLabel = GAME_MODE === 'infinite' ? ` [무한 ${this._infiniteWave || 1}웨이브]` : '';
-      this.showMessage(`✅ 처치! 다음: ${nextBoss.ico} ${nextBoss.name} (${Math.round(WAVE_COOLDOWN * infSlowdown / 1000)}초 후)${infLabel}`, true);
-    }
+    // 다음 보스 예고는 별도 팝업 없이, 다음 보스의 접근 배너가 시작될 때 안내됨 (처치 메시지와 연달아 뜨던 팝업 제거)
   }
 }
 
@@ -7471,7 +7466,7 @@ resolveBoss(win, reason) {
     const banner = document.getElementById('boss-banner');
     document.getElementById('boss-banner-text').innerHTML = `${boss.ico} <b>${boss.name}</b> 접근!<br>요구: <b>${boss.reqText}</b>`;
     banner.classList.add('show');
-    this.showMessage(`${boss.ico} ${boss.name} 접근! ${boss.reqText} 없는 개체는 도태됩니다`, true);
+    // 접근 정보는 상단 배너(카운트다운·안전% 실시간 갱신)로 상시 표시 — 중앙 팝업 생략
     if (navigator.vibrate) navigator.vibrate([60,40,60]);
     if (Audio.sfxMeteor) Audio.sfxMeteor();
   }
