@@ -329,8 +329,23 @@ canvas { display: block; image-rendering: pixelated; }
 .meter { height: 11px; background: rgba(110,99,132,.12); border-radius:999px; overflow:hidden; position:relative; }
 .meter::before { content:''; position:absolute; inset:0; border-radius:999px; box-shadow:inset 0 2px 4px rgba(100,75,55,.14); }
 .fill { height:100%; width:0%; transition:width .3s cubic-bezier(.4,0,.2,1); border-radius:999px; }
-#food-fill    { background: linear-gradient(90deg, var(--leaf-lt), var(--leaf-dk)); }
 #surplus-fill { background: linear-gradient(90deg, #b8e4f6, var(--sky-dk)); }
+/* 식량 바: 한 줄에 두 색 구간 — 주황(다음 소비될 생존 식량) + 초록(번식 여력) */
+.food-meter { display:flex; }
+.food-meter .fseg { border-radius:0; transition:width .3s cubic-bezier(.4,0,.2,1); }
+#food-consume { background: linear-gradient(90deg, #ffb347, #f2892f); } /* 소비 예정 = 주황 */
+#food-breed   { background: linear-gradient(90deg, #7ede6f, #3f9e37); } /* 번식 여력 = 초록 */
+#food-consume.starving { background: linear-gradient(90deg, #ff7a6b, #d6392a); } /* 소비량 미달(굶주림) = 빨강 */
+#food-breed.ready { box-shadow: 0 0 8px rgba(80,200,90,.7) inset; }
+/* 소비/번식 경계 표시선 (고정 기준선) */
+.food-need-mark { position:absolute; top:-1px; bottom:-1px; width:2px; background:rgba(255,255,255,.9);
+  box-shadow:0 0 2px rgba(0,0,0,.4); border-radius:1px; pointer-events:none; }
+/* 라벨 범례 색 점 */
+.food-legend { display:flex; gap:8px; align-items:center; }
+.food-legend .lg { display:inline-flex; align-items:center; gap:3px; }
+.food-legend .lg::before { content:''; width:7px; height:7px; border-radius:2px; display:inline-block; }
+.food-legend .lg-consume::before { background:#f2892f; }
+.food-legend .lg-breed::before { background:#3f9e37; }
 /* 진화 게이지 — 가득 차면 반짝이며 레벨업 임박 알림 */
 .evo-meter { height: 8px; }
 #evo-fill { background: linear-gradient(90deg, #d9b8f2, var(--lilac-dk)); }
@@ -579,7 +594,7 @@ canvas { display: block; image-rendering: pixelated; }
   100% { opacity: 0; transform: translateY(-22px); }
 }
 
-#boss-banner { position:fixed; top:130px; left:8px; right:62px; transform:none; z-index:26;
+#boss-banner { position:fixed; top:134px; left:8px; right:62px; transform:none; z-index:26;
   display:none; padding:10px 16px; border-radius:12px; background:rgba(120,20,20,.92);
   color:#fff; font-family:'Jua',sans-serif; font-size:14px; text-align:center; max-width:none;
   box-shadow:0 4px 14px rgba(0,0,0,.35); pointer-events:auto; line-height:1.4; }
@@ -599,7 +614,8 @@ canvas { display: block; image-rendering: pixelated; }
 #boss-banner.boss-collapsed #boss-banner-text { display:none; }
 #boss-banner.boss-collapsed #boss-collapse-btn { display:none; }
 #boss-banner.boss-collapsed::after { content:'⚔️'; font-size:20px; }
-#boss-hp { position:fixed; top:auto; bottom:100px; left:50%; transform:translateX(-50%); z-index:26;
+/* 보스 HP 바: 상단(진행바 아래)으로 이동 — 하단의 스킬바·식량바와 겹치지 않도록 */
+#boss-hp { position:fixed; top:88px; bottom:auto; left:50%; transform:translateX(-50%); z-index:26;
   display:none; width:min(300px,80vw); height:16px; border-radius:999px;
   background:rgba(0,0,0,.4); overflow:hidden; }
 #boss-hp.show { display:block; }
@@ -649,7 +665,7 @@ canvas { display: block; image-rendering: pixelated; }
 /* ─── 지형 이벤트 컴팩트 알림 칩 (간략 모드) ─── */
 /* 큰 문장 박스 대신 작은 칩만 — 위험 종류만 알리고, 어떤 개체가 위험한지는 글로우로 전달 */
 #terrain-alert {
-  position: fixed; top: 128px; left: 50%; transform: translateX(-50%); z-index: 24;
+  position: fixed; top: 100px; left: 50%; transform: translateX(-50%); z-index: 24;
   display: none; padding: 5px 13px; border-radius: 999px;
   font-family: 'Jua', sans-serif; font-size: 12.5px; font-weight: 800; white-space: nowrap;
   border: 2px solid; backdrop-filter: blur(6px); pointer-events: none;
@@ -666,7 +682,7 @@ canvas { display: block; image-rendering: pixelated; }
 @keyframes terrAlertIn { from{opacity:0;transform:translateX(-50%) translateY(-8px)} to{opacity:1;transform:translateX(-50%) translateY(0)} }
 @keyframes terrWarnPulse { 0%,100%{box-shadow:0 3px 10px rgba(220,160,20,.25)} 50%{box-shadow:0 3px 16px rgba(220,160,20,.6)} }
 @keyframes terrActivePulse { 0%,100%{box-shadow:0 3px 10px rgba(220,40,40,.35)} 50%{box-shadow:0 3px 18px rgba(220,40,40,.75)} }
-@media (max-width: 640px) { #terrain-alert { top: 120px; font-size: 11.5px; padding: 4px 11px; } }
+@media (max-width: 640px) { #terrain-alert { top: 92px; font-size: 11.5px; padding: 4px 11px; } }
 
 /* ─── 결과 화면 ─── */
 #result {
@@ -946,9 +962,9 @@ canvas { display: block; image-rendering: pixelated; }
   #bottom-bar { padding: 7px 8px; gap: 6px; border-radius: 15px; left:7px; right:7px; bottom:7px; }
   .action-btn { min-width: 56px; padding: 8px 10px; font-size: 12px; }
   #battle-banner { top: 84px; font-size: 12.5px; padding: 5px 14px; }
-  #boss-banner { top: 122px; }
-  #boss-hp { bottom: 96px; }
-  #next-boss-hint { top: 122px; }
+  #boss-banner { top: 126px; }
+  #boss-hp { top: 76px; }
+  #next-boss-hint { top: 126px; }
   .meter { height: 10px; }
 }
 
@@ -978,7 +994,7 @@ canvas { display: block; image-rendering: pixelated; }
 
   #battle-banner { top: 78px; font-size: 12px; padding: 5px 12px; }
   #boss-banner { top: 116px; right: 100px; }
-  #boss-hp { bottom: 84px; }
+  #boss-hp { top: 138px; }
   #next-boss-hint { top: 116px; right: 100px; }
   #event-message { top: 58%; font-size: 13px; padding: 12px 16px; width: min(280px, 52vw); }
   #event-message.tutorial-mode { top: 76%; }
@@ -1103,7 +1119,9 @@ body { image-rendering: pixelated; }
 }
 .meter::before { display: none !important; }
 .fill { border-radius: 0 !important; image-rendering: pixelated; }
-#food-fill { background: #5cbf4c !important; }
+#food-consume { background: #f2892f !important; }
+#food-consume.starving { background: #d6392a !important; }
+#food-breed   { background: #4bbf3c !important; }
 #surplus-fill { background: #4aa6e0 !important; }
 
 /* ── 토글 스위치 픽셀화 ── */
@@ -1414,6 +1432,7 @@ body { image-rendering: pixelated; }
   #battle-banner { top: 82px !important; }
   #boss-banner { top: 82px !important; }
   #boss-hp { top: 138px !important; }
+  #terrain-alert { top: 114px !important; }
 }
 
 /* ── 가로 모드: 우측 세로 패널 내 식량 바 레이블 축약 ── */
@@ -1758,8 +1777,12 @@ body { image-rendering: pixelated; }
     <div id="bars">
       <div class="bar-label"><span>🧬 진화 <b id="b-evolevel">Lv.1</b></span><span id="b-evoexp">0 / 120</span></div>
       <div class="meter evo-meter"><div class="fill" id="evo-fill"></div></div>
-      <div class="bar-label"><span>🍓 식량</span><span><b id="b-food">30</b> · 필요 <b id="b-need">20</b></span></div>
-      <div class="meter"><div class="fill" id="food-fill"></div></div>
+      <div class="bar-label"><span>🍓 식량 <b id="b-food">30</b></span><span class="food-legend"><span class="lg lg-consume">소비 <b id="b-need">20</b></span><span class="lg lg-breed">번식 <b id="b-breed">100</b></span></span></div>
+      <div class="meter food-meter">
+        <div class="fill fseg" id="food-consume"></div>
+        <div class="fill fseg" id="food-breed"></div>
+        <div class="food-need-mark" id="food-need-mark"></div>
+      </div>
     </div>
     <button id="breed-btn" class="action-btn" type="button" disabled>🥚<br>번식</button>
   </div>
@@ -1791,7 +1814,7 @@ body { image-rendering: pixelated; }
   <div id="toast-ach" class="toast-stack"></div>
   <div id="event-message"><span id="evt-text"></span><button id="evt-collapse-btn" aria-label="접기">−</button></div>
   <div id="boss-banner" onclick="toggleBossBanner()"><span id="boss-banner-text"></span><button id="boss-dex-btn" onclick="event.stopPropagation();openDex('boss')" style="margin-top:6px;display:block;width:100%;background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.4);border-radius:8px;color:#fff;font-family:'Jua',sans-serif;font-size:12px;padding:4px 0;cursor:pointer">📖 도감에서 확인</button><button id="boss-collapse-btn" onclick="event.stopPropagation();toggleBossBanner()">−</button></div>
-  <div id="next-boss-hint" style="display:none;position:fixed;top:130px;left:8px;right:62px;transform:none;z-index:25;background:rgba(20,14,36,.82);border:1.5px solid rgba(110,99,132,.4);border-radius:12px;padding:6px 14px;font-size:11.5px;font-weight:800;color:#fff;text-align:center;white-space:nowrap;backdrop-filter:blur(6px);overflow:hidden;text-overflow:ellipsis"></div>
+  <div id="next-boss-hint" style="display:none;position:fixed;top:134px;left:8px;right:62px;transform:none;z-index:25;background:rgba(20,14,36,.82);border:1.5px solid rgba(110,99,132,.4);border-radius:12px;padding:6px 14px;font-size:11.5px;font-weight:800;color:#fff;text-align:center;white-space:nowrap;backdrop-filter:blur(6px);overflow:hidden;text-overflow:ellipsis"></div>
   <div id="boss-arrow"></div>
   <div id="boss-hp"><div id="boss-hp-fill"></div><span id="boss-hp-label"></span></div>
   <div id="terrain-alert"></div>
@@ -4928,8 +4951,9 @@ class ArenaScene extends Phaser.Scene {
     }
 
     // 컴팩트 칩: 위험 종류(이벤트 이름)만 짧게 — compact 모드 전용
+    // 보스 진행 중(경고·교전)엔 상단을 보스 UI에 양보하고 칩 숨김 (위험 개체 글로우는 유지)
     if (_alert) {
-      if (_inEvent && _mode === 'compact') {
+      if (_inEvent && _mode === 'compact' && this.bossPhase === 'idle') {
         const key = `${_isActive ? '🩸' : '⚠️'} ${_pd.event.name}`;
         if (_alert.dataset.k !== key) {
           _alert.dataset.k = key;
@@ -7145,13 +7169,11 @@ class ArenaScene extends Phaser.Scene {
     // 보스는 플레이어만 상대 — 플레이어 개체가 사거리 안이고 회피 유예가 아닐 때만 전투 활성 (멀면 번식 가능)
     const playerNear = this.player.individuals.some(i => Math.hypot(b.x - i.x, b.y - i.y) <= BOSS_RANGE + 120);
     this.bossInCombat = playerNear && !inGrace;
+    // '보스 전투 중' 배너는 상단 보스 HP바(이름·HP 표시)와 중복 → 표시하지 않음 (화면 정리)
+    _bb.style.display = 'none';
     if (playerNear && !inGrace) {
-      _bb.textContent = `${this.activeBoss.ico} ${this.activeBoss.name} 전투 중!`;
-      _bb.style.display = 'block';
       // 특수 패턴(텔레그래프·돌진) 중에는 기본 공격 중지 — 회피 기회 제공
       if (b.moveState !== 'special_warn' && b.moveState !== 'dashing') this.bossCombatTick(dt);
-    } else {
-      _bb.style.display = 'none';
     }
     if (this.bossPhase !== 'chase') return; // 전투 중 처치되어 이미 종료됨
   // 게임오버: 개체수 임계 미만
@@ -7764,21 +7786,30 @@ resolveBoss(win, reason) {
       evoFill.style.width = evoPct + '%';
       evoFill.classList.toggle('evo-near-full', evoPct >= 85);
     }
-    // 하단 바 — 식량
-    const surplusDisplay = Math.max(0, surplus);
+    // 하단 바 — 식량 (한 줄, 두 색 구간: 주황=다음 소비될 생존 식량 / 초록=번식 여력)
+    const _bc = (this.player === group && LAB_BUFFS) ? Math.max(1, Math.round(10 * LAB_BUFFS.breedCostMult)) : 10;
+    const breedThreshold = _bc * 10;              // 번식에 필요한 잉여 식량
+    const total = Math.max(1, need + breedThreshold); // 번식 가능 식량 수준(바 가득참 기준)
+    const consumePart = Math.min(group.food, need);
+    const breedPart = clamp(group.food - need, 0, breedThreshold);
+    const consumePct = consumePart / total * 100;
+    const breedPct = breedPart / total * 100;
+    const needMarkPct = need / total * 100;
+    const starving = group.food < need;
     setText('b-food', Math.floor(group.food));
     setText('b-need', need.toFixed(0));
-    setText('food-cap-text', need.toFixed(0));
+    setText('b-breed', breedThreshold.toFixed(0));
     setText('terrain-name', terrain.name);
     setText('terrain-ico', terrain.ico || '🌿');
     // 남은 시간 임박 시 칩 강조
     const cgen = document.getElementById('c-gen');
     if (cgen) cgen.style.color = remainMs < 30000 ? '#ff7d6e' : '';
-    const foodFill = document.getElementById('food-fill');
-    const foodPct = clamp(group.food / Math.max(need, 1) * 100, 0, 100);
-    foodFill.style.background = group.food >= need ? '#5cbf4c' : '#d6493a';
-    foodFill.style.width = foodPct + '%';
-    foodFill.style.height = '';
+    const consumeFill = document.getElementById('food-consume');
+    const breedFill = document.getElementById('food-breed');
+    const needMark = document.getElementById('food-need-mark');
+    if (consumeFill) { consumeFill.style.width = consumePct + '%'; consumeFill.classList.toggle('starving', starving); }
+    if (breedFill) { breedFill.style.width = breedPct + '%'; breedFill.classList.toggle('ready', breedPart >= breedThreshold); }
+    if (needMark) needMark.style.left = needMarkPct + '%';
     const actionBtn = document.getElementById('breed-btn');
     actionBtn.disabled = !canBreed;
     // 번식 불가 이유 tooltip
