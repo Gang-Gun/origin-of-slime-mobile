@@ -6274,7 +6274,7 @@ class ArenaScene extends Phaser.Scene {
           this.battles.push(battle);
           if (groupA.isPlayer || groupB.isPlayer) {
             const enemy = groupA.isPlayer ? groupB : groupA;
-            this.showMessage(`⚔️ ${enemy.name}와 전쟁 시작!`);
+            // 전투 시작은 배너·비네트·전투 펄스·효과음·화면 흔들림으로 전달 — 중앙 메시지 생략
             ContextHint.show('first_battle','⚔️','다른 집단과 전쟁이 시작됐어요!\n🧬 집단이 가진 돌연변이가 전투 스킬이 됩니다.\n잠긴 스킬(🔒)을 누르면 필요한 돌연변이를 알려줘요.\n멀리 달아나면 전투에서 이탈할 수 있어요!');
             document.getElementById('battle-banner').style.display = 'block';
             document.getElementById('battle-vignette').classList.add('active');
@@ -6303,7 +6303,7 @@ class ArenaScene extends Phaser.Scene {
         document.getElementById('battle-banner').style.display = 'none';
         document.getElementById('battle-vignette').classList.remove('active');
         document.getElementById('combat-pulse').classList.remove('active');
-        this.showMessage('🏃 거리를 벌려 전투에서 이탈했습니다!');
+        // 이탈은 배너·비네트가 사라지는 것으로 전달 — 메시지 생략
         return;
       }
       const pgIsA  = battle.groupA.isPlayer;
@@ -6390,7 +6390,7 @@ class ArenaScene extends Phaser.Scene {
     const pending = this.player._pendingMutChildren || [];
     this.player._pendingMutChildren = [];
     if (gained.length > 0 || pending.length > 0) { this._breedsWithoutMutation = 0; } else { this._breedsWithoutMutation++; }
-    this.showToast(`🥚 +${count}`, 'ach');
+    // 번식 카운트 토스트(🥚 +N)는 잦아서 생략 — 개체수 HUD·출생 이펙트·효과음으로 전달
     Audio.sfxBreed();
     ContextHint.show('first_breed','🥚','자손이 태어났어요!\n부모의 특성을 물려받고\n가끔 돌연변이로 새 능력이 생겨요.\n🔬 돌연변이가 쌓일수록 집단이 강해집니다!');
     this.burst(this.player.x, this.player.y, 0xffb4a2, 12, 70);
@@ -6483,29 +6483,25 @@ class ArenaScene extends Phaser.Scene {
     // 보유 비율에 따라 강해짐: ×1.0(소수 보유) ~ ×1.5(전원 보유)
     const power = 1 + 0.5 * (carriers / Math.max(1, alive.length));
     c.power[id] = power;
+    // 스킬 발동 피드백은 시각 이펙트·효과음·스킬바 버프 표시로 전달 (토스트 생략 — 화면 정리)
     if (id === 'onslaught') {
-      this.showToast(`⚔️ 돌격! 공격력 +${Math.round(40 * power)}%·공속 증가`, 'ach');
       this.burst(this.player.x, this.player.y, 0xff6b35, 18, 110);
       this.cameras.main.flash(120, 255, 120, 60, false);
       Audio.sfxBattle();
     } else if (id === 'rally') {
-      this.showToast('🛡️ 철벽! 받는 피해 감소', 'ach');
       this.burst(this.player.x, this.player.y, 0x7cc674, 18, 110);
       Audio.sfxRecruit();
     } else if (id === 'heal') {
       const ratio = 0.25 * power;
       for (const ind of alive) ind.hp = Math.min(ind.stats.hp, ind.hp + ind.stats.hp * ratio);
-      this.showToast(`💗 재생! 집단 HP ${Math.round(ratio * 100)}% 회복`, 'ach');
       this.burst(this.player.x, this.player.y, 0xff9ec4, 22, 130);
       this.cameras.main.flash(120, 160, 255, 170, false);
       Audio.sfxRecruit();
     } else if (id === 'haste') {
-      this.showToast('⚡ 질주! 이동 속도 증가', 'ach');
       this.burst(this.player.x, this.player.y, 0xffe066, 16, 100);
       Audio.sfxCollect();
     } else if (id === 'fear') {
       // 주변 적 밀쳐내기 (지속 공속 감소는 Battle.attack/보스 틱에서 처리)
-      let pushed = 0;
       for (const battle of this.battles) {
         if (!battle.active || !battle.isPlayerBattle) continue;
         const enemy = battle.groupA.isPlayer ? battle.groupB : battle.groupA;
@@ -6517,10 +6513,8 @@ class ArenaScene extends Phaser.Scene {
           const kn = 70 * power;
           foe.x = clamp(foe.x + fdx / (fd || 1) * kn, 20, WORLD_W - 20);
           foe.y = clamp(foe.y + fdy / (fd || 1) * kn, 20, WORLD_H - 20);
-          pushed++;
         }
       }
-      this.showToast(`😱 위협! ${pushed ? pushed + '마리 밀쳐냄 + ' : ''}적 공속 감소`, 'ach');
       this.burst(this.player.x, this.player.y, 0xc49ee0, 24, 200);
       this.cameras.main.shake(180, 0.008);
       Audio.sfxBattle();
@@ -6559,7 +6553,6 @@ class ArenaScene extends Phaser.Scene {
       this.burst(this.player.x, this.player.y, 0x8de3ff, 30, 300);
       this.cameras.main.shake(250, 0.012);
       if (Audio.sfxQuake) Audio.sfxQuake();
-      this.showToast(hits ? `💥 독액 폭발! ${kills > 0 ? kills + '마리 처치' : hits + '회 적중'}` : '💥 독액 폭발! (빗나감)', 'ach');
     }
     this.updateSkillBar();
   }
@@ -6796,7 +6789,8 @@ class ArenaScene extends Phaser.Scene {
       sp.zones = this._rollBossZones(b.phase2 ? 4 : 3, 95);
     }
     const def = BOSS_SPECIAL_DEFS[type];
-    this.showToast(`${this.activeBoss.ico} ${def.ico} ${def.name} 준비!`, 'warn');
+    // 특수공격 예고는 화면의 붉은 텔레그래프(범위/선)와 효과음으로 전달 — 매번 뜨던 '준비!' 토스트 생략
+    // 첫 특수공격 때만 1회성 힌트로 회피 방법 안내
     ContextHint.show('boss_special', '⚠️', `보스가 특수 공격을 준비해요!\n${def.hint}!`);
     if (Audio.sfxBattle) Audio.sfxBattle();
   }
@@ -6853,41 +6847,32 @@ class ArenaScene extends Phaser.Scene {
       this.player.individuals = this.player.individuals.filter(i => !i.dead);
       return { kills, hits };
     };
-    const resultToast = (def, r) => {
-      if (r.hits) this.showToast(`${boss.ico} ${def.name}! ${r.kills > 0 ? r.kills + '마리 도태' : r.hits + '마리 피해'}!`, 'warn');
-    };
+    // 특수공격 결과는 폭발 이펙트·화면 흔들림·개체 도태로 시각 전달 — 매번 뜨던 결과 토스트 생략
 
     if (sp.type === 'shockwave') {
-      const r = aliveHit(i => Math.hypot(i.x - b.x, i.y - b.y) <= SHOCKWAVE_RADIUS, 0.9);
+      aliveHit(i => Math.hypot(i.x - b.x, i.y - b.y) <= SHOCKWAVE_RADIUS, 0.9);
       this.burst(b.x, b.y, 0xff5030, 30, SHOCKWAVE_RADIUS * 0.8);
       this.cameras.main.shake(450, 0.04);
       this.cameras.main.flash(120, 255, 60, 40, false);
       if (navigator.vibrate) navigator.vibrate(200);
       if (Audio.sfxQuake) Audio.sfxQuake();
-      resultToast(BOSS_SPECIAL_DEFS.shockwave, r);
       this._bossSpecialDone(b);
 
     } else if (sp.type === 'eruption') {
       // 용암 폭격: 예고된 지점 전부 동시 폭발
-      let kills = 0, hits = 0;
       for (const z of sp.zones) {
-        const r = aliveHit(i => Math.hypot(i.x - z.x, i.y - z.y) <= z.r, 0.85);
-        kills += r.kills; hits += r.hits;
+        aliveHit(i => Math.hypot(i.x - z.x, i.y - z.y) <= z.r, 0.85);
         this.burst(z.x, z.y, 0xff7a1a, 14, z.r * 0.8);
       }
       this.cameras.main.shake(400, 0.03);
       if (navigator.vibrate) navigator.vibrate(160);
       if (Audio.sfxQuake) Audio.sfxQuake();
-      resultToast(BOSS_SPECIAL_DEFS.eruption, { kills, hits });
       this._bossSpecialDone(b);
 
     } else if (sp.type === 'frost_nova') {
-      // 빙결 노바: 피해는 낮지만 맞으면 집단 이동 속도 감소
+      // 빙결 노바: 피해는 낮지만 맞으면 집단 이동 속도 감소 (파란 섬광으로 전달)
       const r = aliveHit(i => Math.hypot(i.x - b.x, i.y - b.y) <= FROST_NOVA_RADIUS, 0.45);
-      if (r.hits) {
-        this._bossSlowUntil = this.elapsed + 5000;
-        this.showToast(`${boss.ico} ❄️ 빙결! 5초간 이동 속도 감소`, 'warn');
-      }
+      if (r.hits) this._bossSlowUntil = this.elapsed + 5000;
       this.burst(b.x, b.y, 0x9adfff, 26, FROST_NOVA_RADIUS * 0.7);
       this.cameras.main.flash(150, 120, 190, 255, false);
       if (navigator.vibrate) navigator.vibrate(140);
@@ -6895,18 +6880,16 @@ class ArenaScene extends Phaser.Scene {
       this._bossSpecialDone(b);
 
     } else if (sp.type === 'poison_pools') {
-      // 독 웅덩이: 잔류 지대 생성 — 밟고 있으면 지속 피해 (bossChaseTick에서 틱)
+      // 독 웅덩이: 잔류 지대 생성 — 밟고 있으면 지속 피해 (보라색 웅덩이로 시각 전달)
       for (const z of sp.zones) {
         this._bossPools.push({ ...z, until: this.elapsed + 6500 });
         this.burst(z.x, z.y, 0xa040f0, 10, z.r * 0.7);
       }
-      this.showToast(`${boss.ico} ☠️ 독 웅덩이 생성! 밟지 마세요`, 'warn');
       if (navigator.vibrate) navigator.vibrate(120);
       this._bossSpecialDone(b);
 
     } else if (sp.type === 'pull') {
       // 유혹의 손짓: 범위 내 개체를 보스 곁으로 끌어당김 + 소량 피해
-      let pulled = 0;
       for (const i of this.player.individuals) {
         if (i.dead) continue;
         const dx = i.x - b.x, dy = i.y - b.y;
@@ -6916,10 +6899,8 @@ class ArenaScene extends Phaser.Scene {
         i.x = b.x + dx / d * nd;
         i.y = b.y + dy / d * nd;
         this._applyBossHit(i, boss.safe(i, this.player), 0.3);
-        pulled++;
       }
       this.player.individuals = this.player.individuals.filter(i => !i.dead);
-      if (pulled) this.showToast(`${boss.ico} 💗 유혹! ${pulled}마리가 끌려갔어요`, 'warn');
       this.burst(b.x, b.y, 0xff6ad8, 24, 180);
       this.cameras.main.shake(300, 0.02);
       if (navigator.vibrate) navigator.vibrate(150);
@@ -7099,7 +7080,6 @@ class ArenaScene extends Phaser.Scene {
         this.player.individuals = this.player.individuals.filter(i => !i.dead);
         this.cameras.main.shake(300, 0.03);
         if (navigator.vibrate) navigator.vibrate(120);
-        if (sp.hit.size) this.showToast(`${this.activeBoss.ico} 돌진! ${sp.kills > 0 ? sp.kills + '마리 도태' : sp.hit.size + '마리 피해'}!`, 'warn');
         this.tweens.add({ targets: b.sprite, scaleX: 2.0, scaleY: 2.0, duration: 220, ease: 'Back.Out' });
         if (sp.chain > 0) {
           // 연속 돌진: 짧은 재예고 후 플레이어를 다시 조준해 한 번 더
@@ -7659,7 +7639,7 @@ resolveBoss(win, reason) {
     if (next.id === 'storm') {
       Audio.sfxThunder();
       this.cameras.main.flash(300, 255, 255, 255);
-      this.showMessage(`⛈️ 폭풍이 몰아칩니다!\n이동이 느려지고 식량이 줄어듭니다`);
+      // 폭풍은 HUD 날씨 아이콘·화면 틴트·번개 연출로 전달 — 중앙 메시지 생략
     }
   }
 
