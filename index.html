@@ -4401,6 +4401,15 @@ class ArenaScene extends Phaser.Scene {
     this.hpGraphics = this.add.graphics().setDepth(5);
     computeLabBuffs();
     this.player = new Group(WORLD_W / 2, WORLD_H / 2, true, '나의 집단');
+    // 강이 중앙을 관통하므로 시작 지점이 강물이면 강가(초원)로 밀어냄
+    if (this.terrainAt(this.player.x, this.player.y).id === 'river') {
+      for (let off = TILE; off < WORLD_W / 2; off += TILE) {
+        const lx = clamp(this.player.x - off, 60, WORLD_W - 60);
+        if (this.terrainAt(lx, this.player.y).id !== 'river') { this.player.x = lx; break; }
+        const rxp = clamp(this.player.x + off, 60, WORLD_W - 60);
+        if (this.terrainAt(rxp, this.player.y).id !== 'river') { this.player.x = rxp; break; }
+      }
+    }
     const _diff = getDiffConfig();
     const _startPop = Math.max(5, START_INDIVIDUALS + (LAB_BUFFS ? LAB_BUFFS.extraPop : 0) + _diff.startPop);
     this.initGroup(this.player, _startPop);
@@ -4550,15 +4559,16 @@ class ArenaScene extends Phaser.Scene {
       { cx:.5,  cy:.5,  r:.36, terrain: TERRAIN.plain   },  // 중앙 초원
     ];
 
-    // 강 경로: 구불구불 흐르는 강 (상단→하단, 살짝 우측 편향)
+    // 강 경로: 초원 한가운데(x≈0.5)를 관통하며 상단→하단으로 구불구불 흐름
     const riverPath = [];
-    let rx = 0.62 + (Math.random() - 0.5) * 0.1;
+    let rx = 0.5 + (Math.random() - 0.5) * 0.05; // 중앙에서 시작
     for (let step = 0; step <= H; step++) {
       riverPath.push(rx);
-      rx += (Math.random() - 0.46) * 0.055; // 약간 우측 편향
-      rx = clamp(rx, 0.30, 0.88);
+      rx += (Math.random() - 0.5) * 0.05;          // 편향 없이 부드럽게 사행
+      rx += (0.5 - rx) * 0.06;                      // 중앙으로 되돌리는 힘 — 초원 가운데 유지
+      rx = clamp(rx, 0.42, 0.58);
     }
-    const RIVER_W = 0.075; // 강 너비 (비율)
+    const RIVER_W = 0.13; // 강 너비 (비율) — 기존 0.075에서 확대
 
     const grid = [];
     for (let y = 0; y < H; y++) {
