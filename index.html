@@ -384,6 +384,14 @@ canvas { display: block; image-rendering: pixelated; }
   -webkit-tap-highlight-color: transparent; touch-action: manipulation;
 }
 .skill-btn .sk-name { font-family: 'Jua', sans-serif; font-size: 9.5px; font-weight: 800; letter-spacing: .02em; }
+/* 스킬 단축키 배지 (좌상단) — 어떤 키인지 헷갈리지 않게 표시 */
+.skill-btn .sk-key {
+  position: absolute; top: -6px; left: -6px; min-width: 16px; height: 16px; padding: 0 3px;
+  display: flex; align-items: center; justify-content: center;
+  background: #2a2340; color: #fff; border: 2px solid rgba(255,255,255,.9); border-radius: 6px;
+  font-family: 'Jua', sans-serif; font-size: 10px; font-weight: 900; line-height: 1;
+  box-shadow: 0 1px 3px rgba(0,0,0,.4); pointer-events: none; z-index: 1;
+}
 .skill-btn:active:not(.cooling):not(.locked) { transform: translateY(2px); box-shadow: 0 2px 4px rgba(0,0,0,.2); }
 .skill-btn.cooling { filter: grayscale(.85) brightness(.7); cursor: default; }
 .skill-btn .sk-cd {
@@ -407,6 +415,8 @@ canvas { display: block; image-rendering: pixelated; }
   .skill-btn { width: 46px; height: 46px; font-size: 17px; border-radius: 11px; }
   .skill-btn .sk-name { font-size: 8.5px; }
 }
+/* 터치 전용 기기(키보드 없음)에서는 단축키 배지 숨김 */
+@media (pointer: coarse) and (hover: none) { .skill-btn .sk-key { display: none; } }
 
 /* ─── 일시정지 모달 ─── */
 #pause-modal {
@@ -1537,39 +1547,9 @@ body { image-rendering: pixelated; }
    PC 와이드스크린 레이아웃 (≥1080px)
    ═══════════════════════════════════════════ */
 @media (min-width: 1080px) {
-  /* 사이드 패널 공통 — 표시 여부는 JS(startGame/_applyResize)가 인라인 스타일로 제어 */
-  .pc-side-panel {
-    flex-direction: column;
-    gap: 10px;
-    position: fixed;
-    top: 0;
-    bottom: 0;
-    z-index: 30;
-    padding: 12px 10px;
-    overflow-y: auto;
-    pointer-events: auto;
-    background: rgba(253,246,227,0.72);
-    backdrop-filter: blur(12px);
-    border: 1.5px solid rgba(255,255,255,0.85);
-    box-shadow: 2px 0 16px rgba(100,75,55,0.12);
-  }
-  #pc-panel-left  { left: 0; width: 230px; border-right: 1.5px solid rgba(255,255,255,0.7); }
-  #pc-panel-right { right: 0; width: 200px; border-left: 1.5px solid rgba(255,255,255,0.7); }
-
-  /* 캔버스/HUD를 사이드 패널 안쪽으로 밀기 */
-  #game-container { margin-left: 230px; margin-right: 200px; width: calc(100vw - 430px) !important; }
-  #hud            { left: 230px !important; right: 200px !important; }
-  /* position:fixed라 뷰포트 기준 — HUD(left:230, right:200) + 내부 여백(left:8, right:62) 합산 */
-  #boss-banner, #next-boss-hint { left: 238px !important; right: 262px !important; }
-  #combat-pulse   { left: 230px; right: 200px; }
-
-  /* 리더보드 패널을 왼쪽 사이드바 안으로 흡수 */
-  #leaderboard-panel {
-    position: static !important;
-    width: 100% !important;
-    box-shadow: none !important;
-    border-radius: 12px !important;
-  }
+  /* PC에서도 게임을 화면 전체로 — 좌우 사이드 패널·여백 제거 */
+  .pc-side-panel { display: none !important; }
+  #game-container { margin-left: 0; margin-right: 0; width: 100vw !important; }
 }
 
 /* PC 사이드 패널 내부 위젯 */
@@ -1789,12 +1769,12 @@ body { image-rendering: pixelated; }
 
   <!-- 실시간 전투 스킬바: 전투·보스 교전 중에만 표시 — 스킬은 돌연변이 보유로 해금 (Z/X/C/V/R/T) -->
   <div id="skill-bar">
-    <button class="skill-btn" id="sk-onslaught" type="button" onpointerdown="event.preventDefault();useCombatSkill('onslaught')">⚔️<span class="sk-name">돌격</span><span class="sk-lock">🔒</span><span class="sk-cd" id="skcd-onslaught"></span></button>
-    <button class="skill-btn" id="sk-rally" type="button" onpointerdown="event.preventDefault();useCombatSkill('rally')">🛡️<span class="sk-name">철벽</span><span class="sk-lock">🔒</span><span class="sk-cd" id="skcd-rally"></span></button>
-    <button class="skill-btn" id="sk-burst" type="button" onpointerdown="event.preventDefault();useCombatSkill('burst')">💥<span class="sk-name">독액</span><span class="sk-lock">🔒</span><span class="sk-cd" id="skcd-burst"></span></button>
-    <button class="skill-btn" id="sk-heal" type="button" onpointerdown="event.preventDefault();useCombatSkill('heal')">💗<span class="sk-name">재생</span><span class="sk-lock">🔒</span><span class="sk-cd" id="skcd-heal"></span></button>
-    <button class="skill-btn" id="sk-haste" type="button" onpointerdown="event.preventDefault();useCombatSkill('haste')">⚡<span class="sk-name">질주</span><span class="sk-lock">🔒</span><span class="sk-cd" id="skcd-haste"></span></button>
-    <button class="skill-btn" id="sk-fear" type="button" onpointerdown="event.preventDefault();useCombatSkill('fear')">😱<span class="sk-name">위협</span><span class="sk-lock">🔒</span><span class="sk-cd" id="skcd-fear"></span></button>
+    <button class="skill-btn" id="sk-onslaught" type="button" onpointerdown="event.preventDefault();useCombatSkill('onslaught')"><span class="sk-key">Z</span>⚔️<span class="sk-name">돌격</span><span class="sk-lock">🔒</span><span class="sk-cd" id="skcd-onslaught"></span></button>
+    <button class="skill-btn" id="sk-rally" type="button" onpointerdown="event.preventDefault();useCombatSkill('rally')"><span class="sk-key">X</span>🛡️<span class="sk-name">철벽</span><span class="sk-lock">🔒</span><span class="sk-cd" id="skcd-rally"></span></button>
+    <button class="skill-btn" id="sk-burst" type="button" onpointerdown="event.preventDefault();useCombatSkill('burst')"><span class="sk-key">C</span>💥<span class="sk-name">독액</span><span class="sk-lock">🔒</span><span class="sk-cd" id="skcd-burst"></span></button>
+    <button class="skill-btn" id="sk-heal" type="button" onpointerdown="event.preventDefault();useCombatSkill('heal')"><span class="sk-key">V</span>💗<span class="sk-name">재생</span><span class="sk-lock">🔒</span><span class="sk-cd" id="skcd-heal"></span></button>
+    <button class="skill-btn" id="sk-haste" type="button" onpointerdown="event.preventDefault();useCombatSkill('haste')"><span class="sk-key">R</span>⚡<span class="sk-name">질주</span><span class="sk-lock">🔒</span><span class="sk-cd" id="skcd-haste"></span></button>
+    <button class="skill-btn" id="sk-fear" type="button" onpointerdown="event.preventDefault();useCombatSkill('fear')"><span class="sk-key">T</span>😱<span class="sk-name">위협</span><span class="sk-lock">🔒</span><span class="sk-cd" id="skcd-fear"></span></button>
   </div>
 
   <div id="near-extinct-overlay" style="position:fixed;inset:0;pointer-events:none;z-index:11;background:transparent"></div>
@@ -1909,6 +1889,12 @@ body { image-rendering: pixelated; }
       <button class="pause-btn pause-settings" id="options-terrnotify-toggle"
         style="width:auto;padding:8px 14px;font-size:13px;min-width:72px"
         onclick="cycleTerrainNotify(this)">간략</button>
+    </div>
+    <div class="setting-row">
+      <span>🎮 이동 방식 (WASD / 마우스 우클릭)</span>
+      <button class="pause-btn pause-settings" id="options-movemode-toggle"
+        style="width:auto;padding:8px 14px;font-size:13px;min-width:84px"
+        onclick="cycleMoveMode(this)">⌨️ WASD</button>
     </div>
     <div class="setting-row">
       <span>📖 튜토리얼 초기화</span>
@@ -2036,6 +2022,12 @@ body { image-rendering: pixelated; }
         <button class="pause-btn pause-settings" id="pause-terrnotify-toggle"
           style="width:auto;padding:8px 14px;font-size:14px;min-width:72px"
           onclick="cycleTerrainNotify(this)">간략</button>
+      </div>
+      <div class="setting-row">
+        <span>🎮 이동 방식 (WASD / 마우스)</span>
+        <button class="pause-btn pause-settings" id="pause-movemode-toggle"
+          style="width:auto;padding:8px 14px;font-size:14px;min-width:84px"
+          onclick="cycleMoveMode(this)">⌨️ WASD</button>
       </div>
       <div class="setting-row">
         <span>🎯 번식 돌연변이 선택창 (계통수 해금 필요)</span>
@@ -5751,19 +5743,39 @@ class ArenaScene extends Phaser.Scene {
       cam().setZoom(clampZoom(cam().zoom * factor));
     }, { passive: false });
 
-    // ── 우클릭 → 목적지 이동 ──────────────────────────
+    // ── 마우스 이동 (LoL식): 우클릭 = 목적지 이동, 우클릭 유지 = 커서 쪽으로 계속 따라옴 ──
     this._clickTarget = null;
+    this._rmbHeld = false;              // 우클릭 유지 여부
+    this._mouseClient = null;          // 최신 커서 화면 좌표 (유지 추종용)
     this._clickMarker = this.add.graphics().setDepth(7).setScrollFactor(1);
-    this.game.canvas.addEventListener('contextmenu', e => {
-      e.preventDefault();
+    // 우클릭 컨텍스트 메뉴 차단
+    this.game.canvas.addEventListener('contextmenu', e => e.preventDefault());
+    this.game.canvas.addEventListener('mousedown', e => {
+      if (e.button !== 2) return;                 // 우클릭만
       if (_paused || this.gameOver) return;
-      const rect = this.game.canvas.getBoundingClientRect();
-      const sx = e.clientX - rect.left;
-      const sy = e.clientY - rect.top;
-      const world = cam().getWorldPoint(sx, sy);
-      this._clickTarget = { x: world.x, y: world.y };
-      this._drawClickMarker(world.x, world.y);
+      if (getMoveMode() !== 'mouse') return;      // 마우스 이동 모드에서만
+      e.preventDefault();
+      this._rmbHeld = true;
+      this._mouseClient = { x: e.clientX, y: e.clientY };
+      this._applyMouseMoveTarget(true);           // 즉시 한 번 목적지 설정 + 마커 표시
     });
+    this.game.canvas.addEventListener('mousemove', e => {
+      this._mouseClient = { x: e.clientX, y: e.clientY };
+    });
+    // 버튼을 떼면 추종 중지 (캔버스 밖에서 떼도 잡히도록 window에 등록)
+    window.addEventListener('mouseup', e => { if (e.button === 2) this._rmbHeld = false; });
+  }
+
+  // 현재 커서 화면 좌표 → 월드 좌표를 목적지로 설정 (마우스 이동 모드)
+  // drawMarker는 최초 클릭 때만 true — 유지 추종(매 프레임) 중엔 마커·타이머를 쌓지 않음
+  _applyMouseMoveTarget(drawMarker = false) {
+    if (!this._mouseClient) return;
+    const rect = this.game.canvas.getBoundingClientRect();
+    const sx = this._mouseClient.x - rect.left;
+    const sy = this._mouseClient.y - rect.top;
+    const world = this.cameras.main.getWorldPoint(sx, sy);
+    this._clickTarget = { x: world.x, y: world.y };
+    if (drawMarker) this._drawClickMarker(world.x, world.y);
   }
 
   update(_time, dt) {
@@ -5918,25 +5930,33 @@ class ArenaScene extends Phaser.Scene {
     const hasteSpd = this.combatBuffActive('haste') ? 1.5 : 1; // 질주 스킬: 이동 속도 +50%
     const frostSpd = (this._bossSlowUntil && this.elapsed < this._bossSlowUntil) ? 0.55 : 1; // 빙결 노바 피격: 감속
     const speed = (this.player.average('speed') / 80) * 165 * (dt / 1000) * terrain.speed * geneSpd * weatherSpd * hasteSpd * frostSpd;
-    const keyX = (this.keys.right.isDown ? 1 : 0) - (this.keys.left.isDown ? 1 : 0);
-    const keyY = (this.keys.down.isDown ? 1 : 0) - (this.keys.up.isDown ? 1 : 0);
+    const moveMode = getMoveMode();
+    // WASD 모드에서만 키보드 방향 사용 (마우스 모드에선 WASD 이동 비활성)
+    const keyX = moveMode === 'wasd' ? ((this.keys.right.isDown ? 1 : 0) - (this.keys.left.isDown ? 1 : 0)) : 0;
+    const keyY = moveMode === 'wasd' ? ((this.keys.down.isDown ? 1 : 0) - (this.keys.up.isDown ? 1 : 0)) : 0;
+    // 조이스틱(터치)은 두 모드 모두에서 항상 동작
     let dirX = this.joystick.dirX + keyX;
     let dirY = this.joystick.dirY + keyY;
 
-    // 우클릭 목적지 이동 (조이스틱/키보드 입력이 없을 때만)
+    // 마우스 이동 모드: 우클릭 유지 시 매 프레임 커서 쪽으로 목적지 갱신(LoL식 추종)
+    if (moveMode === 'mouse' && this._rmbHeld && Math.hypot(dirX, dirY) < 0.05) {
+      this._applyMouseMoveTarget();
+    }
+
+    // 목적지(우클릭) 이동 — 조이스틱 입력이 없을 때만
     if (this._clickTarget && Math.hypot(dirX, dirY) < 0.05) {
       const tdx = this._clickTarget.x - this.player.x;
       const tdy = this._clickTarget.y - this.player.y;
       const dist = Math.hypot(tdx, tdy);
       if (dist < speed + 4) {
-        this._clickTarget = null;
-        this._clickMarker?.clear();
+        // 도착: 유지 중이 아니면 목적지 해제 (유지 중이면 다음 프레임 커서로 재설정)
+        if (!this._rmbHeld) { this._clickTarget = null; this._clickMarker?.clear(); }
       } else {
         dirX = tdx / dist;
         dirY = tdy / dist;
       }
     } else if (this._clickTarget && Math.hypot(dirX, dirY) >= 0.05) {
-      // 조이스틱/키 입력 시 우클릭 목적지 취소
+      // 조이스틱 입력 시 목적지 취소
       this._clickTarget = null;
       this._clickMarker?.clear();
     }
@@ -7846,25 +7866,7 @@ resolveBoss(win, reason) {
       }
     }
 
-    // PC 사이드 패널 업데이트
-    if (window.innerWidth >= 1080) {
-      const el = id => document.getElementById(id);
-      const em = Math.floor(this.elapsed / 60000), es = Math.floor((this.elapsed % 60000) / 1000);
-      if (el('pc-elapsed')) el('pc-elapsed').textContent = `${em}:${String(es).padStart(2,'0')}`;
-      if (el('pc-evo'))     el('pc-evo').textContent = `Lv.${this.evoLevel}`;
-      if (el('pc-food'))    el('pc-food').textContent = Math.floor(group.food);
-      if (el('pc-pop'))     el('pc-pop').textContent = group.count;
-      if (el('pc-gen'))     el('pc-gen').textContent = group.generation;
-      if (el('pc-next-boss') && this._waveList) {
-        const allDone = this._waveIdx >= this._waveList.length;
-        if (allDone) {
-          el('pc-next-boss').textContent = GAME_MODE === 'infinite' ? T('inf_ongoing') : T('all_done');
-        } else {
-          const nb = bossById(this._waveList[this._waveIdx]);
-          el('pc-next-boss').innerHTML = nb ? `${nb.ico} ${nb.name}<br><span style="font-size:10px;color:var(--ink-soft)">${nb.reqText}</span>` : '—';
-        }
-      }
-    }
+    // (PC 사이드 패널 제거됨 — 화면 전체 사용)
 
     // 전쟁 현황 배너 (실시간 전투: 타이머 없음 — 병력·콤보 표시)
     const activeBattle = this.battles.find(b => b.active && (b.groupA.isPlayer || b.groupB.isPlayer));
@@ -8571,16 +8573,9 @@ function startGame(diffIndex = 0, mode = 'normal') {
   }
   document.getElementById('title-screen').style.display = 'none';
   document.getElementById('hud').style.display = 'block';
-  // PC 와이드스크린 사이드 패널 표시
-  if (window.innerWidth >= 1080) {
-    document.getElementById('pc-panel-left').style.display = 'flex';
-    document.getElementById('pc-panel-right').style.display = 'flex';
-    document.getElementById('pc-mode-badge').textContent = GAME_MODE === 'infinite' ? T('mode_infinite') : T('mode_normal');
-    document.getElementById('pc-mode-badge').className = GAME_MODE === 'infinite' ? 'pc-inf-badge' : '';
-    // Phaser 캔버스 컨테이너 너비 조정 (Phaser.Scale.NONE이라 수동 조정 필요)
-    const gc = document.getElementById('game-container');
-    gc.style.width = (window.innerWidth - 430) + 'px';
-  }
+  // PC에서도 사이드 패널 없이 화면 전체 사용 (좌우 여백·설명창 제거)
+  document.getElementById('pc-panel-left').style.display = 'none';
+  document.getElementById('pc-panel-right').style.display = 'none';
   const _db = document.getElementById('diff-badge');
   const _dc = getDiffConfig();
   if (GAME_MODE === 'infinite') {
@@ -8594,8 +8589,7 @@ function startGame(diffIndex = 0, mode = 'normal') {
   } else {
     _db.style.display = 'none';
   }
-  const _isPc = window.innerWidth >= 1080;
-  const width = Math.max((_isPc ? window.innerWidth - 430 : window.innerWidth) || 800, 400);
+  const width = Math.max(window.innerWidth || 800, 400);
   const height = Math.max(window.innerHeight || 600, 500);
   game = new Phaser.Game({
     type: Phaser.AUTO,
@@ -9069,10 +9063,32 @@ function cycleTerrainNotify(btn) {
   const next = TERR_NOTIFY_MODES[(TERR_NOTIFY_MODES.indexOf(cur) + 1) % TERR_NOTIFY_MODES.length];
   localStorage.setItem('gpa_terrain_notify', next);
   refreshTerrainNotifyBtns();
+  refreshMoveModeBtns();
   // 즉시 반영: 남아있던 칩/박스 정리 (다음 틱에 새 모드로 다시 그려짐)
   const alert = document.getElementById('terrain-alert');
   if (alert) { alert.style.display = 'none'; alert.classList.remove('warn', 'active'); alert.dataset.k = ''; }
 }
+// ── 이동 방식 (PC): 'wasd'(에브리띵이즈크랩식 키보드) | 'mouse'(LoL식 우클릭 이동) ──
+function getMoveMode() {
+  const m = localStorage.getItem('gpa_move_mode');
+  return m === 'mouse' ? 'mouse' : 'wasd';
+}
+function refreshMoveModeBtns() {
+  const label = getMoveMode() === 'mouse' ? '🖱️ 마우스' : '⌨️ WASD';
+  for (const id of ['options-movemode-toggle', 'pause-movemode-toggle']) {
+    const btn = document.getElementById(id);
+    if (btn) btn.textContent = label;
+  }
+}
+function cycleMoveMode(btn) {
+  const next = getMoveMode() === 'wasd' ? 'mouse' : 'wasd';
+  localStorage.setItem('gpa_move_mode', next);
+  refreshMoveModeBtns();
+  // 모드 전환 시 이동 목표·조이스틱 잔상 정리
+  const sc = window._arenaScene;
+  if (sc) { sc._clickTarget = null; sc._rmbHeld = false; sc._clickMarker?.clear(); }
+}
+
 function refreshSpeedToggleRow() {
   const btn   = document.getElementById('speed-toggle');
   const label = document.getElementById('speed-toggle-label');
@@ -9103,6 +9119,7 @@ function openOptionsModal() {
   const breedBtn = document.getElementById('options-breedpick-toggle');
   if (breedBtn) breedBtn.classList.toggle('on', localStorage.getItem('gpa_breedpick_off') !== '1');
   refreshTerrainNotifyBtns();
+  refreshMoveModeBtns();
   const bgmVol = localStorage.getItem('gpa_bgm_vol') ?? '45';
   const sfxVol = localStorage.getItem('gpa_sfx_vol') ?? '50';
   document.querySelectorAll('.vol-slider[id$="-bgm-vol"]').forEach(s => s.value = bgmVol);
@@ -9274,6 +9291,7 @@ function toggleSettings() {
   const breedBtn = document.getElementById('pause-breedpick-toggle');
   if (breedBtn) breedBtn.classList.toggle('on', localStorage.getItem('gpa_breedpick_off') !== '1');
   refreshTerrainNotifyBtns();
+  refreshMoveModeBtns();
 }
 function togglePauseBgm(btn) {
   btn.classList.toggle('on');
@@ -9341,24 +9359,14 @@ function _cancelJoystick() {
 
 function _applyResize() {
   if (!game) return;
-  // PC 와이드 모드(사이드 패널 표시)는 startGame과 동일한 기준으로 재판정
-  const inGame = document.getElementById('hud').style.display !== 'none';
-  const isPc = inGame && window.innerWidth >= 1080;
+  // 사이드 패널 없이 항상 화면 전체 사용
   const left = document.getElementById('pc-panel-left');
   const right = document.getElementById('pc-panel-right');
-  if (left)  left.style.display  = isPc ? 'flex' : 'none';
-  if (right) right.style.display = isPc ? 'flex' : 'none';
-  if (isPc) {
-    const badge = document.getElementById('pc-mode-badge');
-    if (badge && !badge.textContent) {
-      badge.textContent = GAME_MODE === 'infinite' ? T('mode_infinite') : T('mode_normal');
-      badge.className = GAME_MODE === 'infinite' ? 'pc-inf-badge' : '';
-    }
-  }
+  if (left)  left.style.display  = 'none';
+  if (right) right.style.display = 'none';
   const gc = document.getElementById('game-container');
-  const w = isPc ? window.innerWidth - 430 : window.innerWidth;
-  if (gc) gc.style.width = isPc ? w + 'px' : '';
-  game.scale.resize(w, window.innerHeight);
+  if (gc) gc.style.width = '';
+  game.scale.resize(window.innerWidth, window.innerHeight);
 }
 
 // 일반 resize (데스크톱 창 크기 변경 + 모바일 기본)
