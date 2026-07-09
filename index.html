@@ -1769,12 +1769,12 @@ body { image-rendering: pixelated; }
 
   <!-- 실시간 전투 스킬바: 전투·보스 교전 중에만 표시 — 스킬은 돌연변이 보유로 해금 (Z/X/C/V/R/T) -->
   <div id="skill-bar">
-    <button class="skill-btn" id="sk-onslaught" type="button" onpointerdown="event.preventDefault();useCombatSkill('onslaught')"><span class="sk-key">Z</span>⚔️<span class="sk-name">돌격</span><span class="sk-lock">🔒</span><span class="sk-cd" id="skcd-onslaught"></span></button>
-    <button class="skill-btn" id="sk-rally" type="button" onpointerdown="event.preventDefault();useCombatSkill('rally')"><span class="sk-key">X</span>🛡️<span class="sk-name">철벽</span><span class="sk-lock">🔒</span><span class="sk-cd" id="skcd-rally"></span></button>
-    <button class="skill-btn" id="sk-burst" type="button" onpointerdown="event.preventDefault();useCombatSkill('burst')"><span class="sk-key">C</span>💥<span class="sk-name">독액</span><span class="sk-lock">🔒</span><span class="sk-cd" id="skcd-burst"></span></button>
-    <button class="skill-btn" id="sk-heal" type="button" onpointerdown="event.preventDefault();useCombatSkill('heal')"><span class="sk-key">V</span>💗<span class="sk-name">재생</span><span class="sk-lock">🔒</span><span class="sk-cd" id="skcd-heal"></span></button>
-    <button class="skill-btn" id="sk-haste" type="button" onpointerdown="event.preventDefault();useCombatSkill('haste')"><span class="sk-key">R</span>⚡<span class="sk-name">질주</span><span class="sk-lock">🔒</span><span class="sk-cd" id="skcd-haste"></span></button>
-    <button class="skill-btn" id="sk-fear" type="button" onpointerdown="event.preventDefault();useCombatSkill('fear')"><span class="sk-key">T</span>😱<span class="sk-name">위협</span><span class="sk-lock">🔒</span><span class="sk-cd" id="skcd-fear"></span></button>
+    <button class="skill-btn" id="sk-onslaught" type="button" onpointerdown="event.preventDefault();useCombatSkill('onslaught')"><span class="sk-key">1</span>⚔️<span class="sk-name">돌격</span><span class="sk-lock">🔒</span><span class="sk-cd" id="skcd-onslaught"></span></button>
+    <button class="skill-btn" id="sk-rally" type="button" onpointerdown="event.preventDefault();useCombatSkill('rally')"><span class="sk-key">2</span>🛡️<span class="sk-name">철벽</span><span class="sk-lock">🔒</span><span class="sk-cd" id="skcd-rally"></span></button>
+    <button class="skill-btn" id="sk-burst" type="button" onpointerdown="event.preventDefault();useCombatSkill('burst')"><span class="sk-key">3</span>💥<span class="sk-name">독액</span><span class="sk-lock">🔒</span><span class="sk-cd" id="skcd-burst"></span></button>
+    <button class="skill-btn" id="sk-heal" type="button" onpointerdown="event.preventDefault();useCombatSkill('heal')"><span class="sk-key">4</span>💗<span class="sk-name">재생</span><span class="sk-lock">🔒</span><span class="sk-cd" id="skcd-heal"></span></button>
+    <button class="skill-btn" id="sk-haste" type="button" onpointerdown="event.preventDefault();useCombatSkill('haste')"><span class="sk-key">5</span>⚡<span class="sk-name">질주</span><span class="sk-lock">🔒</span><span class="sk-cd" id="skcd-haste"></span></button>
+    <button class="skill-btn" id="sk-fear" type="button" onpointerdown="event.preventDefault();useCombatSkill('fear')"><span class="sk-key">6</span>😱<span class="sk-name">위협</span><span class="sk-lock">🔒</span><span class="sk-cd" id="skcd-fear"></span></button>
   </div>
 
   <div id="near-extinct-overlay" style="position:fixed;inset:0;pointer-events:none;z-index:11;background:transparent"></div>
@@ -2973,6 +2973,29 @@ function combatSkillCarriers(group, skillId) {
 function combatSkillReqText(skillId) {
   const def = COMBAT_SKILLS[skillId];
   return def.muts.map(id => (mutationById(id) || {}).name).filter(Boolean).join(', ');
+}
+// ── 이동 방식별 스킬 단축키 ──────────────────────────
+// WASD 모드(왼손 이동): 스킬은 숫자열 1~6 / 마우스 모드(오른손 이동): 스킬은 QWERTY 열
+const SKILL_KEYMAP = {
+  wasd:  { onslaught:'1', rally:'2', burst:'3', heal:'4', haste:'5', fear:'6' },
+  mouse: { onslaught:'Q', rally:'W', burst:'E', heal:'R', haste:'T', fear:'Y' },
+};
+const SKILL_ORDER = ['onslaught', 'rally', 'burst', 'heal', 'haste', 'fear'];
+// 현재 이동 방식에서 해당 스킬의 단축키
+function skillKeyFor(id) { return (SKILL_KEYMAP[getMoveMode()] || SKILL_KEYMAP.wasd)[id] || ''; }
+// 눌린 키 → 현재 이동 방식에서 매핑된 스킬 id (없으면 null)
+function skillForKey(rawKey) {
+  const k = rawKey && rawKey.length === 1 ? rawKey.toUpperCase() : rawKey;
+  const map = SKILL_KEYMAP[getMoveMode()] || SKILL_KEYMAP.wasd;
+  for (const id of SKILL_ORDER) if (map[id] === k) return id;
+  return null;
+}
+// 스킬 버튼 좌상단 키 배지를 현재 이동 방식에 맞게 갱신
+function refreshSkillKeyBadges() {
+  for (const id of SKILL_ORDER) {
+    const badge = document.querySelector(`#sk-${id} .sk-key`);
+    if (badge) badge.textContent = skillKeyFor(id);
+  }
 }
 const FOLLOW_RADIUS = 78;
 const COLLECT_RADIUS = 72;
@@ -6628,9 +6651,10 @@ class ArenaScene extends Phaser.Scene {
       const carriers = combatSkillCarriers(this.player, id);
       const locked = carriers <= 0;
       btn.classList.toggle('locked', locked);
+      const _k = skillKeyFor(id);
       btn.title = locked
-        ? `${def.name} (${def.key}) 🔒 필요 돌연변이: ${combatSkillReqText(id)}`
-        : `${def.name} (${def.key}): ${def.desc} — 보유 ${carriers}마리`;
+        ? `${def.name} (${_k}) 🔒 필요 돌연변이: ${combatSkillReqText(id)}`
+        : `${def.name} (${_k}): ${def.desc} — 보유 ${carriers}마리`;
       if (locked) {
         btn.classList.remove('cooling', 'buff-on');
         cdEl.textContent = '';
@@ -8576,6 +8600,7 @@ function startGame(diffIndex = 0, mode = 'normal') {
   // PC에서도 사이드 패널 없이 화면 전체 사용 (좌우 여백·설명창 제거)
   document.getElementById('pc-panel-left').style.display = 'none';
   document.getElementById('pc-panel-right').style.display = 'none';
+  refreshSkillKeyBadges(); // 현재 이동 방식에 맞는 스킬 키 배지 표시
   const _db = document.getElementById('diff-badge');
   const _dc = getDiffConfig();
   if (GAME_MODE === 'infinite') {
@@ -9079,11 +9104,13 @@ function refreshMoveModeBtns() {
     const btn = document.getElementById(id);
     if (btn) btn.textContent = label;
   }
+  refreshSkillKeyBadges(); // 스킬 키 배지도 현재 이동 방식에 맞게 동기화
 }
 function cycleMoveMode(btn) {
   const next = getMoveMode() === 'wasd' ? 'mouse' : 'wasd';
   localStorage.setItem('gpa_move_mode', next);
   refreshMoveModeBtns();
+  refreshSkillKeyBadges(); // 이동 방식에 따라 스킬 키 배지(1~6 / QWERTY) 갱신
   // 모드 전환 시 이동 목표·조이스틱 잔상 정리
   const sc = window._arenaScene;
   if (sc) { sc._clickTarget = null; sc._rmbHeld = false; sc._clickMarker?.clear(); }
@@ -9154,36 +9181,24 @@ document.addEventListener('keydown', e => {
   const gameActive = sc && !sc.gameOver && document.getElementById('hud').style.display !== 'none';
   const modalOpen = document.querySelector('.dex-modal.open, #options-modal.open, #pause-modal.open, #mutation-picker.open, #lab-modal.open');
   const paused = _paused; // 일시정지 상태는 모듈 변수 (sc._paused는 존재하지 않음)
+  // 전투 스킬 단축키 (이동 방식에 따라 WASD=1~6 / 마우스=QWERTY) — 스위치보다 먼저 처리
+  const _skid = skillForKey(e.key);
+  if (_skid) {
+    if (sc && !modalOpen && !paused) { sc.useCombatSkill(_skid); e.preventDefault(); }
+    return; // 스킬 키는 여기서 소비 (다른 단축키로 넘어가지 않음)
+  }
   switch (e.key) {
     case 'Tab':
       // Tab: 도감 토글 (WASD와 겹치지 않음)
       if (document.getElementById('dex-modal').classList.contains('open')) { closeDex(); e.preventDefault(); }
       else if (!modalOpen) { openDex(); e.preventDefault(); } break;
-    case 'q': case 'Q':
-      // Q: 계통수 토글 (게임 중 이동 키 아님)
+    case 'l': case 'L':
+      // L: 계통수(Lab) 토글 — Q는 마우스 모드에서 스킬 키라 L로 이동
       if (document.getElementById('lab-modal').classList.contains('open')) { closeLab(); e.preventDefault(); }
       else if (!modalOpen) { openLab(); e.preventDefault(); } break;
     case 'b': case 'B':
       // B: 번식 (이동 키 아님, 게임 중만)
       if (sc && !modalOpen && !paused) { sc.handleAction(); e.preventDefault(); } break;
-    case 'z': case 'Z':
-      // Z: 전투 스킬 — 돌격 명령
-      if (sc && !modalOpen && !paused) { sc.useCombatSkill('onslaught'); e.preventDefault(); } break;
-    case 'x': case 'X':
-      // X: 전투 스킬 — 결집 태세
-      if (sc && !modalOpen && !paused) { sc.useCombatSkill('rally'); e.preventDefault(); } break;
-    case 'c': case 'C':
-      // C: 전투 스킬 — 독액 폭발
-      if (sc && !modalOpen && !paused) { sc.useCombatSkill('burst'); e.preventDefault(); } break;
-    case 'v': case 'V':
-      // V: 전투 스킬 — 재생
-      if (sc && !modalOpen && !paused) { sc.useCombatSkill('heal'); e.preventDefault(); } break;
-    case 'r': case 'R':
-      // R: 전투 스킬 — 질주
-      if (sc && !modalOpen && !paused) { sc.useCombatSkill('haste'); e.preventDefault(); } break;
-    case 't': case 'T':
-      // T: 전투 스킬 — 위협
-      if (sc && !modalOpen && !paused) { sc.useCombatSkill('fear'); e.preventDefault(); } break;
     case ' ':
       if (sc && !modalOpen && !paused) { sc.handleAction(); e.preventDefault(); } break;
     case 'Escape':
@@ -9206,19 +9221,7 @@ document.addEventListener('keydown', e => {
     case 'f': case 'F':
       // F: 전체화면 — 게임 중 비활성 (F키 연타 실수 방지), 일시정지/타이틀에서만
       if (!gameActive || paused || modalOpen) { toggleFullscreen(); e.preventDefault(); } break;
-    case '1': case '2': case '3':
-      // 실제 게임 속도는 gpa_speed_val을 매 틱 읽는 방식 — HUD 버튼과 동일 경로 사용
-      if (sc && !modalOpen) {
-        const speeds = [1, 1.5, 2]; const s = speeds[parseInt(e.key) - 1];
-        const max = LAB_BUFFS?.gameSpeedUnlock || 0;
-        if (s === 1 || (max && s <= max)) {
-          localStorage.setItem('gpa_speed_val', String(s));
-          refreshSpeedBtn();
-          sc.showToast?.(`⚡ ${s}× 속도`, 'ach');
-        } else {
-          sc.showToast?.('🔒 배속은 계통수 [가속] 해금 후 사용 가능', 'warn');
-        }
-      } break;
+    // (게임 속도 숫자 단축키 제거 — WASD 모드에서 1~6이 스킬 키로 쓰임. 속도는 HUD 버튼·설정에서 조절)
   }
 });
 
