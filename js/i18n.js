@@ -22,6 +22,9 @@ const TRANSLATIONS = {
     next_boss: '다음 보스', cur_mode: '현재 모드',
     waiting: '대기 중…', all_done: '✅ 모든 보스 처치',
     inf_ongoing: '♾️ 계속 진행 중',
+    quit: '🚪 게임 종료', ok: '확인', cancel: '취소',
+    confirm_quit: '게임을 종료할까요?',
+    confirm_home: '메인 메뉴로 돌아갈까요?\n현재 게임이 종료됩니다.',
   },
   en: {
     title: 'Origin of Slime', title_en: '',
@@ -42,6 +45,9 @@ const TRANSLATIONS = {
     next_boss: 'Next Boss', cur_mode: 'Mode',
     waiting: 'Waiting…', all_done: '✅ All Bosses Defeated',
     inf_ongoing: '♾️ Ongoing',
+    quit: '🚪 Quit Game', ok: 'OK', cancel: 'Cancel',
+    confirm_quit: 'Quit the game?',
+    confirm_home: 'Return to the main menu?\nYour current run will end.',
   }
 };
 let _lang = Save.get('gpa_lang') || 'ko';

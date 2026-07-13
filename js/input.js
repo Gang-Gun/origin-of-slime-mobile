@@ -132,11 +132,11 @@ document.addEventListener('keydown', e => {
 });
 
 function resetAccount() {
-  if (!confirm('⚠️ 정말 초기화하시겠습니까?\n\n계통수 해금, 통계, 업적, 리더보드 연동 등\n모든 진행 데이터가 삭제됩니다.\n\n이 작업은 되돌릴 수 없습니다.')) return;
-  Save.resetAll();
-  closeOptionsModal();
-  alert('✅ 초기화 완료. 페이지를 새로고침합니다.');
-  location.reload();
+  uiConfirm('⚠️ 정말 초기화하시겠습니까?\n\n계통수 해금, 통계, 업적, 리더보드 연동 등\n모든 진행 데이터가 삭제됩니다.\n\n이 작업은 되돌릴 수 없습니다.', () => {
+    Save.resetAll();
+    closeOptionsModal();
+    uiAlert('✅ 초기화 완료. 페이지를 새로고침합니다.', () => location.reload());
+  });
 }
 function toggleOptionsMutPick(btn) {
   btn.classList.toggle('on');

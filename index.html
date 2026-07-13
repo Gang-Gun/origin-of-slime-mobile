@@ -50,6 +50,17 @@
     <button type="button" class="big-btn sky" onclick="openDex()" data-i18n="dex">📖 도감</button>
     <button type="button" class="big-btn lilac" onclick="openLab()" data-i18n="lab">🌳 계통수</button>
     <button type="button" class="big-btn lilac" onclick="openOptionsModal()" data-i18n="options">⚙️ 옵션</button>
+    <button id="quit-btn" type="button" class="big-btn lilac" style="display:none" onclick="desktopQuit()" data-i18n="quit">🚪 게임 종료</button>
+  </div>
+</div>
+<!-- confirm()/alert() 대체 공용 다이얼로그 (js/desktop.js) -->
+<div id="ui-dialog-modal" style="display:none;position:fixed;inset:0;z-index:300;background:rgba(20,14,36,.7);backdrop-filter:blur(8px);align-items:center;justify-content:center">
+  <div class="panel" style="padding:22px 20px;width:min(320px,88vw);display:flex;flex-direction:column;gap:14px;animation:popIn .3s cubic-bezier(.34,1.56,.64,1)">
+    <div id="ui-dialog-msg" style="font-size:14px;line-height:1.6;white-space:pre-line;text-align:center;color:var(--ink)"></div>
+    <div style="display:flex;gap:8px">
+      <button id="ui-dialog-cancel" type="button" class="pause-btn pause-home" style="flex:1" onclick="_uiDialogResolve(false)" data-i18n="cancel">취소</button>
+      <button id="ui-dialog-ok" type="button" class="pause-btn" style="flex:1" onclick="_uiDialogResolve(true)" data-i18n="ok">확인</button>
+    </div>
   </div>
 </div>
 <div id="stats-modal" style="display:none;position:fixed;inset:0;z-index:90;background:rgba(20,14,36,.7);backdrop-filter:blur(8px);align-items:center;justify-content:center">
@@ -307,7 +318,7 @@
     <div class="setting-row">
       <span>📖 튜토리얼 초기화</span>
       <button class="pause-btn pause-settings" style="width:auto;padding:8px 14px;font-size:13px"
-        onclick="localStorage.removeItem('gpa_tutorial_done');closeOptionsModal();alert('초기화 완료. 다음 게임 시작 시 튜토리얼이 표시됩니다.')">초기화</button>
+        onclick="Save.remove('gpa_tutorial_done');closeOptionsModal();uiAlert('초기화 완료. 다음 게임 시작 시 튜토리얼이 표시됩니다.')">초기화</button>
     </div>
     <div class="setting-row" style="border-top:1px solid rgba(239,68,68,.25);padding-top:12px;margin-top:4px;flex-direction:column;align-items:flex-start;gap:6px">
       <span style="color:var(--coral);font-size:13px">⚠️ 계정 초기화</span>
@@ -444,10 +455,10 @@
       <div class="setting-row">
         <span>📖 튜토리얼 초기화</span>
         <button class="pause-btn pause-settings" style="width:auto;padding:8px 14px;font-size:14px"
-          onclick="localStorage.removeItem('gpa_tutorial_done'); location.reload()">초기화</button>
+          onclick="Save.remove('gpa_tutorial_done'); location.reload()">초기화</button>
       </div>
     </div>
-    <button class="pause-btn pause-home" onclick="if(confirm('메인 메뉴로 돌아갈까요? 현재 게임이 종료됩니다.')) { Audio.stopBgm(); location.reload(); }">🏠 메인 메뉴로</button>
+    <button class="pause-btn pause-home" onclick="confirmGoHome()">🏠 메인 메뉴로</button>
   </div>
 </div>
 
@@ -513,6 +524,7 @@ if (typeof Phaser === 'undefined') {
 <script src="js/dex.js"></script>
 <script src="js/input.js"></script>
 <script src="js/ui.js"></script>
+<script src="js/desktop.js"></script>
 <!-- 점수 등록 모달 -->
 <div id="score-submit-modal">
   <div id="score-submit-card">

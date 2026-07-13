@@ -7,7 +7,30 @@
   "scripts": {
     "test": "node test/check-syntax.mjs && node test/smoke-save.mjs && node test/smoke-ach.mjs && node test/smoke-boss.mjs && node test/smoke-evo.mjs && node test/smoke-visual.mjs",
     "serve": "python3 -m http.server 8080",
-    "start": "electron .",
+    "start": "electron . --dev",
     "dist": "electron-builder"
+  },
+  "devDependencies": {
+    "electron": "^33.0.0",
+    "electron-builder": "^25.0.0"
+  },
+  "optionalDependencies": {
+    "steamworks.js": "^0.4.1"
+  },
+  "build": {
+    "appId": "com.ganggun.originofslime",
+    "productName": "Origin of Slime",
+    "files": [
+      "index.html",
+      "css/**/*",
+      "js/**/*",
+      "assets/**/*",
+      "electron/**/*"
+    ],
+    "asarUnpack": [
+      "node_modules/steamworks.js/**"
+    ],
+    "win": { "target": "portable" },
+    "linux": { "target": "dir" }
   }
 }

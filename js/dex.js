@@ -227,6 +227,8 @@ function markAchUnlocked(id) {
   const set = loadUnlockedAch();
   set.add(id);
   Save.set('gpa_ach_unlocked', JSON.stringify([...set]));
+  // Steam 실행 중이면 즉시 동기화 (js/desktop.js — 웹에서는 no-op)
+  if (typeof steamUnlockAch === 'function') steamUnlockAch(id);
 }
 
 let _achFilter = 'all';
