@@ -53,6 +53,16 @@
     <button id="quit-btn" type="button" class="big-btn lilac" style="display:none" onclick="desktopQuit()" data-i18n="quit">🚪 게임 종료</button>
   </div>
 </div>
+<!-- 키 설정 모달 (js/keymap.js) -->
+<div id="keybind-modal" style="display:none;position:fixed;inset:0;z-index:110;background:rgba(20,14,36,.7);backdrop-filter:blur(8px);align-items:center;justify-content:center" onclick="if(event.target===this)closeKeybindModal()">
+  <div class="panel" style="padding:20px 18px;width:min(360px,92vw);max-height:84vh;overflow-y:auto;display:flex;flex-direction:column;gap:8px;animation:popIn .3s cubic-bezier(.34,1.56,.64,1)">
+    <h2 style="font-family:'Jua',sans-serif;font-size:19px;color:var(--coral);text-align:center;margin:0">⌨️ 키 설정</h2>
+    <div style="font-size:11px;color:var(--ink-soft);text-align:center">변경할 항목을 누른 뒤 새 키를 입력하세요 (Esc 취소)<br>이미 사용 중인 키는 자리를 서로 바꿉니다</div>
+    <div id="keybind-body"></div>
+    <button type="button" class="pause-btn pause-settings" style="margin-top:6px" onclick="keybindResetClick()">↩️ 기본값 복원</button>
+    <button type="button" class="pause-btn pause-home" onclick="closeKeybindModal()">✕ 닫기</button>
+  </div>
+</div>
 <!-- confirm()/alert() 대체 공용 다이얼로그 (js/desktop.js) -->
 <div id="ui-dialog-modal" style="display:none;position:fixed;inset:0;z-index:300;background:rgba(20,14,36,.7);backdrop-filter:blur(8px);align-items:center;justify-content:center">
   <div class="panel" style="padding:22px 20px;width:min(320px,88vw);display:flex;flex-direction:column;gap:14px;animation:popIn .3s cubic-bezier(.34,1.56,.64,1)">
@@ -316,6 +326,17 @@
         onclick="cycleMoveMode(this)">⌨️ WASD</button>
     </div>
     <div class="setting-row">
+      <span>⌨️ 키 설정 (이동·스킬)</span>
+      <button class="pause-btn pause-settings" style="width:auto;padding:8px 14px;font-size:13px"
+        onclick="openKeybindModal()">변경</button>
+    </div>
+    <div class="setting-row">
+      <span>🖥️ UI 크기 <span id="ui-scale-label" style="color:var(--ink-soft)">100%</span></span>
+    </div>
+    <div class="setting-row" style="gap:8px">
+      <input type="range" class="vol-slider ui-scale-slider" min="80" max="140" step="10" value="100" oninput="setUiScale(this.value)">
+    </div>
+    <div class="setting-row">
       <span>📖 튜토리얼 초기화</span>
       <button class="pause-btn pause-settings" style="width:auto;padding:8px 14px;font-size:13px"
         onclick="Save.remove('gpa_tutorial_done');closeOptionsModal();uiAlert('초기화 완료. 다음 게임 시작 시 튜토리얼이 표시됩니다.')">초기화</button>
@@ -515,6 +536,7 @@ if (typeof Phaser === 'undefined') {
 }
 </script>
 <script src="js/save.js"></script>
+<script src="js/keymap.js"></script>
 <script src="js/i18n.js"></script>
 <script src="js/leaderboard.js"></script>
 <script src="js/lab.js"></script>
@@ -525,6 +547,7 @@ if (typeof Phaser === 'undefined') {
 <script src="js/input.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/desktop.js"></script>
+<script src="js/gamepad.js"></script>
 <!-- 점수 등록 모달 -->
 <div id="score-submit-modal">
   <div id="score-submit-card">

@@ -1469,15 +1469,22 @@ class ArenaScene extends Phaser.Scene {
   }
 
   setupKeyboard() {
-    this.keys = this.input.keyboard.addKeys({
-      up: Phaser.Input.Keyboard.KeyCodes.W,
-      left: Phaser.Input.Keyboard.KeyCodes.A,
-      down: Phaser.Input.Keyboard.KeyCodes.S,
-      right: Phaser.Input.Keyboard.KeyCodes.D
-    });
+    this._bindMoveKeys();
     // 스페이스바 → 번식 (후퇴는 이동으로)
     this.input.keyboard.on('keydown-SPACE', () => {
       if (!_paused && !this.gameOver) this.handleAction();
+    });
+  }
+
+  // 이동 키를 KEYMAP(js/keymap.js)에서 읽어 바인딩 — 리바인딩 시 재호출된다
+  _bindMoveKeys() {
+    if (this.keys) for (const k of Object.values(this.keys)) this.input.keyboard.removeKey(k);
+    const code = ch => Phaser.Input.Keyboard.KeyCodes[ch] ?? ch.toUpperCase().charCodeAt(0);
+    this.keys = this.input.keyboard.addKeys({
+      up: code(KEYMAP.move.up),
+      left: code(KEYMAP.move.left),
+      down: code(KEYMAP.move.down),
+      right: code(KEYMAP.move.right)
     });
   }
 
@@ -1719,9 +1726,10 @@ class ArenaScene extends Phaser.Scene {
     // WASD 모드에서만 키보드 방향 사용 (마우스 모드에선 WASD 이동 비활성)
     const keyX = moveMode === 'wasd' ? ((this.keys.right.isDown ? 1 : 0) - (this.keys.left.isDown ? 1 : 0)) : 0;
     const keyY = moveMode === 'wasd' ? ((this.keys.down.isDown ? 1 : 0) - (this.keys.up.isDown ? 1 : 0)) : 0;
-    // 조이스틱(터치)은 두 모드 모두에서 항상 동작
-    let dirX = this.joystick.dirX + keyX;
-    let dirY = this.joystick.dirY + keyY;
+    // 조이스틱(터치)·게임패드 왼스틱은 두 모드 모두에서 항상 동작
+    const padV = GamepadInput.moveVec();
+    let dirX = this.joystick.dirX + keyX + padV.x;
+    let dirY = this.joystick.dirY + keyY + padV.y;
 
     // 마우스 이동 모드: 우클릭 유지 시 매 프레임 커서 쪽으로 목적지 갱신(LoL식 추종)
     if (moveMode === 'mouse' && this._rmbHeld && Math.hypot(dirX, dirY) < 0.05) {

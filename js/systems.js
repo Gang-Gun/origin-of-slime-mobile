@@ -102,15 +102,17 @@ function combatSkillReqText(skillId) {
 }
 // ── 이동 방식별 스킬 단축키 ──────────────────────────
 // WASD 모드(왼손 이동): 스킬은 숫자열 1~6 / 마우스 모드(오른손 이동): 스킬은 QWERTY 열
+// 기본값·사용자 변경분은 js/keymap.js(KEYMAP)가 관리 — 옵션 > 키 설정에서 리바인딩
 const SKILL_KEYMAP = {
-  wasd:  { onslaught:'1', rally:'2', burst:'3', heal:'4', haste:'5', fear:'6' },
-  mouse: { onslaught:'Q', rally:'W', burst:'E', heal:'R', haste:'T', fear:'Y' },
+  get wasd()  { return KEYMAP.wasd; },
+  get mouse() { return KEYMAP.mouse; },
 };
 const SKILL_ORDER = ['onslaught', 'rally', 'burst', 'heal', 'haste', 'fear'];
 // 현재 이동 방식에서 해당 스킬의 단축키
 function skillKeyFor(id) { return (SKILL_KEYMAP[getMoveMode()] || SKILL_KEYMAP.wasd)[id] || ''; }
 // 눌린 키 → 현재 이동 방식에서 매핑된 스킬 id (없으면 null)
 function skillForKey(rawKey) {
+  if (typeof _keyCapture !== 'undefined' && _keyCapture) return null; // 키 설정 캡처 중
   const k = rawKey && rawKey.length === 1 ? rawKey.toUpperCase() : rawKey;
   const map = SKILL_KEYMAP[getMoveMode()] || SKILL_KEYMAP.wasd;
   for (const id of SKILL_ORDER) if (map[id] === k) return id;

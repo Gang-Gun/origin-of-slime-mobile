@@ -233,6 +233,7 @@ function toggleSfxSetting(btn) {
 
 /* ── 전체화면 관리 ───────────────────────────────────────────────── */
 function isFullscreen() {
+  if (window.desktop) return window.desktop.isFullscreen(); // Electron: 창 전체화면
   return !!(document.fullscreenElement || document.webkitFullscreenElement);
 }
 function enterFullscreen() {
@@ -245,6 +246,12 @@ function exitFullscreen() {
   if (fn) fn.call(document).catch(() => {});
 }
 function toggleFullscreen() {
+  if (window.desktop) {
+    // Electron은 창 자체를 전환한다 (브라우저 Fullscreen API 대신)
+    window.desktop.setFullscreen(!window.desktop.isFullscreen());
+    setTimeout(_syncFsBtns, 150); // 창 상태 반영 후 라벨 동기화
+    return;
+  }
   if (isFullscreen()) exitFullscreen(); else enterFullscreen();
 }
 function _syncFsBtns() {
@@ -253,6 +260,24 @@ function _syncFsBtns() {
 }
 document.addEventListener('fullscreenchange', _syncFsBtns);
 document.addEventListener('webkitfullscreenchange', _syncFsBtns);
+
+/* ── UI 크기 (HUD·메뉴 배율) ─────────────────────────────────────── */
+// body에 zoom을 걸고 #game-container에 역배율을 걸어 캔버스는 원본 크기를
+// 유지한다 (Steam Deck 등 고밀도 화면에서 UI만 키우는 용도).
+function applyUiScale() {
+  const v = Math.min(1.4, Math.max(0.8, parseFloat(Save.get('gpa_ui_scale') || '1') || 1));
+  document.body.style.zoom = v === 1 ? '' : String(v);
+  const gc = document.getElementById('game-container');
+  if (gc) gc.style.zoom = v === 1 ? '' : String(1 / v);
+  document.querySelectorAll('.ui-scale-slider').forEach(s => { s.value = Math.round(v * 100); });
+  const lbl = document.getElementById('ui-scale-label');
+  if (lbl) lbl.textContent = Math.round(v * 100) + '%';
+}
+function setUiScale(pct) {
+  Save.set('gpa_ui_scale', String((parseInt(pct, 10) || 100) / 100));
+  applyUiScale();
+}
+applyUiScale();
 
 /* ── 방향 전환 / 리사이즈 처리 ───────────────────────────────────── */
 let _orientTimer = null;
