@@ -974,7 +974,6 @@ canvas { display: block; image-rendering: pixelated; }
   #battle-banner { top: 84px; font-size: 12.5px; padding: 5px 14px; }
   #boss-banner { top: 126px; }
   #boss-hp { top: 76px; }
-  #next-boss-hint { top: 126px; }
   .meter { height: 10px; }
 }
 
@@ -1005,7 +1004,6 @@ canvas { display: block; image-rendering: pixelated; }
   #battle-banner { top: 78px; font-size: 12px; padding: 5px 12px; }
   #boss-banner { top: 116px; right: 100px; }
   #boss-hp { top: 138px; }
-  #next-boss-hint { top: 116px; right: 100px; }
   #event-message { top: 58%; font-size: 13px; padding: 12px 16px; width: min(280px, 52vw); }
   #event-message.tutorial-mode { top: 76%; }
   #event-message.boss-mode { top: 46%; left: 8px; width: min(220px, 56vw); }
@@ -1450,16 +1448,6 @@ body { image-rendering: pixelated; }
 #terrain-alert.warn   { background: #f6dca8 !important; color: var(--px-gold-d) !important; }
 #terrain-alert.active { background: var(--px-red) !important; color: #fff !important; text-shadow: 1px 1px 0 rgba(0,0,0,.4) !important; }
 
-/* ── 다음 보스 예고: 양피지 배너 ── */
-#next-boss-hint {
-  background: var(--px-parch) !important;
-  border: 3px solid var(--px-out) !important;
-  border-radius: 5px !important;
-  color: var(--px-ink) !important;
-  backdrop-filter: none !important;
-  box-shadow: 3px 3px 0 0 rgba(25,15,7,.24) !important;
-}
-
 /* ── 돌연변이 선택창 보유율 배지: 블록형(색 구분 유지) ── */
 .mut-pick-option .mut-own {
   border-width: 2px !important; border-radius: 3px !important;
@@ -1860,7 +1848,6 @@ body { image-rendering: pixelated; }
   <div id="toast-ach" class="toast-stack"></div>
   <div id="event-message"><span id="evt-text"></span><button id="evt-collapse-btn" aria-label="접기">−</button></div>
   <div id="boss-banner" onclick="toggleBossBanner()"><span id="boss-banner-text"></span><button id="boss-dex-btn" onclick="event.stopPropagation();openDex('boss')" style="margin-top:6px;display:block;width:100%;background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.4);border-radius:8px;color:#fff;font-family:'Jua',sans-serif;font-size:12px;padding:4px 0;cursor:pointer">📖 도감에서 확인</button><button id="boss-collapse-btn" onclick="event.stopPropagation();toggleBossBanner()">−</button></div>
-  <div id="next-boss-hint" style="display:none;position:fixed;top:134px;left:8px;right:62px;transform:none;z-index:25;background:rgba(20,14,36,.82);border:1.5px solid rgba(110,99,132,.4);border-radius:12px;padding:6px 14px;font-size:11.5px;font-weight:800;color:#fff;text-align:center;white-space:nowrap;backdrop-filter:blur(6px);overflow:hidden;text-overflow:ellipsis"></div>
   <div id="boss-arrow"></div>
   <div id="boss-hp"><div id="boss-hp-fill"></div><span id="boss-hp-label"></span></div>
   <div id="terrain-alert"></div>
@@ -7407,7 +7394,7 @@ _tickSpecialEvent() {
       if (tiles.length) {
         const t = tiles[Math.floor(Math.random() * tiles.length)];
         this.player.x = t.px; this.player.y = t.py;
-        this.showMessage(`🚁 긴급 피난! ${this.activeBoss.refugeText}(으)로 이동`, true);
+        this.showMessage('🚁 긴급 피난! 안전한 곳으로 대피했습니다', true);
       }
     }
   }
@@ -8100,31 +8087,27 @@ resolveBoss(win, reason) {
       }
     }
 
-    // 다음 보스 힌트 배너
-    const hintEl = document.getElementById('next-boss-hint');
-    if (hintEl && this._waveList) {
-      const bossActive = this.bossPhase !== 'idle' || this.activeBoss;
+    // 다음 보스 예고 — 경고 단계와 동일한 상단 배너(boss-banner) 하나로 통일 표시
+    // (idle: 출현까지 남은 시간 = 예고 시작까지 + 경고 60초 → 경고 단계 카운트다운과 끊김 없이 이어짐)
+    if (this._waveList && this.bossPhase === 'idle' && !this.activeBoss) {
+      const banner = document.getElementById('boss-banner');
       const allDone = this._waveIdx >= this._waveList.length;
-      if (bossActive || allDone) {
-        hintEl.style.display = 'none';
+      const nextBoss = allDone ? null : bossById(this._waveList[this._waveIdx]);
+      if (nextBoss) {
+        const secsLeft = Math.max(0, Math.ceil((this._nextBossAt - this.elapsed) / 1000)) + Math.round(BOSS_WARN_TIME / 1000);
+        const m = Math.floor(secsLeft / 60), s = secsLeft % 60;
+        const timeStr = m > 0 ? `${m}분 ${s}초` : `${s}초`;
+        const alive = this.player.individuals.filter(i => !i.dead);
+        let safeN = 0;
+        try { safeN = alive.filter(i => nextBoss.safe(i, this.player)).length; } catch (e) {}
+        const n = alive.length || 1;
+        const ready = Math.round(safeN / n * 100);
+        const readyCol = ready >= 80 ? '#4ade80' : ready >= 50 ? '#fbbf24' : '#f87171';
+        document.getElementById('boss-banner-text').innerHTML =
+          `${nextBoss.ico} <b>${nextBoss.name}</b> ${timeStr} 후 출현!<br>요구: <b>${nextBoss.reqText}</b><br>🛡 안전 <b style="color:${readyCol}">${safeN}/${alive.length} (${ready}%)</b> — 조건 미충족 개체는 도태!`;
+        banner.classList.add('show');
       } else {
-        const nextBoss = bossById(this._waveList[this._waveIdx]);
-        if (nextBoss) {
-          const secsLeft = Math.max(0, Math.ceil((this._nextBossAt - this.elapsed) / 1000));
-          const waveNum  = this._waveIdx + 1;
-          const m = Math.floor(secsLeft / 60), s = secsLeft % 60;
-          const timeStr = m > 0 ? `${m}분 ${s}초` : `${s}초`;
-          // 현재 안전 조건을 충족한 개체 수 실시간 표시 (색으로 준비 상태 직관화)
-          const alive = this.player.individuals.filter(i => !i.dead);
-          let safeN = 0;
-          try { safeN = alive.filter(i => nextBoss.safe(i, this.player)).length; } catch (e) {}
-          const ratio = alive.length ? safeN / alive.length : 0;
-          const safeCol = ratio >= 0.8 ? '#4ade80' : ratio >= 0.5 ? '#fbbf24' : '#f87171';
-          hintEl.style.display = '';
-          hintEl.innerHTML = `⚔️ <b>${waveNum}/3</b> ${nextBoss.ico} <b>${nextBoss.name}</b> ${timeStr} 후 &nbsp;|&nbsp; <span style="color:${safeCol}">🛡 안전 <b>${safeN}/${alive.length}</b></span> &nbsp;|&nbsp; 준비: ${nextBoss.reqText}`;
-        } else {
-          hintEl.style.display = 'none';
-        }
+        banner.classList.remove('show');
       }
     }
   }
@@ -8924,7 +8907,6 @@ function renderBossDex() {
               return `${pd.ico} ${pd.name} (${pd.hint})`;
             })()}</div>
             ${bossHasPhase2(b) ? `<div class="boss-req" style="color:#f97316">🔥 2페이즈: HP 50% 이하에서 강화 — 양 패턴 사용·공속/피해 증가</div>` : ''}
-            <div class="boss-req">📍 추천 진화 장소: ${b.refugeText}</div>
             ${b.spawnText ? `<div class="boss-req" style="color:#fbbf24">⚡ 등장 조건: ${b.spawnText}</div>` : ''}
           </div>
           <div class="boss-badge">✅ 처치</div>
