@@ -44,11 +44,11 @@ const TRANSLATIONS = {
     inf_ongoing: '♾️ Ongoing',
   }
 };
-let _lang = localStorage.getItem('gpa_lang') || 'ko';
+let _lang = Save.get('gpa_lang') || 'ko';
 function T(key) { return (TRANSLATIONS[_lang] || TRANSLATIONS.ko)[key] || TRANSLATIONS.ko[key] || key; }
 function setLang(lang) {
   _lang = lang;
-  localStorage.setItem('gpa_lang', lang);
+  Save.set('gpa_lang', lang);
   applyI18n();
 }
 function applyI18n() {

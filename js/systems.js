@@ -17,12 +17,12 @@ const DIFFICULTIES = [
 let CURRENT_DIFFICULTY = 0; // 0~3, startGame()에서 설정
 let GAME_MODE = 'normal'; // 'normal' | 'infinite'
 function getMaxUnlockedDiff() {
-  return Math.min(3, parseInt(localStorage.getItem('gpa_diff_max') || '0', 10));
+  return Math.min(3, parseInt(Save.get('gpa_diff_max') || '0', 10));
 }
 function unlockNextDiff(current) {
   const next = current + 1;
   if (next <= 3 && next > getMaxUnlockedDiff()) {
-    localStorage.setItem('gpa_diff_max', String(next));
+    Save.set('gpa_diff_max', String(next));
     return DIFFICULTIES[next]; // 새로 해금된 난이도 반환
   }
   return null;
@@ -1126,7 +1126,7 @@ class Group {
     const deferPick = this.isPlayer
       && LAB_BUFFS && LAB_BUFFS.breedMutPick
       && typeof window !== 'undefined' && window._arenaScene && !window._arenaScene.tutorialActive
-      && localStorage.getItem('gpa_breedpick_off') !== '1';
+      && Save.get('gpa_breedpick_off') !== '1';
     for (let i = 0; i < childCount; i += 1) {
       const parentA = this.pickParent();
       const parentB = this.pickParent(parentA);

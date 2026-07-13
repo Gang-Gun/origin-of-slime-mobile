@@ -14,7 +14,7 @@ class AudioManager {
     try {
       this.ctx = new (window.AudioContext || window.webkitAudioContext)();
       this.masterGain = this.ctx.createGain();
-      this.masterGain.gain.value = parseInt(localStorage.getItem('gpa_sfx_vol') ?? '50') / 100 * 0.7;
+      this.masterGain.gain.value = parseInt(Save.get('gpa_sfx_vol') ?? '50') / 100 * 0.7;
       this.masterGain.connect(this.ctx.destination);
       this.startAmbient();
     } catch (e) { this.ctx = null; }
@@ -93,9 +93,9 @@ class AudioManager {
     if (this._bgm || this._synthBgmActive) return;
     const audio = new window.Audio('assets/bgm.mp3');
     audio.loop = true;
-    audio.volume = parseInt(localStorage.getItem('gpa_bgm_vol') ?? '45') / 100;
+    audio.volume = parseInt(Save.get('gpa_bgm_vol') ?? '45') / 100;
     audio.muted = this.muted;
-    if (localStorage.getItem('gpa_bgm_off') !== '1') {
+    if (Save.get('gpa_bgm_off') !== '1') {
       audio.play().then(() => { this._bgm = audio; }).catch(() => this._startSynthBgm());
     } else {
       this._bgm = audio; // 저장만
@@ -104,9 +104,9 @@ class AudioManager {
 
   // Web Audio 합성 BGM: 자연/생태 테마 펜타토닉 멜로디 루프
   _startSynthBgm() {
-    if (!this.ctx || this._synthBgmActive || localStorage.getItem('gpa_bgm_off') === '1') return;
+    if (!this.ctx || this._synthBgmActive || Save.get('gpa_bgm_off') === '1') return;
     this._synthBgmActive = true;
-    const vol = parseInt(localStorage.getItem('gpa_bgm_vol') ?? '45') / 100 * 0.5;
+    const vol = parseInt(Save.get('gpa_bgm_vol') ?? '45') / 100 * 0.5;
 
     // 펜타토닉 음계 C장조: C4 D4 E4 G4 A4 C5 D5 E5
     const NOTES = [261.63, 293.66, 329.63, 392.00, 440.00, 523.25, 587.33, 659.25];
@@ -165,10 +165,10 @@ class AudioManager {
     if (this._synthBgmGain) { try { this._synthBgmGain.gain.value = 0; } catch(e){} }
   }
   resumeBgm() {
-    if (localStorage.getItem('gpa_bgm_off') === '1') return;
+    if (Save.get('gpa_bgm_off') === '1') return;
     if (this._bgm) this._bgm.play().catch(() => {});
     if (this._synthBgmGain && !this.muted) {
-      const vol = parseInt(localStorage.getItem('gpa_bgm_vol') ?? '45') / 100 * 0.5;
+      const vol = parseInt(Save.get('gpa_bgm_vol') ?? '45') / 100 * 0.5;
       try { this._synthBgmGain.gain.value = vol; } catch(e){}
     }
     if (!this._bgm && !this._synthBgmActive) this._startSynthBgm();
@@ -176,7 +176,7 @@ class AudioManager {
   setMuted(m) {
     this.muted = m;
     if (this.masterGain) {
-      const sfxVol = parseInt(localStorage.getItem('gpa_sfx_vol') ?? '50') / 100 * 0.7;
+      const sfxVol = parseInt(Save.get('gpa_sfx_vol') ?? '50') / 100 * 0.7;
       this.masterGain.gain.value = m ? 0 : sfxVol;
     }
     if (this._bgm) this._bgm.muted = m;
@@ -338,7 +338,7 @@ class ArenaScene extends Phaser.Scene {
     });
     this.showMessage('🌱 슬라임 집단을 이끌고\n먹이를 모으세요!');
     // 튜토리얼 자동 시작 (첫 게임)
-    if (!localStorage.getItem('gpa_tutorial_done')) {
+    if (!Save.get('gpa_tutorial_done')) {
       setTimeout(() => Tutorial.start(this), 800);
     }
   }
@@ -709,7 +709,7 @@ class ArenaScene extends Phaser.Scene {
     // ── 이벤트 진행 중: 알림 표시 (모드별) + 가장자리 글로우 ──
     // 알림 모드: 'compact'(기본, 작은 칩) | 'full'(자세한 문장 박스) | 'off'(칩 없음)
     // 어느 모드든 위험 개체 글로우(_syncDangerMarkers)는 유지 → 어떤 개체가 위험한지는 항상 보임
-    const _mode = localStorage.getItem('gpa_terrain_notify') || 'compact';
+    const _mode = Save.get('gpa_terrain_notify') || 'compact';
     const _pt = this.terrainAt(this.player.x, this.player.y);
     const _pd = _pt?._danger;
     const _inEvent = _pd?.event && (_pd.phase === 'warning' || _pd.phase === 'active');
@@ -1565,7 +1565,7 @@ class ArenaScene extends Phaser.Scene {
 
   update(_time, dt) {
     if (this.gameOver || this.meteorActive) return;
-    const _speedMult = (LAB_BUFFS?.gameSpeedUnlock > 0) ? (parseFloat(localStorage.getItem('gpa_speed_val') || '1')) : 1;
+    const _speedMult = (LAB_BUFFS?.gameSpeedUnlock > 0) ? (parseFloat(Save.get('gpa_speed_val') || '1')) : 1;
     const gameDt = dt * _speedMult;
     this.elapsed += gameDt;
     const now = Date.now();
@@ -2448,7 +2448,7 @@ class ArenaScene extends Phaser.Scene {
     if (this.evoExp < evoExpNeedFor(this.evoLevel)) { this._evoPickerQueued = false; return; }
     this._evoPickerQueued = false;
     // 선택창 OFF 옵션: 무작위 후보 자동 발현
-    if (localStorage.getItem('gpa_mutpick_off') === '1') {
+    if (Save.get('gpa_mutpick_off') === '1') {
       const auto = rollEvolutionCandidates(this.player, 1)[0];
       if (auto) { this._applyEvolution(auto); return; }
     }
@@ -3269,8 +3269,8 @@ resolveBoss(win, reason) {
                   duration: 360, ease: 'Power2.In',
                   onComplete: () => {
                     if (item.active) item.destroy();
-                    if (type === 'frag') localStorage.setItem('gpa_frag', labGetFrag() + 1);
-                    else                localStorage.setItem('gpa_ess',  labGetEss()  + 1);
+                    if (type === 'frag') Save.set('gpa_frag', labGetFrag() + 1);
+                    else                Save.set('gpa_ess',  labGetEss()  + 1);
                   }
                 });
               });

@@ -1,7 +1,7 @@
 'use strict';
 // ── 이동 방식 (PC): 'wasd'(에브리띵이즈크랩식 키보드) | 'mouse'(LoL식 우클릭 이동) ──
 function getMoveMode() {
-  const m = localStorage.getItem('gpa_move_mode');
+  const m = Save.get('gpa_move_mode');
   return m === 'mouse' ? 'mouse' : 'wasd';
 }
 function refreshMoveModeBtns() {
@@ -14,7 +14,7 @@ function refreshMoveModeBtns() {
 }
 function cycleMoveMode(btn) {
   const next = getMoveMode() === 'wasd' ? 'mouse' : 'wasd';
-  localStorage.setItem('gpa_move_mode', next);
+  Save.set('gpa_move_mode', next);
   refreshMoveModeBtns();
   refreshSkillKeyBadges(); // 이동 방식에 따라 스킬 키 배지(1~6 / QWERTY) 갱신
   // 모드 전환 시 이동 목표·조이스틱 잔상 정리
@@ -46,33 +46,33 @@ function toggleBossBanner() {
 function openOptionsModal() {
   document.getElementById('options-modal').classList.add('open');
   const bgmBtn = document.getElementById('options-bgm-toggle');
-  if (bgmBtn) bgmBtn.classList.toggle('on', localStorage.getItem('gpa_bgm_off') !== '1');
+  if (bgmBtn) bgmBtn.classList.toggle('on', Save.get('gpa_bgm_off') !== '1');
   const mutBtn = document.getElementById('options-mutpick-toggle');
-  if (mutBtn) mutBtn.classList.toggle('on', localStorage.getItem('gpa_mutpick_off') !== '1');
+  if (mutBtn) mutBtn.classList.toggle('on', Save.get('gpa_mutpick_off') !== '1');
   const breedBtn = document.getElementById('options-breedpick-toggle');
-  if (breedBtn) breedBtn.classList.toggle('on', localStorage.getItem('gpa_breedpick_off') !== '1');
+  if (breedBtn) breedBtn.classList.toggle('on', Save.get('gpa_breedpick_off') !== '1');
   refreshTerrainNotifyBtns();
   refreshMoveModeBtns();
-  const bgmVol = localStorage.getItem('gpa_bgm_vol') ?? '45';
-  const sfxVol = localStorage.getItem('gpa_sfx_vol') ?? '50';
+  const bgmVol = Save.get('gpa_bgm_vol') ?? '45';
+  const sfxVol = Save.get('gpa_sfx_vol') ?? '50';
   document.querySelectorAll('.vol-slider[id$="-bgm-vol"]').forEach(s => s.value = bgmVol);
   document.querySelectorAll('.vol-slider[id$="-sfx-vol"]').forEach(s => s.value = sfxVol);
 }
 function setBgmVol(val) {
   const v = parseInt(val) / 100;
-  localStorage.setItem('gpa_bgm_vol', val);
+  Save.set('gpa_bgm_vol', val);
   if (Audio._bgm) Audio._bgm.volume = v;
   document.querySelectorAll('.vol-slider[id$="-bgm-vol"]').forEach(s => s.value = val);
 }
 function setSfxVol(val) {
-  localStorage.setItem('gpa_sfx_vol', val);
+  Save.set('gpa_sfx_vol', val);
   if (Audio.masterGain && !Audio.muted) Audio.masterGain.gain.value = parseInt(val) / 100 * 0.7;
   document.querySelectorAll('.vol-slider[id$="-sfx-vol"]').forEach(s => s.value = val);
 }
 function toggleOptionsBgm(btn) {
   btn.classList.toggle('on');
   const off = !btn.classList.contains('on');
-  localStorage.setItem('gpa_bgm_off', off ? '1' : '0');
+  Save.set('gpa_bgm_off', off ? '1' : '0');
   if (off) Audio.pauseBgm(); else Audio.resumeBgm();
   const p = document.getElementById('pause-bgm-toggle');
   if (p) p.classList.toggle('on', !off);
@@ -133,19 +133,18 @@ document.addEventListener('keydown', e => {
 
 function resetAccount() {
   if (!confirm('⚠️ 정말 초기화하시겠습니까?\n\n계통수 해금, 통계, 업적, 리더보드 연동 등\n모든 진행 데이터가 삭제됩니다.\n\n이 작업은 되돌릴 수 없습니다.')) return;
-  const keysToRemove = Object.keys(localStorage).filter(k => k.startsWith('gpa_'));
-  keysToRemove.forEach(k => localStorage.removeItem(k));
+  Save.resetAll();
   closeOptionsModal();
   alert('✅ 초기화 완료. 페이지를 새로고침합니다.');
   location.reload();
 }
 function toggleOptionsMutPick(btn) {
   btn.classList.toggle('on');
-  localStorage.setItem('gpa_mutpick_off', btn.classList.contains('on') ? '0' : '1');
+  Save.set('gpa_mutpick_off', btn.classList.contains('on') ? '0' : '1');
 }
 function toggleOptionsBreedPick(btn) {
   btn.classList.toggle('on');
-  localStorage.setItem('gpa_breedpick_off', btn.classList.contains('on') ? '0' : '1');
+  Save.set('gpa_breedpick_off', btn.classList.contains('on') ? '0' : '1');
   const pauseBtn = document.getElementById('pause-breedpick-toggle');
   if (pauseBtn) pauseBtn.classList.toggle('on', btn.classList.contains('on'));
 }
@@ -190,35 +189,35 @@ function toggleSettings() {
   if (sLabel) sLabel.textContent = unlocked ? '⚡ 게임 속도' : '⚡ 게임 속도 (계통수 가속 I 해금 필요)';
   refreshSpeedBtn();
   const bgmBtn = document.getElementById('pause-bgm-toggle');
-  if (bgmBtn) bgmBtn.classList.toggle('on', localStorage.getItem('gpa_bgm_off') !== '1');
-  const bgmVol = localStorage.getItem('gpa_bgm_vol') ?? '45';
-  const sfxVol = localStorage.getItem('gpa_sfx_vol') ?? '50';
+  if (bgmBtn) bgmBtn.classList.toggle('on', Save.get('gpa_bgm_off') !== '1');
+  const bgmVol = Save.get('gpa_bgm_vol') ?? '45';
+  const sfxVol = Save.get('gpa_sfx_vol') ?? '50';
   document.querySelectorAll('.vol-slider[id$="-bgm-vol"]').forEach(s => s.value = bgmVol);
   document.querySelectorAll('.vol-slider[id$="-sfx-vol"]').forEach(s => s.value = sfxVol);
   const mutBtn = document.getElementById('pause-mutpick-toggle');
-  if (mutBtn) mutBtn.classList.toggle('on', localStorage.getItem('gpa_mutpick_off') !== '1');
+  if (mutBtn) mutBtn.classList.toggle('on', Save.get('gpa_mutpick_off') !== '1');
   const breedBtn = document.getElementById('pause-breedpick-toggle');
-  if (breedBtn) breedBtn.classList.toggle('on', localStorage.getItem('gpa_breedpick_off') !== '1');
+  if (breedBtn) breedBtn.classList.toggle('on', Save.get('gpa_breedpick_off') !== '1');
   refreshTerrainNotifyBtns();
   refreshMoveModeBtns();
 }
 function togglePauseBgm(btn) {
   btn.classList.toggle('on');
   const off = !btn.classList.contains('on');
-  localStorage.setItem('gpa_bgm_off', off ? '1' : '0');
+  Save.set('gpa_bgm_off', off ? '1' : '0');
   if (off) Audio.pauseBgm(); else Audio.resumeBgm();
   const o = document.getElementById('options-bgm-toggle');
   if (o) o.classList.toggle('on', !off);
 }
 function togglePauseMutPick(btn) {
   btn.classList.toggle('on');
-  localStorage.setItem('gpa_mutpick_off', btn.classList.contains('on') ? '0' : '1');
+  Save.set('gpa_mutpick_off', btn.classList.contains('on') ? '0' : '1');
   const optBtn = document.getElementById('options-mutpick-toggle');
   if (optBtn) optBtn.classList.toggle('on', btn.classList.contains('on'));
 }
 function togglePauseBreedPick(btn) {
   btn.classList.toggle('on');
-  localStorage.setItem('gpa_breedpick_off', btn.classList.contains('on') ? '0' : '1');
+  Save.set('gpa_breedpick_off', btn.classList.contains('on') ? '0' : '1');
   const optBtn = document.getElementById('options-breedpick-toggle');
   if (optBtn) optBtn.classList.toggle('on', btn.classList.contains('on'));
 }

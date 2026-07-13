@@ -245,7 +245,7 @@ const Tutorial = (() => {
     clearInterval(checkInterval);
     clearTimeout(playTimer);
     document.getElementById('tutorial-card').classList.remove('tut-playing');
-    localStorage.setItem('gpa_tutorial_done', '1');
+    Save.set('gpa_tutorial_done', '1');
     // 리로드 후 타이틀·난이도 선택을 다시 거치지 않고 같은 설정으로 바로 시작
     try { sessionStorage.setItem('gpa_autostart', JSON.stringify({ diff: CURRENT_DIFFICULTY, mode: GAME_MODE })); } catch {}
 
@@ -283,12 +283,12 @@ const Tutorial = (() => {
 const ContextHint = (() => {
   const KEY = 'gpa_hints_seen';
   function seen(id) {
-    try { return JSON.parse(localStorage.getItem(KEY) || '[]').includes(id); } catch { return false; }
+    try { return JSON.parse(Save.get(KEY) || '[]').includes(id); } catch { return false; }
   }
   function mark(id) {
     try {
-      const arr = JSON.parse(localStorage.getItem(KEY) || '[]');
-      if (!arr.includes(id)) { arr.push(id); localStorage.setItem(KEY, JSON.stringify(arr)); }
+      const arr = JSON.parse(Save.get(KEY) || '[]');
+      if (!arr.includes(id)) { arr.push(id); Save.set(KEY, JSON.stringify(arr)); }
     } catch {}
   }
   function show(id, ico, text) {
@@ -346,11 +346,11 @@ document.addEventListener('visibilitychange', () => {
 // ── Feature 4: 누적 통계 ────────────────────────────────────────────
 function loadStats() {
   try {
-    const v = JSON.parse(localStorage.getItem('gpa_stats') || '{}');
+    const v = JSON.parse(Save.get('gpa_stats') || '{}');
     return (v && typeof v === 'object' && !Array.isArray(v)) ? v : {};
   } catch { return {}; }
 }
-function saveStats(s) { localStorage.setItem('gpa_stats', JSON.stringify(s)); }
+function saveStats(s) { Save.set('gpa_stats', JSON.stringify(s)); }
 function openStatsModal() {
   const s = loadStats();
   const ms = s.totalPlayMs || 0;

@@ -134,18 +134,18 @@ const LAB_NODE_MAP = {};
 for (const n of LAB_NODE_DEFS) LAB_NODE_MAP[n.id] = n;
 
 // ── localStorage helpers ────────────────────────────
-function labGetFrag()  { const n = parseInt(localStorage.getItem('gpa_frag') || '0', 10); return Number.isFinite(n) ? n : 0; }
-function labGetEss()   { const n = parseInt(localStorage.getItem('gpa_ess')  || '0', 10); return Number.isFinite(n) ? n : 0; }
+function labGetFrag()  { const n = parseInt(Save.get('gpa_frag') || '0', 10); return Number.isFinite(n) ? n : 0; }
+function labGetEss()   { const n = parseInt(Save.get('gpa_ess')  || '0', 10); return Number.isFinite(n) ? n : 0; }
 function labGetOwned() {
   // 저장 데이터가 손상돼 배열이 아니면 빈 배열로 복구
   // (여기서 배열이 아닌 값이 나오면 computeLabBuffs()의 new Set()이 최상위에서 던져 게임 전체가 부팅 불가)
   try {
-    const v = JSON.parse(localStorage.getItem('gpa_lab_purchased') || '[]');
+    const v = JSON.parse(Save.get('gpa_lab_purchased') || '[]');
     return Array.isArray(v) ? v : [];
   }
   catch(e){ return []; }
 }
-function labSaveOwned(arr) { localStorage.setItem('gpa_lab_purchased', JSON.stringify(arr)); }
+function labSaveOwned(arr) { Save.set('gpa_lab_purchased', JSON.stringify(arr)); }
 
 // ── Compute LAB_BUFFS from purchased nodes ──────────
 let LAB_BUFFS = {};
@@ -376,8 +376,8 @@ function confirmBuyLabNode() {
       `정수가 부족합니다. (보유: ${ess} / 필요: ${node.costAmt})`;
     return;
   }
-  if (node.costType==='frag') localStorage.setItem('gpa_frag', frag - node.costAmt);
-  if (node.costType==='ess')  localStorage.setItem('gpa_ess',  ess  - node.costAmt);
+  if (node.costType==='frag') Save.set('gpa_frag', frag - node.costAmt);
+  if (node.costType==='ess')  Save.set('gpa_ess',  ess  - node.costAmt);
   owned.push(id);
   labSaveOwned(owned);
   computeLabBuffs();

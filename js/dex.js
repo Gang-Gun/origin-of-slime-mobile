@@ -134,21 +134,21 @@ function filterEventByTerrain(id) {
 
 // ── 보스 도감 저장소 ──────────────────────────────────────
 function loadKilledBosses() {
-  try { const r = localStorage.getItem('gpa_boss_killed'); return new Set(r ? JSON.parse(r) : []); }
+  try { const r = Save.get('gpa_boss_killed'); return new Set(r ? JSON.parse(r) : []); }
   catch { return new Set(); }
 }
 function markBossKilled(id) {
   const s = loadKilledBosses(); s.add(id);
-  localStorage.setItem('gpa_boss_killed', JSON.stringify([...s]));
+  Save.set('gpa_boss_killed', JSON.stringify([...s]));
   // 난이도별 처치 기록
   const dk = `gpa_boss_killed_d${CURRENT_DIFFICULTY}`;
   try {
-    const ds = new Set(JSON.parse(localStorage.getItem(dk) || '[]'));
-    ds.add(id); localStorage.setItem(dk, JSON.stringify([...ds]));
+    const ds = new Set(JSON.parse(Save.get(dk) || '[]'));
+    ds.add(id); Save.set(dk, JSON.stringify([...ds]));
   } catch {}
 }
 function loadBossKilledOnDiff(diffIdx) {
-  try { return new Set(JSON.parse(localStorage.getItem(`gpa_boss_killed_d${diffIdx}`) || '[]')); }
+  try { return new Set(JSON.parse(Save.get(`gpa_boss_killed_d${diffIdx}`) || '[]')); }
   catch { return new Set(); }
 }
 function renderBossDex() {
@@ -219,14 +219,14 @@ function renderBossDex() {
 // ── 도전과제 영구 해금 저장소 ─────────────────────────────
 function loadUnlockedAch() {
   try {
-    const raw = localStorage.getItem('gpa_ach_unlocked');
+    const raw = Save.get('gpa_ach_unlocked');
     return new Set(raw ? JSON.parse(raw) : []);
   } catch { return new Set(); }
 }
 function markAchUnlocked(id) {
   const set = loadUnlockedAch();
   set.add(id);
-  localStorage.setItem('gpa_ach_unlocked', JSON.stringify([...set]));
+  Save.set('gpa_ach_unlocked', JSON.stringify([...set]));
 }
 
 let _achFilter = 'all';
@@ -379,17 +379,17 @@ function setDexFilter(filter, btn) {
 function cycleGameSpeed() {
   const max = LAB_BUFFS?.gameSpeedUnlock || 0;
   if (!max) return;
-  const cur = parseFloat(localStorage.getItem('gpa_speed_val') || '1');
+  const cur = parseFloat(Save.get('gpa_speed_val') || '1');
   const options = [1, ...(max >= 1.5 ? [1.5] : []), ...(max >= 2 ? [2] : [])];
   const next = options[(options.indexOf(cur) + 1) % options.length];
-  localStorage.setItem('gpa_speed_val', String(next));
+  Save.set('gpa_speed_val', String(next));
   refreshSpeedBtn();
 }
 function refreshSpeedBtn() {
   const btn = document.getElementById('pause-speed-toggle');
   if (!btn) return;
   const max = LAB_BUFFS?.gameSpeedUnlock || 0;
-  const cur = parseFloat(localStorage.getItem('gpa_speed_val') || '1');
+  const cur = parseFloat(Save.get('gpa_speed_val') || '1');
   btn.textContent = `${cur}×`;
   btn.disabled = !max;
   btn.style.opacity = max ? '' : '0.35';
@@ -402,7 +402,7 @@ function toggleGameSpeed(btn) { cycleGameSpeed(); } // 하위호환
 const TERR_NOTIFY_MODES = ['compact', 'full', 'off'];
 const TERR_NOTIFY_LABEL = { compact: '간략', full: '자세히', off: '끄기' };
 function getTerrainNotify() {
-  const m = localStorage.getItem('gpa_terrain_notify');
+  const m = Save.get('gpa_terrain_notify');
   return TERR_NOTIFY_MODES.includes(m) ? m : 'compact';
 }
 function refreshTerrainNotifyBtns() {
@@ -415,7 +415,7 @@ function refreshTerrainNotifyBtns() {
 function cycleTerrainNotify(btn) {
   const cur = getTerrainNotify();
   const next = TERR_NOTIFY_MODES[(TERR_NOTIFY_MODES.indexOf(cur) + 1) % TERR_NOTIFY_MODES.length];
-  localStorage.setItem('gpa_terrain_notify', next);
+  Save.set('gpa_terrain_notify', next);
   refreshTerrainNotifyBtns();
   refreshMoveModeBtns();
   // 즉시 반영: 남아있던 칩/박스 정리 (다음 틱에 새 모드로 다시 그려짐)

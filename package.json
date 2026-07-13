@@ -5,7 +5,7 @@
   "description": "슬라임의 기원 | Origin of Slime — 유전·진화 생존 게임",
   "main": "electron/main.js",
   "scripts": {
-    "test": "node test/check-syntax.mjs && node test/smoke-ach.mjs && node test/smoke-boss.mjs && node test/smoke-evo.mjs && node test/smoke-visual.mjs",
+    "test": "node test/check-syntax.mjs && node test/smoke-save.mjs && node test/smoke-ach.mjs && node test/smoke-boss.mjs && node test/smoke-evo.mjs && node test/smoke-visual.mjs",
     "serve": "python3 -m http.server 8080",
     "start": "electron .",
     "dist": "electron-builder"
