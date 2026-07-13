@@ -1,9 +1,5 @@
-import { readFileSync } from 'node:fs';
-const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
-// 가장 긴 인라인 스크립트 = 메인 게임 스크립트 (앞쪽의 짧은 가드 스크립트는 건너뜀)
-const scripts = [...html.matchAll(/<script\b(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/gi)].map(m => m[1]);
-if (!scripts.length) { console.error('인라인 스크립트를 찾지 못함'); process.exit(1); }
-const code = scripts.reduce((a, b) => (b.length > a.length ? b : a), '');
+import { loadGameCode } from './helpers/game-code.mjs';
+const code = loadGameCode();
 const stub = new Proxy(function(){}, { get(_t,p){ if(p===Symbol.toPrimitive) return ()=>0; if(p==='toString') return ()=>''; return stub; }, apply(){return stub;}, construct(){return stub;}, has(){return true;} });
 const Phaser = { Scene: class {}, Game: class { constructor(){} }, AUTO:0, Scale: stub };
 let api;

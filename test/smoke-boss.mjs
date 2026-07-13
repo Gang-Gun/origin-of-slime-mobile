@@ -1,12 +1,8 @@
 // 브라우저 없이 index.html의 인라인 스크립트를 스텁 환경에서 부팅하여
 // 보스 데이터/웨이브 추첨 로직을 검증한다. (Phaser/DOM 등은 catch-all 프록시로 무력화)
-import { readFileSync } from 'node:fs';
+import { loadGameCode } from './helpers/game-code.mjs';
 
-const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
-// 가장 긴 인라인 스크립트 = 메인 게임 스크립트 (앞쪽의 짧은 가드 스크립트는 건너뜀)
-const scripts = [...html.matchAll(/<script\b(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/gi)].map(m => m[1]);
-if (!scripts.length) { console.error('인라인 스크립트를 찾지 못함'); process.exit(1); }
-const code = scripts.reduce((a, b) => (b.length > a.length ? b : a), '');
+const code = loadGameCode();
 
 // 어떤 접근/호출/생성에도 자기 자신을 돌려주고 0/''로 강제변환되는 만능 스텁
 const stub = new Proxy(function(){}, {
